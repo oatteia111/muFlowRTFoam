@@ -1,0 +1,16 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
+wclean all fvOptions
+wclean all librairies
+wclean all solvers
+
+# purge option to clean executables
+if [ "$1" = "--purge" ]
+then
+    # clean solver executables
+    rm -f $FOAM_USER_APPBIN/gwaterFoam
+    # clean dynamic libraries
+    rm -f $FOAM_USER_LIBBIN/libfvOptions.so
+    rm -f $FOAM_USER_LIBBIN/phaseModels.so
+fi

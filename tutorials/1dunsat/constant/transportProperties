@@ -1,0 +1,14 @@
+FoamFile{version 2.0;format ascii;class dictionary;location "constant";object transportProperties;}
+flowStartSteady 0;
+activateCapillarity 1;
+sw_min 0.2;sw_max 0.999;
+phase.w{rho	rho [1 -3 0 0 0 0 0] 1e3;mu mu [1 -1 -1 0 0 0 0] 1e-3;}
+phase.g{rho	rho [1 -3 0 0 0 0 0] 1.2;mu mu [1 -1 -1 0 0 0 0] 1e-5;}
+alphaL alphaL [0 1 0 0 0 0 0] 0.01;
+alphaT alphaT [0 1 0 0 0 0 0] 0.01;
+Dw0 Dw0 [0 2 -1 0 0 0 0] 1e-10;
+Dg0 Dg0 [0 2 -1 0 0 0 0] 1e-06;
+diffusionEqn 1;
+reactionSteps 1;
+flowType 3;
+nlay 1; ncell_lay 184;

@@ -1,0 +1,54 @@
+FoamFile
+{
+ version 2.0;
+ format ascii;
+ class dictionary;
+ location "system";
+ object controlDict;
+}
+application gwaterFoam;
+ startFrom startTime;
+ stopAt endTime;
+ writeControl adjustableRunTime;
+ purgeWrite 0;
+ writeFormat ascii;
+ writePrecision 6;
+ writeCompression uncompressed;
+ timeFormat fixed;
+ timePrecision 0;
+ runTimeModifiable yes;
+
+startTime 0;
+endTime 864000;
+deltaT 10;
+maxDeltaT 500;
+maxCo 0.75;
+dCmax 0.01;
+dCresidual 0.001;
+#include "$FOAM_CASE/system/writeInterval"
+functions 
+ { 
+    fileUpdate1
+    {
+     type timeActivatedFileUpdate;
+	 libs ("libutilityFunctionObjects.so");
+     writeControl timeStep;
+     fileToUpdate  "$FOAM_CASE/system/writeInterval";
+     timeVsFile 
+    (
+    (-86400  "$FOAM_CASE/system/writeInterval.00")
+    (0  "$FOAM_CASE/system/writeInterval.01")
+    (86400  "$FOAM_CASE/system/writeInterval.02")
+    (172800  "$FOAM_CASE/system/writeInterval.03")
+    (259200  "$FOAM_CASE/system/writeInterval.04")
+    (276480  "$FOAM_CASE/system/writeInterval.05")
+    (328320  "$FOAM_CASE/system/writeInterval.06")
+    (345600  "$FOAM_CASE/system/writeInterval.07")
+    (432000  "$FOAM_CASE/system/writeInterval.08")
+    (518400  "$FOAM_CASE/system/writeInterval.09")
+    (604800  "$FOAM_CASE/system/writeInterval.10")
+    (691200  "$FOAM_CASE/system/writeInterval.11")
+    (777600  "$FOAM_CASE/system/writeInterval.12")
+    );
+    }
+ }

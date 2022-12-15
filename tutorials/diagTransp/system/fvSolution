@@ -1,0 +1,14 @@
+FoamFile{version 2.0;format ascii;class  dictionary;location "system";object fvSolution;}solvers 
+{ 
+h{solver PBiCGStab;preconditioner  DIC;tolerance 1e-12;relTol 0;}
+hp{solver PBiCGStab;preconditioner  DIC;tolerance 1e-12;relTol 0;}
+p{solver PBiCGStab;preconditioner  DIC;tolerance 1e-12;relTol 0;}
+sw{solver PBiCGStab;preconditioner  DIC;tolerance 1e-12;relTol 0;}
+Cw{solver PBiCG;preconditioner  DILU;tolerance 1e-12;relTol 0;}
+"Cw.*"{solver PBiCG;preconditioner  DILU;tolerance 1e-12;relTol 0;}
+Cg{solver PBiCG;preconditioner  DILU;tolerance 1e-12;relTol 0;}
+"Cg.*"{solver PBiCG;preconditioner  DILU;tolerance 1e-12;relTol 0;}
+}
+Picard {tolerance 0.01;maxIter 10;minIter 3;nIterStability  5;}
+SIMPLE {residualControl {h 1e-7;Cw 1e-12;} }
+relaxationFactors { fields { h 0.5;} }

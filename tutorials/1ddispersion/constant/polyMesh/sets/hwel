@@ -1,0 +1,6 @@
+FoamFile{version 2.0;format ascii;class cellSet;location "constant/polyMest/sets";object hwel;}
+
+1
+(
+0
+)

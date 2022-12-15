@@ -1,0 +1,18 @@
+FoamFile{version 2.0;format ascii;class dictionary;location "constant";object fvOptions;}
+hFix 
+{type scalarmyFixedValueConstraint;
+active true;
+selectionMode cellSet;
+cellSet hfix;
+volumeMode absolute;
+fieldValues {h 1;}
+}
+hSouwel 
+{type scalarmySemiImplicitSource;
+active true;
+selectionMode cellSet;
+cellSet hwel;
+volumeMode absolute;
+injectionRateSuSp {sw (1 0);h (1 0);}
+}
+cwel {type scalarmySemiImplicitSource; active true;selectionMode cellSet; cellSet cwel; volumeMode absolute;injectionRateSuSp {sw (1 0); Cw (1 1);}}

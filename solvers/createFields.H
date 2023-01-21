@@ -6,15 +6,17 @@ IOdictionary transportProperties
     ("transportProperties",runTime.constant(), mesh,IOobject::MUST_READ_IF_MODIFIED,IOobject::NO_WRITE)
 );
 scalar flowStartSteady(transportProperties.lookupOrDefault<scalar>("flowStartSteady",0.));
-scalar flowType(transportProperties.lookupOrDefault<scalar>("flowType",1.)); //0 no flow, 1 confined, 2 unconfined, 3 unsat 4 dualphase
-scalar activateCapillarity(transportProperties.lookupOrDefault<scalar>("activateCapillarity",1.));
-scalar activateReaction(transportProperties.lookupOrDefault<scalar>("activateReaction",1.));
+scalar flowType(transportProperties.lookupOrDefault<scalar>("flowType",1)); //0 no flow, 1 confined, 2 unconfined, 3 unsat 4 dualphase
+scalar activateCapillarity(transportProperties.lookupOrDefault<scalar>("activateCapillarity",1));
+scalar activateTransport(transportProperties.lookupOrDefault<scalar>("activateTransport",0));
+scalar activateReaction(transportProperties.lookupOrDefault<scalar>("activateReaction",0));
 scalar reactionSteps(transportProperties.lookupOrDefault<scalar>("reactionSteps",10));
 //scalar phreeqcVm(transportProperties.lookupOrDefault<scalar>("phreeqcVm",24.5));
 //scalar phreeqcP(transportProperties.lookupOrDefault<scalar>("phreeqcP",1.));
 scalar stor0(transportProperties.lookupOrDefault<scalar>("stor0",1e-4));
 int nlay(transportProperties.lookupOrDefault<int>("nlay",1));
 int ncell_lay(transportProperties.lookupOrDefault<int>("ncell_lay",1));
+int ncell=nlay*ncell_lay;
 Info << "transportP read "<< endl;
 
 Info << nl << "Reading field h\n" << endl;
@@ -46,19 +48,6 @@ volScalarField sw
 (
     IOobject("sw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.)
 );
-volScalarField n_vg
-(
-    IOobject("n_vg",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("n_vg",dimless,1.5)
-);
-volScalarField alpha_vg
-(
-    IOobject("alpha_vg",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("alpha_vg",dimless/dimLength,1.)
-);
-volScalarField T  // Temperature
-(
-    IOobject("T",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("T",dimless,25.)
-);
-//volTensorField swT(IOobject("swT",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedTensor("swT",dimless,Zero));
 volScalarField phreeqcVm
 (
     IOobject("phreeqcVm",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phreeqcVm",dimless,24.5)

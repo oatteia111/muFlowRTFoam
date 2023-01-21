@@ -191,7 +191,7 @@ volScalarField::Internal Sp
 	if (icount>0) {icount -= cells_.size();};//Info <<"implicit icount "<< icount << endl;// we have to go to the previous vlaue, the last time<topt
 
 	int mtype =0; //0 for flow, 1 transport, 3 chrmistry like for gwaterFoam
-	if (cellSetName_.substr(0,1) == "c" && psi().name().length()<=2) {mtype=1;}
+	if ((cellSetName_.substr(0,1) == "c" || cellSetName_.substr(0,1) == "t" )&& psi().name().length()<=2) {mtype=1;}
 	if ((cellSetName_.substr(0,1) == "c" || cellSetName_.substr(0,1) == "g") && psi().name().length()>2) {mtype=3;} 
 	//Info <<"icount "<< icount << " tnow "<< tnow <<" mtype "<<mtype<<endl;
 	
@@ -227,7 +227,7 @@ volScalarField::Internal Sp
 	//Info<<"a et bAdd size "<<aAdd.size()<<" "<<bAdd.size()<<endl;
 	//for recharge it needs to be applied to the 1st non-dry layer and divided by cell thikckness (thk imported in cellset)
 	int ilay,ilay1,nc;
-	double q = 0;double conc = 0;float sumRch=0;float sumDrn=0;float sumGhb=0;float sumWel=0;
+	double q = 0;double conc = 0;float sumRch=0;float sumDrn=0;float sumGhb=0;float sumWel=0;float sumRiv=0;
 
 	//////////////////////// FLOW   ////////////////////////
 	if (mtype==0)
@@ -238,13 +238,13 @@ volScalarField::Internal Sp
 		for (int i=0; i<cells_.size(); i++) 
 			{
 			for (ilay=0;ilay<nlay;ilay++) { if (sw[cells_[i]-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
-			ilay1 = max(0, ilay-1);
+			ilay1 = max(0, ilay-1); // ilay1 from top
 			nc = cells_[i]-ilay1*ncell_lay;
 			Su[nc] = injectionRate_[fieldi].first()*a[i]/mesh_.V()[nc];//cells_[cIndex_[i]]-ilay1*ncell_lay];  // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
-			//if (i%5000==0) {Info<< "hrch cell "<< cells_[i] <<" lay " << ilay1 <<" new c "<<nc <<" h "<<mag(psi()[cells_[i]])<< " sw "<<sw[nc]<<"a "<<a[i]<<" Su "<<Su[nc]<<" vol "<<mesh_.V()[nc]<<" sum "<<sumRch<<endl;}
+			//Info<< "hrch cell "<< cells_[i] <<" lay " << ilay1 <<" new c "<<nc <<" h "<<mag(psi()[cells_[i]])<< " sw "<<sw[nc]<<"a "<<a[i]<<" Su "<<Su[nc]<<" vol "<<mesh_.V()[nc]<<" sum "<<sumRch<<endl;
 			sumRch += a[i];
 			} // /VDash_ removed because it is in the source data file
-		//Info<<"end opt rch, sum "<<sumRch*86400<<endl;
+		Info<<"end opt rch, sum "<<sumRch*86400<<endl;
 		}
 	// for well we need to inject/pump also mass with a rate given in hwel (cellsDataAdd_) ##### Make two options fro transport and chemistry
 
@@ -274,12 +274,23 @@ volScalarField::Internal Sp
 			} 
 		//Info<<"end opt ghb, sum "<<sumGhb*86400<<endl;
 		}
+	else if (cellSetName_ == "hriv")//##################  flow river like Ghb for now ############"""
+		{ 
+		//Info <<"in ghb "<<cells_.size()<<" cells"<<endl;
+		for (int i=0; i<cells_.size(); i++) 
+			{
+			Su[cells_[i]] = injectionRate_[fieldi].first()*a[i]/mesh_.V()[cells_[i]];// Info << cells_[i] <<" "<< a[i]<< endl;}
+			Sp[cells_[i]] = injectionRate_[fieldi].second()*b[i]/mesh_.V()[cells_[i]]; // /VDash_ removed
+			sumRiv += (mag(Su[cells_[i]])-mag(psi()[cells_[i]])*Sp[cells_[i]])*mesh_.V()[cells_[i]];
+			} 
+		//Info<<"end opt riv, sum "<<sumRiv*86400<<endl;
+		}
 	else if (cellSetName_.substr(1,4) == "wel")//################# wells  (for h or p) ###################
 		{ 
 		//Info <<"in well "<<cells_.size()<<" cells"<<endl;
 		for (int i=0; i<cells_.size(); i++) 
 			{
-			Su[cells_[i]] = injectionRate_[fieldi].first()*a[i]/mesh_.V()[cells_[i]]; Info << cells_[i] <<" "<< a[i]<< endl;
+			Su[cells_[i]] = injectionRate_[fieldi].first()*a[i]/mesh_.V()[cells_[i]]; Info << "well "<<cells_[i] <<" "<< a[i]<< endl;
 			sumWel += mag(Su[cells_[i]])*mesh_.V()[cells_[i]];
 			} 
 		//Info<<"end opt wel, sum "<<sumWel*86400<<" time "<<time<<endl;
@@ -289,7 +300,7 @@ volScalarField::Internal Sp
 	//////////////////////// TRANSPORT   ////////////////////////
 	if (mtype == 1)
 	{
-	if (cellSetName_ == "cwel") //transport for wells
+	if (cellSetName_ == "cwel") // || cellSetName_ == "twel") //transport for wells
 		{
 		for (int i=0; i<cells_.size(); i++) 
 			{ 
@@ -312,7 +323,7 @@ volScalarField::Internal Sp
 			}
 		}
 
-	if (cellSetName_ == "crch") //transport for recharge, a is concentration
+	if (cellSetName_ == "crch") // || cellSetName_ == "trch") //transport for recharge, a is concentration
 		{ //int flg = 0;
 		for (int i=0; i<cells_.size(); i++) 
 			{ 
@@ -391,7 +402,7 @@ volScalarField::Internal Sp
 	//eqn += Su - fvm::SuSp(-Sp, psi);
 	//Info << "in opt Su "<<Su<<endl;
 	int sgn1 = 1;
-	if(mag(injectionRate_[fieldi].second())==1 && time>0) {sgn1 = -1;}  //&& cellSetName_.substr(0,1) == "h" 
+	if(mag(injectionRate_[fieldi].second())==1 && time>0 && cellSetName_.substr(0,1) == "h") {sgn1 = -1;}  // 
 	eqn += sgn1*Su+ sgn1*fvm::SuSp(Sp, psi); // with su<0 and sp>0 in opfwriter
 	
 	//const objectRegistry &db ;

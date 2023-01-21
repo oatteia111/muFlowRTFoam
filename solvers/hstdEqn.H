@@ -35,7 +35,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 					//if ((x>1)||(x<0)) {Info<<"x>1 or <0 cell x "<<nc<<" "<<x<<endl;}
 					if (x<e && x>0) {sw[nc]=pow(x,2)/(4*e)+x/2+e/4;} // same eq as in mdf USg (transport manual fg 21)
 					else if (x>1-e && x<1) {sw[nc]=1-pow((1-x),2)/(4*e)-(1-x)/2-e/4;}
-					else {sw[nc]=std::max(std::min(x,sw_max),sw_min);}
+					else {sw[nc]=std::max(std::min(x,sw_max),sw_min[nc]);}
 
 					minsw = std::min(minsw,sw[nc]);
 					maxsw = std::max(maxsw,sw[nc]);

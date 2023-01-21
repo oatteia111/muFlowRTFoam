@@ -151,9 +151,9 @@ int main(int argc, char *argv[])
 	float oldTime=0;
 	
 	int istep = 0;int tcnt = 0;
+scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 	while (runTime.run())
     {
-		#include "setDeltaT.H"
 		runTime++;
 		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
@@ -166,7 +166,8 @@ int main(int argc, char *argv[])
 		//***************  solve Transport & reaction  *************************
 		forAll(Cw,i) {Cw[i]().storePrevIter();}
 		#include "transport/CwiEqn.H"
-		//for (i=0; i<ph_ncomp;i++){Info << i <<" C 1st, 118, 1732 "<< Cw[i]()[0] << "  " << Cw[i]()[118] << " " << Cw[i]()[1732] << endl;}
+		#include "transport/setDeltaTtrsp.H"
+		dC1 = dC*.999;Info<<"dC1  "<<dC1<<endl;
 		
 		// find where the transported have changed to calculate only there
 		icnt = 0;

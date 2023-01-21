@@ -133,6 +133,7 @@ scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 				}
 			//***************  solve Transport  *************************
 			#include "transport/CwEqn.H"
+			dC1 = dC*.999;Info<<"dC1  "<<dC1<<endl;
 			//Info<< " Cw infilt "<<Cw[203870]<<endl;
 			if (cactive.size()>0) {Cw = Cw*cmult;} //reset to 0 outside the calculation domain
 			//Info<< " Cw infilt "<<Cw[203870]<<endl;
@@ -145,7 +146,6 @@ scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 				else {h.read();phiw.read();}
 			}
 			
-			dC1 = dC*.999;Info<<"dC1  "<<dC1<<endl;
 			Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 				<< "  ClockTime = " << runTime.elapsedClockTime() << " s"
 				<< nl << endl;

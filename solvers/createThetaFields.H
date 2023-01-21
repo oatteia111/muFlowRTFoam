@@ -4,7 +4,19 @@
 Info << "Reading unsat properties\n" << endl;
 //scalar n_vg(transportProperties.lookupOrDefault<scalar>("n_vg",1.5));
 //dimensionedScalar alpha_vg(transportProperties.lookupOrDefault("alpha_vg",dimensionedScalar("alpha_vg",dimless/dimLength,10.0)));
-scalar sw_min(transportProperties.lookupOrDefault<scalar>("sw_min",1e-6));
+volScalarField sw_min
+(
+    IOobject("sw_min",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw_min",dimless,0.1)
+);
+volScalarField n_vg
+(
+    IOobject("n_vg",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("n_vg",dimless,1.5)
+);
+volScalarField alpha_vg
+(
+    IOobject("alpha_vg",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("alpha_vg",dimless/dimLength,1.)
+);
+//scalar sw_min(transportProperties.lookupOrDefault<scalar>("sw_min",1e-6));
 scalar sw_max(transportProperties.lookupOrDefault<scalar>("sw_max",1-1e-6));
 volScalarField m_vg = 1 - 1/n_vg;
 volScalarField thetag ("thetag",unity);

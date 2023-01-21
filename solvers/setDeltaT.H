@@ -66,7 +66,7 @@ else //classical courant No
 	maxDeltaTFact = maxCo/(CFLUse + SMALL);
 	Info<< "Courant Number mean: " << meanCoNum << " max: " << CoNum <<" maxDeltaTFact "<<maxDeltaTFact<< endl;
 
-	deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.02);
+	deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.2);
 	
 	}
 

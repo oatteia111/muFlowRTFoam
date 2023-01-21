@@ -1,6 +1,7 @@
 //#include "inletOutletFvPatchScalarField.H" does not exist
 //#include "inletOutletFvPatchFields.H"
 
+/*
 dimensionedScalar alphaL(transportProperties.lookupOrDefault("alphaL",dimensionedScalar("alphaL",dimLength,0.0)));
 dimensionedScalar alphaT(transportProperties.lookupOrDefault("alphaT",dimensionedScalar("alphaT",dimLength,0.0)));
 dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedScalar("lbdaw",dimless/dimTime,0.0)));
@@ -25,7 +26,7 @@ wordList bcTypes
 	zeroGradientFvPatchScalarField::typeName // works
 	);
 	
-/*
+
 List<word> bcNames;bcNames.append("bc3");
 for (int i=0;i<bcNames.size();i++)
 	{

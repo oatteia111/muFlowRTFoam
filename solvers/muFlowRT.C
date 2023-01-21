@@ -41,6 +41,7 @@ Developers
 #include "fvPatchFieldMapper.H"
 #include "fvOptions.H"
 #include "simpleControl.H"
+#include "cellSet.H"
 
 #include "phreeqc/initPhreeqc.H"
 std::vector<double> a(12,0.);
@@ -143,9 +144,11 @@ int main(int argc, char *argv[])
 	} //end of activateReation
 	else  //only flow or flow+transport
 	{
-		
+		ph_ncomp=0;
 	}
 	#include "createFvOptions.H"
+	#include "transport/createCFields.H"
+	#include "transport/createTFields.H"
 	#include "transport/createCwiFields.H"
 	#include "transport/createCgiFields.H"
 	
@@ -204,13 +207,24 @@ scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 			#include "flow.H"
 			}
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
+		
 		//***************  solve Transport  *************************
-		forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
-		#include "transport/CwiEqn.H"
-		if (ph_gcomp>0) {
-			forAll(Cg,i) {Cg[i]().storePrevIter();}
-			#include "transport/CgiEqn.H"
-		}
+		if (activateTransport==1) {
+			if (activateReaction==0) {
+				#include "transport/CEqn.H"
+				}
+			else {
+				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
+				#include "transport/CwiEqn.H"
+				if (ph_gcomp>0) {
+					forAll(Cg,i) {Cg[i]().storePrevIter();}
+					#include "transport/CgiEqn.H"
+					}
+				}
+			}
+		if (activateThermal==1) {
+			#include "transport/TEqn.H"
+			}
 		dC1 = dC*.999;Info<<"dC1  "<<dC1<<endl;
 		//Info<<" cg 0 0 "<<Cg[0]()[0]<<" cg 0 1 "<<Cg[0]()[1]<<endl;
 		//if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}

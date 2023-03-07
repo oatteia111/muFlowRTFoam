@@ -87,6 +87,9 @@ Info << "phase done "<< endl;
 volVectorField& U = Uw;
 surfaceScalarField& phiw = phasew->phi();
 
+volScalarField dffPhi("dffPhi",unity); //flow balance 
+dffPhi.dimensions().reset(dimVol/dimTime); 
+
 /*surfaceScalarField phiw
 (
     IOobject("phiw", runTime.timeName(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVol/dimTime,0.)
@@ -139,4 +142,24 @@ surfaceScalarField M0f ("M0f",rhow*mag(g)*Kf/muw);
 surfaceScalarField Mf ("Mf",M0f*1);
 Info<< "end Kf tensor \n" << endl;
 
-int i,j;
+//various
+int i,j; int icount = 0;float day = 86400.;
+std::vector<double> condHw;
+
+// -------------- conditions for head -------------
+// reading the hwell data for hfix
+labelList cellsHfx;
+std::vector<float> cellsHfxData;
+cellSet selectedCells(mesh, "hfix");
+cellsHfx = selectedCells.toc();
+std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
+cellsHfxData = {std::istream_iterator<float>{inputHfxdata}, {}};
+
+// reading the hwell data for wells
+labelList cellsHw;
+std::vector<float> cellsHwData;
+cellSet selectedCells1(mesh, "hwel");
+cellsHw = selectedCells1.toc();
+std::ifstream inputHwdata{cur_dir+"/constant/options/hwel"}; //
+cellsHwData = {std::istream_iterator<float>{inputHwdata}, {}};
+

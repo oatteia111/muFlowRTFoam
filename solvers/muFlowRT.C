@@ -172,10 +172,10 @@ int main(int argc, char *argv[])
 	//if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
 	
 	//######################## run the steady state for hp
-	dimensionedScalar sT = runTime.startTime();
-	dimensionedScalar eT = runTime.endTime();
-	dimensionedScalar dT = mesh.time().deltaTValue();
-	scalar dT1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dT1<<endl;
+	dimensionedScalar st = runTime.startTime();
+	dimensionedScalar et = runTime.endTime();
+	dimensionedScalar dt = mesh.time().deltaTValue();
+	scalar dt1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dt1<<endl;
 	
 	if ((flowStartSteady==1)&&(flowType>0))
 		{
@@ -184,15 +184,14 @@ int main(int argc, char *argv[])
 			#include "hstdEqn.H"
 			}
 		}
-	runTime.setTime(sT,0); // 12/3/21 time value and index
-	runTime.setEndTime(eT); // 12/3/21 set end time that was lost during the simple loop in hstdEqn
+	runTime.setTime(st,0); // 12/3/21 time value and index
+	runTime.setEndTime(et); // 12/3/21 set end time that was lost during the simple loop in hstdEqn
 	runTime.runTimeModifiable();
 	runTime.read();
-	runTime.setDeltaT(dT);
+	runTime.setDeltaT(dt);
 	float oldTime=0;
 	
 	int istep = 0;int tcnt = 0;
-scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 	while (runTime.run())
     {
 		runTime.read();
@@ -225,7 +224,7 @@ scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 		if (activateThermal==1) {
 			#include "transport/TEqn.H"
 			}
-		dC1 = dC*.999;Info<<"dC1  "<<dC1<<endl;
+		dC1 = dC*.999;dT1 = dT*.999;Info<<"dC1  "<<dC1<<endl;
 		//Info<<" cg 0 0 "<<Cg[0]()[0]<<" cg 0 1 "<<Cg[0]()[1]<<endl;
 		//if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
 		

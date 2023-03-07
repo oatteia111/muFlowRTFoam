@@ -13,21 +13,11 @@ lbdaT = thetaw*lbdaTw + (1-eps)*lbdaTs;
 
 // prepare the internal conditions
 float time = mesh.time().value(); //const Time&
-int icount = 0;float day = 86400.; //Info <<"icount "<< icount << endl;//counter of lines within poption file
 int nlay = int(cellsHwData[0]);int ncell_lay = int(cellsHwData[1]);float q=0;
 float tnow = cellsHwData[2]*day; //time in files is in days
-std::vector<double> a(cellsHw.size(),0.); // the cells in Hw and Tw must be the same!!!
-std::vector<double> aAdd(cellsHw.size(),0.); 
-while (time>=tnow)
-{
-	icount += cellsHw.size(); 
-	tnow = cellsHwData[2+icount*4]*day; 
-}
-if (icount>0) {icount -= cellsHw.size();};
-for (int i=0; i<cellsHw.size(); i++) {aAdd[i] = cellsHwData[2+(icount+i)*4+2]/day;} // discharge must be in s-1
 
-TSu*=0; TSp*=0; //previous cells with vlaues msut be destroyed
-while (time>=tnow) // this is done twice because the timing in hwel ad twel files can be different
+//get the temperature well data
+while (time>=tnow) // this is done here and in heqn because the timing in hwel ad twel files can be different
 {
 	icount += cellsTw.size(); 
 	tnow = cellsTwData[2+icount*4]*day; 
@@ -35,39 +25,53 @@ while (time>=tnow) // this is done twice because the timing in hwel ad twel file
 if (icount>0) {icount -= cellsHw.size();};
 for (int i=0; i<cellsHw.size(); i++) {a[i] = cellsTwData[2+(icount+i)*4+2];}
 
+// set the values in the matrix
+TSu*=0; TSp*=0; //previous cells with values must be destroyed
 for (int i=0; i<cellsHw.size(); i++) 
 	{ 
-	q = aAdd[i]/mesh.V()[cellsHw[i]]; // dataAdd is the rate (from hwel here without dimension)
+	q = condHw[i]/mesh.V()[cellsHw[i]]; // dataAdd is the rate (from hwel here without dimension)
 	scalar tloc = mag(T()[cellsHw[i]]);
 	if (q<0) {TSp[cellsHw[i]] = -q;} //in Sp term as discharge prop to local concentration
 	else {TSu[cellsHw[i]] = -q*a[i];} //the injected heat is the water flow x the temp
 	Info<<"cell "<<cellsHw[i]<<" q "<<q<<" tloc "<<tloc<<" Su "<<TSu[cellsHw[i]]<<" Sp "<<TSp[cellsHw[i]]<<endl;
 	}
+	
+// find the place where there is water leaving the domain (e.g. fixed head cells)
+//volScalarField dvPhi = fvc::div(phiw, C, "div(phiw,C)"); oes not work, it provides null div at cell with fix h
+dffPhi *=0;
+
+//for (int i=0;i<3;i++) {Info<<" Kh "<<Kh[i]<<" Kf "<<Kf[i]<<" Mf "<<Mf[i]<<" grdh "<<fvc::grad(h)()[i]<<" surf "<<mesh.Sf()[i]<<endl;}
+
+//forAll(mesh.neighbour(),iface ) {dffPhi[mesh.neighbour()[iface]] -= phiw[iface];Info<< "i fc "<<iface<<" ng "<<mesh.neighbour()[iface]<<" Kf "<<Kf[iface]<<" Mf "<<Mf[iface]<<" dffP "<<dffPhi[mesh.neighbour()[iface]]<<endl;}
+//forAll(mesh.owner(),iface ) {dffPhi[mesh.owner()[iface]] += phiw[iface];Info<< "i fc "<<iface<<" "<<mesh.owner()[iface]<<" dffPh "<< dffPhi[mesh.owner()[iface]]<<endl;}
+//Info<<"dffPhi "<<dffPhi<<endl;
+/*forAll(mesh.cells(), celli)
+    {
+		const labelList& cFaces = mesh.cells()[celli];
+        forAll(cFaces, cFacei){
+			Info<<"cell "<<celli<<" faces "<<cFaces[cFacei]<<" phiw "<<phiw[cFaces[cFacei]]<<" "<<mesh.neighbour()[cFaces[cFacei]]<<endl;
+			} 
+	}*/
+//this is the flux divergence
+//forAll(dvPhi,i) {if (dvPhi()[i]>1e-3) {TSp[i] = -dvPhi()[i];Info<<"div pos at "<<i<<" dv "<<dvPhi()[i]<<endl;} } //if the div is too positive there is imposed discharge here
+
+T.storePrevIter();
 
 Info << "before Teq "<<endl;
 fvScalarMatrix TEqn
 	(
 		rhow*cpw * thetaw * fvm::ddt(T) + rhow*cpw * T * fvc::ddt(thetaw) + rhos*cps * (1-eps) * fvm::ddt(T) 
 		+ fvm::div(rhow*cpw * phiw, T, "div(phiw,T)") 
-		- fvm::laplacian(rhow*cpw * Deffw, T, "laplacian(Deffw,T)")
+		- fvm::laplacian(eps*rhow*cpw * Deffw, T, "laplacian(Deffw,T)")
 		- fvm::laplacian(lbdaT, T, "laplacian(lbdaT,T)")
 		+ rhow*cpw * TSu + rhow*cpw * fvm::SuSp(TSp, T)
 	);
-/*
-volScalarField cT = rhow*cpw*T;
-volScalarField rCp = rhos*cps/rhow/cpw;
-volScalarField lbdaT1 = lbdaT/rhow/cpw;
-fvScalarMatrix TEqn
-	(
-		thetaw * fvm::ddt(cT) + cT * fvc::ddt(thetaw) + rCp *(1-eps) * fvm::ddt(cT) 
-		+ fvm::div(phiw, cT, "div(phiw,T)") 
-		- fvm::laplacian(Deffw, cT, "laplacian(Deffw,T)")
-		- fvm::laplacian(lbdaT1, cT, "laplacian(lbdaT,T)")
-		==
-		fvOptions(sw,cT) 
-	);*/
 
-fvOptions.constrain(TEqn);
+//fvOptions.constrain(TEqn);
 TEqn.solve();
+
+//calculating dT
+for (i=0;i<ncell;i++) {dT= max(dT,T()[i]-T.prevIter()[i]);}
+
 
 

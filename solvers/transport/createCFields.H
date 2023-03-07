@@ -3,6 +3,7 @@ dimensionedScalar alphaT(transportProperties.lookupOrDefault("alphaT",dimensione
 dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedScalar("lbdaw",dimless/dimTime,0.0)));
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
+scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
 //const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
 //const scalar dCresidual = runTime.controlDict().lookupOrDefault("dCresidual", 1e-3);
 Info<< "Reading field C\n" << endl;
@@ -15,7 +16,7 @@ volScalarField C
 
 volScalarField rhos
 (
-    IOobject("rhos",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("rhos",dimMass/dimVol,0),bcTypes
+    IOobject("rhos",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("rhos",dimMass/dimVol,2650),bcTypes
 );
 
 volScalarField Kds //it was impossible to call it Kd no dimension.. why???

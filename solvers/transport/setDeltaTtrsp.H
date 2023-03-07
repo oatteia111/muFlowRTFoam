@@ -15,18 +15,22 @@ scalar dCmax_rel =
 //dimensionedScalar dCmax(transportProperties.lookupOrDefault("dCmax",dimensionedScalar("dCmax",dimMass/dimVol,0.01)));
 //const scalar dCresidual = runTime.controlDict().lookupOrDefault("dCresidual", 1e-3);
 scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
-const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
+scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
+scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
 Info<< "dCmax " <<dCmax<<" dC1 "<< dC1 <<" deltaTValue " << runTime.deltaTValue()<<endl;
 
 //scalar dCdTmax = max(dCmax_rel*gMax(Cw),dCmax_abs)/runTime.deltaTValue();
 //dtForC =  max(dCmax*gMax(Cw),dCresidual)/(dCdTmax+SMALL);
 //if (dC1>dCmax) {dtForC = runTime.deltaTValue();}
 //else {dtForC *=1.2;}
-dtForC = dCmax/(max(dC1,0)+SMALL)*runTime.deltaTValue();
+dtForC = dCmax/(max(dC1,0)+SMALL)*runTime.deltaTValue(); // we use dtForC for both temperature and C
+if (activateThermal==1) {dtForC = dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue();}
+
 Info<< "dtForC " << dtForC << endl; 
 
-scalar newDeltaT = 1.2*runTime.deltaTValue();
-if (tcnt>0) {scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());} //there is too much change in reactive steps
+//scalar newDeltaT = 1.2*runTime.deltaTValue();
+//if (tcnt>0) {} //for reactive steps
+scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
 //Info<< "newDeltaT " << newDeltaT << " maxDeltaT " << maxDeltaT << endl;
 
 runTime.setDeltaT (min (newDeltaT,maxDeltaT) );

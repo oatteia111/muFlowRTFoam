@@ -30,7 +30,7 @@ CEqn.solve();
 //scalar dC = dCdTmax*runTime.deltaTValue()*1;
 //Info<<"max dCw " <<max(mag(Cw-Cw.prevIter()))<<endl;
 
-//removing negative C and compensating mass
+//calculating dC, removing negative C and compensating mass
 double dC=0;double mxC=0;double sC=0;double sC1=0;
 a *= 0;
 for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}

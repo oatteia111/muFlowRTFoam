@@ -70,7 +70,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	//hEqnStd.relax();
 	//Info << hEqnStd.solver().solve() <<endl; //typeid().name()//hEqnStd.lower() works
 	hEqnStd.solve(); //Info << "h 5 " << h[5] << endl;
-	h.relax();
+	//h.relax();
 	resid = hEqnStd.residual()()*1;
 	phiw = hEqnStd.flux() ;
 	//phiw = - ((Mf * fvc::interpolate(fvc::grad(h)) ) & mesh.Sf() ); //phiG- 

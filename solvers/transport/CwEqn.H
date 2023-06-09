@@ -19,9 +19,7 @@ fvScalarMatrix CwEqn
 		+ fvm::div(phiw, Cw, "div(phiw,Cw)") 
 		- fvm::laplacian(Deffw, Cw, "laplacian(Deffw,Cw)")
 		+ thetaw * fvm::Sp(lbdaw,Cw)
-		==
-		fvOptions(sw,Cw) 
-	);
+	); //== fvOptions(sw,Cw) 
 fvOptions.constrain(CwEqn);
 CwEqn.solve();
 //Info <<"resid "<<CwEqn.residual()()[67171]<<endl;//.value()<<endl;

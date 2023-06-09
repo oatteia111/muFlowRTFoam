@@ -43,4 +43,20 @@ forAll (Cg, i)
 		);
 }
 
+// -------------- conditions for gas mixtures -------------
+labelList cellsGfx; std::vector<float> cellsGfxData;std::vector<double> condGfx;
+labelList cellsGwl; std::vector<float> cellsGwlData;std::vector<double> condGwl;
+
+// reading the data for hfix
+std::ifstream inputGfxdata{cur_dir+"/constant/options/gfix"}; //
+cellsGfxData = {std::istream_iterator<float>{inputGfxdata}, {}};
+if (cellsGfxData.size()>0) { cellSet selectedGfx(mesh, "gfix"); cellsGfx = selectedGfx.toc();}
+condGfx.resize(cellsGfx.size());
+
+// reading the hwell data for wells
+std::ifstream inputGwldata{cur_dir+"/constant/options/gwel"}; //
+cellsGwlData = {std::istream_iterator<float>{inputGwldata}, {}};
+if (cellsGwlData.size()>0) {	cellSet selectedGwl(mesh, "gwel");cellsGwl = selectedGwl.toc();}
+condGwl.resize(cellsGwl.size());
+
 Info <<"end Cgifields " << endl;

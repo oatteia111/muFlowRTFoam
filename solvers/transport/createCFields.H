@@ -3,7 +3,7 @@ dimensionedScalar alphaT(transportProperties.lookupOrDefault("alphaT",dimensione
 dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedScalar("lbdaw",dimless/dimTime,0.0)));
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
-scalar dC=1e-9;scalar dC1 = 1e-9;scalar dtForC = 1;
+double dC=0;double mxC=0;double sC=0;double sC1=0;double dtForC;
 //const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
 //const scalar dCresidual = runTime.controlDict().lookupOrDefault("dCresidual", 1e-3);
 Info<< "Reading field C\n" << endl;
@@ -31,4 +31,53 @@ volTensorField Deffw
 //Info<< " dim rhos"<<rhos.dimensions()<<" Kds "<<Kds.dimensions()<< endl;
 volScalarField R = 1 + (1-eps)/eps*rhos*Kds;
 
-Info<< "All C read\n" << endl;
+// creating the internal Su and Sp fields to input temperature conditions inside the domain
+volScalarField::Internal CSu
+(
+   IOobject("CSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,
+		dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
+);
+
+volScalarField::Internal CSp
+(
+   IOobject("CSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,
+		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
+);
+
+// -------------- conditions for concentration -------------
+labelList cellsCfx0; std::vector<double> cellsCfxData;std::vector<double> condCfx;
+labelList cellsCw0; std::vector<double> cellsCwData;std::vector<double> condCw;
+labelList cellsCghb0; std::vector<double> cellsCghbData;std::vector<double> condCghb;
+labelList cellsCrch0; std::vector<double> cellsCrchData;std::vector<double> condCrch;
+
+// reading the data for hfix
+std::ifstream inputCfxdata{cur_dir+"/constant/options/cfix"}; //
+cellsCfxData = {std::istream_iterator<double>{inputCfxdata}, {}};
+if (cellsCfxData.size()>0) { cellSet selectedCfx(mesh, "cfix"); cellsCfx0 = selectedCfx.toc();}
+condCfx.resize(cellsCfx0.size());
+std::vector<int> cellsCfx = indexC(cellsCfx0,cellsCfxData) ;
+
+// reading the cwell data for wells
+std::ifstream inputCwdata{cur_dir+"/constant/options/cwel"}; //
+cellsCwData = {std::istream_iterator<double>{inputCwdata}, {}};
+if (cellsCwData.size()>0) {	cellSet selectedCwel(mesh, "cwel");cellsCw0 = selectedCwel.toc();}
+condCw.resize(cellsCw0.size());
+std::vector<int> cellsCw = indexC(cellsCw0,cellsCwData) ;
+//for (i=0;i<cellsCw.size();i++) {Info<<"i "<<cellsCw[i]<<" center "<<mesh.C()[cellsCw[i]]<<endl;}
+
+// reading the data for ghb
+std::ifstream inputCghbdata{cur_dir+"/constant/options/cghb"}; //
+cellsCghbData = {std::istream_iterator<double>{inputCghbdata}, {}};
+if (cellsCghbData.size()>0) { cellSet selectedCghb(mesh, "cghb"); cellsCghb0 = selectedCghb.toc();}
+condCghb.resize(cellsCghb0.size());
+std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;
+
+// reading the data for rch
+std::ifstream inputCrchdata{cur_dir+"/constant/options/crch"}; //
+cellsCrchData = {std::istream_iterator<double>{inputCrchdata}, {}};
+if (cellsCrchData.size()>0) { cellSet selectedCrch(mesh, "crch"); cellsCrch0 = selectedCrch.toc();}
+condCrch.resize(cellsCrch0.size());
+std::vector<int> cellsCrch = indexC(cellsCrch0,cellsCrchData) ;
+

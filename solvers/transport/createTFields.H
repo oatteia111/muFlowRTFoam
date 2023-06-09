@@ -11,12 +11,12 @@ volScalarField T  // Temperature
 );
 
 
-volScalarField cps  // heat capacity of the solid [L2 T-2 Θ-1]
+volScalarField cps  // heat capacity of the solid [L2 T-2 °C-1]
 (
 	IOobject("cps",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("cps",dimensionSet(0,2,-2,-1,0,0,0),840)
 );
 
-volScalarField lbdaTs  // Thermal conductivity of the solid [M L T-3 Θ-1]
+volScalarField lbdaTs  // Thermal conductivity of the solid [M L T-3 °C-1]
 (
 	IOobject("lbdaTs",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("lbdaTs",dimensionSet(1,1,-3,-1,0,0,0),3.5)
 );
@@ -41,22 +41,23 @@ volScalarField::Internal TSp
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false
 );
 
-labelList cellsTfx;
-std::vector<float> cellsTfxData;
-labelList cellsTw;
-std::vector<float> cellsTwData;
+labelList cellsTfx0; std::vector<double> cellsTfxData;std::vector<double> condTfx;
+labelList cellsTw0; std::vector<double> cellsTwData;std::vector<double> condTw;
 
-if (activateThermal==1)
-{
-//options
-	cellSet selectedCells(mesh, "tfix");
-	cellsTfx = selectedCells.toc();
+//if (activateThermal==1)
+
+	// reading the Tfx data for drains a
 	std::ifstream inputTfxdata{cur_dir+"/constant/options/tfix"}; //
-	cellsTfxData = {std::istream_iterator<float>{inputTfxdata}, {}};
-	//reading the twell data
-	cellSet selectedCells2(mesh, "twel");
-	cellsTw = selectedCells2.toc();
+	cellsTfxData = {std::istream_iterator<double>{inputTfxdata}, {}};
+	if (cellsTfxData.size()>0){cellSet selectedTfx(mesh, "tfix");cellsTfx0 = selectedTfx.toc();}
+	condTfx.resize(cellsTfx0.size());
+	std::vector<int> cellsTfx = indexC(cellsTfx0,cellsTfxData) ;
+
+	// reading the Twel data for drains
 	std::ifstream inputTwdata{cur_dir+"/constant/options/twel"}; //
-	cellsTwData = {std::istream_iterator<float>{inputTwdata}, {}};
-}	
+	cellsTwData = {std::istream_iterator<double>{inputTwdata}, {}};
+	if (cellsTwData.size()>0){cellSet selectedTw(mesh, "twel");cellsTw0 = selectedTw.toc();}
+	condTw.resize(cellsTw0.size());
+	std::vector<int> cellsTw = indexC(cellsTw0,cellsTwData) ;
+
 Info<< "All T read\n" << endl;

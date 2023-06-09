@@ -13,17 +13,17 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 
 	Uw.correctBoundaryConditions();
 	forAll(mesh.boundary(),patchi)
-	{
+		{
 		if (isA< fixedValueFvPatchField<vector> >(Uw.boundaryField()[patchi]))
 			{ phiw.boundaryFieldRef()[patchi] = Uw.boundaryField()[patchi] & mesh.Sf().boundaryField()[patchi]; }
-	} 
+		} 
 	// ************** set the effective thickness (for unconfined flow)
-	if (flowType==2) // set the effective thickness (for unconfined flow)
+	if (flowType==2)
 		{
-			double minsw=1.;double maxsw =0.;double e=5e-4;
+			double e=1e-5;
 			for (ilay=0;ilay<nlay;ilay++) //ilay will be used from top
 			{ 
-			for (i=0;i<ncell_lay;i++) 
+				for (i=0;i<ncell_lay;i++) 
 				{
 					nc = (nlay-ilay-1)*ncell_lay + i;
 					//if ((ilay>0) && (sw[(nlay-ilay)*ncell_lay + i]>1e-3)) {sw[nc]=1;}
@@ -33,41 +33,103 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 					//if (x<0.02) {sw[nc] = 1e-5+std::exp(x*331-10.5);} 
 					//else if (x>0.98) {sw[nc] = 1-1e-5-std::exp((1-x)*331-10.5);}
 					//if ((x>1)||(x<0)) {Info<<"x>1 or <0 cell x "<<nc<<" "<<x<<endl;}
-					if (x<e && x>0) {sw[nc]=pow(x,2)/(4*e)+x/2+e/4;} // same eq as in mdf USg (transport manual fg 21)
+					/*if (x<e && x>0) {sw[nc]=pow(x,2)/(4*e)+x/2+e/4;} // same eq as in mdf USg (transport manual fg 21)
 					else if (x>1-e && x<1) {sw[nc]=1-pow((1-x),2)/(4*e)-(1-x)/2-e/4;}
-					else {sw[nc]=std::max(std::min(x,sw_max),sw_min[nc]);}
-
-					minsw = std::min(minsw,sw[nc]);
-					maxsw = std::max(maxsw,sw[nc]);
+					else {*/
+					sw[nc]=std::max(std::min(x,sw_max),sw_min[nc]);//}
 				}
 			}
-		Info <<"min max sw "<<minsw<<" "<<maxsw<<endl;
+		//Info <<"min max sw "<<minsw<<" "<<maxsw<<endl;
 		forAll( mesh.owner() , iface ) 
 			{
 			oCell = mesh.owner()[iface];odCface = mag(oCf[iface]-oC[oCell]);
 			nCell = mesh.neighbour()[iface];ndCface = mag(oCf[iface]-oC[nCell]);
 			if (abs(mesh.Sf()[iface].z())<mag(mesh.Sf()[iface])*1e-5)  //vertical faces
 				{
-				//scalar swm = (sw[oCell]+sw[nCell])/2;
+				//scalar swm = min(sw[oCell],sw[nCell]);
 				scalar swm = (sw[oCell]*sw[nCell])/(odCface*sw[oCell]+ndCface*sw[nCell])*(ndCface+odCface);
 				Mf[iface] = M0f[iface]*swm;
 				}
-			/*
-			else { //sub-horizontal faces
-				if (sw[oCell]<0.8) {Mf[iface]= M0f[iface]*1e-3;}//sw[oCell];} 
-				//if (sw[nCell]<0.002) {Mf[iface]= M0f[iface]*sw[iface];}//*sw[nCell];} 
-				//scalar swm = min(min(sw[nCell],sw[oCell]),1);
-				//Mf[iface]= M0f[iface]*swm;
-				}
-			*/
+		else {Mf[iface] = M0f[iface];}
+		/*else //other faces if sw=sw_min Mf=Small
+			{
+			if ((sw[oCell]<sw_min[oCell]*1.1)&&(sw[nCell]<sw_min[nCell]*1.1)) {Mf[iface] = M0f[iface]*sw_min[oCell];}
+			}*/
 			}
 		 }
 	//Info <<"tolerance "<<Foam::tolerances::solverTolerance<<endl;
+	// -------------- conditions  ---------------------- (can be simplified only the 1st time is needed)
+	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
+	//get the well discharge
+	hSu*=0; hSp*=0; //previous cells with values must be destroyed
+	if (cellsHw.size()>0)
+	{
+		for (int i=0; i<cellsHw.size(); i++) 
+			{i1=cellsHw[i]; v=mesh.V()[i1];hSu[i1] = cellsHwData[2+i*4+2]/v/day;} // discharge must be in s-1
+	} //Info<<"Hw read "<<endl;
+	// set the values in the matrix
+	//get the ghb conditions
+	if (cellsHghb.size()>0)
+	{
+		for (int i=0; i<cellsHghb.size(); i++) 
+			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[2+i*4+2]/v/day; hSp[i1] = cellsHghbData[2+i*4+3]/v/day; }
+	} //Info<<"Hghb read "<<endl;
+	//get the riv conditions
+	if (cellsHriv.size()>0)
+	{
+		for (int i=0; i<cellsHriv.size(); i++) 
+			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[2+i*4+2]/v/day; hSp[i1] = cellsHrivData[2+i*4+3]/v/day; }
+	} //Info<<"Hriv read "<<endl;
+	//get the drn conditions
+	if (cellsHdrn.size()>0)
+	{
+		for (int i=0; i<cellsHdrn.size(); i++) 
+			{
+			i1 = cellsHdrn[i];v=mesh.V()[i1];//Info<<"i1 "<<i1<<" h "<<h()[i1]<<endl;
+			hSu[i1] = cellsHdrnData[2+i*4+2]/v/day; hSp[i1] = cellsHdrnData[2+i*4+3]/v/day;
+			//hSp[i1] = cellsHdrnData[2+(icount+i)*4+3]/day;
+			//if (i<5) {Info<<"drn i1 "<<i1<<" h(i1) "<<h()[i1]<<" hSu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
+			//scalar dff = hSu[i1]-hSp[i1]*h()[i1];
+			//if (dff>0) {hSu[i1]/=1000;hSp[i1]/=1000;}
+			}
+	} //Info<<"Hdrn read "<<endl;
+	// recharge conditions	
+	float dv =0;	
+	if (cellsHrch.size()>0)
+	{
+		for (int i=0; i<cellsHrch.size(); i++) 
+			{
+			i1 = cellsHrch[i];
+			for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
+			ilay1 = max(0, ilay-1); // ilay1 from top
+			nc = i1-ilay1*ncell_lay;
+			hSu[nc] += cellsHrchData[2+i*4+2]/mesh.V()[nc]/day; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
+			} 
+	}
+	//fixed head cells
+	/*float cnd0 = 1e-4; float cnd=0;
+	if (cellsHfx.size()>0)
+	{
+		for (int i=0; i<cellsHfx.size(); i++) 
+			{i1 = cellsHfx[i]; cnd = cnd0*(mesh.V()[i1]/thk[i1]);
+			hSu[i1] = cellsHfxData[2+i*4+2]*cnd; hSp[i1] = cnd; }
+			//if (i<5) {Info<<i<<" ifx "<<i1<<" h"<<h()[i]<<" cnd "<<cnd<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl; }}
+	} //Info<<"hfx read "<<endl; */
+
+
 	// ***************** solving
 	fvScalarMatrix hEqnStd
-		(-fvm::laplacian(Mf,h) == b*fvOptions(sw,h) ); //+ fvc::div(phiG) min(mult*nbt,1.)*  b*mult*nbt
-	fvOptions.constrain(hEqnStd);
+		(-fvm::laplacian(Mf,h) - hSu + fvm::Sp(hSp,h) ); //+ fvc::div(phiG) min(mult*nbt,1.)*  b*mult*nbt  == b*fvOptions(sw,h) +fvm::SuSp(hSp,h)
+	//fvOptions.constrain(hEqnStd);
 	//hEqnStd.relax();
+	//get the fixed head conditions
+	if (cellsHfx.size()>0)
+	{
+		float tnow = cellsHfxData[2]*day; //time in files is in days
+		while (time>=tnow) {icount += cellsHfx.size(); tnow = cellsHfxData[2+icount*4]*day; }
+		if (icount>0) {icount -= cellsHfx.size();}
+		for (int i=0; i<cellsHfx.size(); i++) {hEqnStd.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]) ;}//Info<<"setRef "<<cellsHfx[i]<<endl;}
+	}
 	//Info << hEqnStd.solver().solve() <<endl; //typeid().name()//hEqnStd.lower() works
 	hEqnStd.solve(); //Info << "h 5 " << h[5] << endl;
 	//h.relax();

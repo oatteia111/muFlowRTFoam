@@ -11,8 +11,7 @@ scalar activateCapillarity(transportProperties.lookupOrDefault<scalar>("activate
 scalar activateTransport(transportProperties.lookupOrDefault<scalar>("activateTransport",0));
 scalar activateReaction(transportProperties.lookupOrDefault<scalar>("activateReaction",0));
 scalar reactionSteps(transportProperties.lookupOrDefault<scalar>("reactionSteps",10));
-//scalar phreeqcVm(transportProperties.lookupOrDefault<scalar>("phreeqcVm",24.5));
-//scalar phreeqcP(transportProperties.lookupOrDefault<scalar>("phreeqcP",1.));
+scalar deltaTchem(transportProperties.lookupOrDefault<scalar>("deltaTchem",86400));
 scalar stor0(transportProperties.lookupOrDefault<scalar>("stor0",1e-4));
 int nlay(transportProperties.lookupOrDefault<int>("nlay",1));
 int ncell_lay(transportProperties.lookupOrDefault<int>("ncell_lay",1));
@@ -59,6 +58,8 @@ volScalarField unity
 );
 volScalarField a("a",unity);
 a.dimensions().reset(dimMass/dimVol); //for C
+volScalarField a1("a1",unity);
+a1.dimensions().reset(dimless); //for othe ruse
 volScalarField b("b",unity);
 b.dimensions().reset(dimless/dimLength); //for fvOptions
 
@@ -75,7 +76,6 @@ else{ FatalErrorIn ("in createFields.H") << "CFL condition unrecongnized : Coats
 Info<<"CFL "<<CFL<<" int "<<CFLint<<endl;
 
 volScalarField stor("stor", unity); //Info << "stor " << stor().size() << endl;
-forAll(stor(), celli) { stor[celli] = stor0/thk[celli] ;}
 
 //phases 
 autoPtr<incompressiblePhase> phasew = incompressiblePhase::New(mesh,transportProperties,"w");
@@ -126,7 +126,7 @@ forAll( mesh.owner() , iface )
 	{
 	//Kf[iface] = 2*(Kh[oCell] * Kh[nCell])/(Kh[oCell] + Kh[nCell]); // harmonic mean in x direction
 	Kf[iface] = (Kh[oCell]*Kh[nCell]) /(odCface*Kh[oCell] + ndCface*Kh[nCell] )*(ndCface+odCface);//mag(mesh.Sf()[iface])*
-	if (iface==10) {Info<<"Kf 10 "<<Kf[10]<<endl;}
+	//if (iface==10) {Info<<"Kf 10 "<<Kf[10]<<endl;}
 	}
 	else
 	{
@@ -143,23 +143,76 @@ surfaceScalarField Mf ("Mf",M0f*1);
 Info<< "end Kf tensor \n" << endl;
 
 //various
-int i,j; int icount = 0;float day = 86400.;
-std::vector<double> condHw;
+int i,i1,j,ilay,ilay1; int icount = 0;double day = 86400.;double v=0;
+volScalarField carea ("carea",unity); // this is the cell area but unitless
+forAll(carea(), celli) { carea[celli] = mesh.V()[celli]/thk[celli] ;}
+
+
+// creating the internal Su and Sp fields to input head conditions inside the domain
+volScalarField::Internal hSu
+(
+   IOobject("hSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,
+		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
+);
+
+volScalarField::Internal hSp
+(
+   IOobject("hSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,
+		dimensionedScalar("zero",dimensionSet(0,-1,-1,0,0,0,0),0.0) 
+);
+
 
 // -------------- conditions for head -------------
-// reading the hwell data for hfix
-labelList cellsHfx;
-std::vector<float> cellsHfxData;
-cellSet selectedCells(mesh, "hfix");
-cellsHfx = selectedCells.toc();
+labelList cellsHfx0; std::vector<double> cellsHfxData;std::vector<double> qHfx;
+labelList cellsHw0; std::vector<double> cellsHwData;std::vector<double> qHw;
+labelList cellsHdrn0; std::vector<double> cellsHdrnData;std::vector<double> qHdrn;
+labelList cellsHriv0; std::vector<double> cellsHrivData;std::vector<double> qHriv;
+labelList cellsHghb0; std::vector<double> cellsHghbData;std::vector<double> qHghb;std::vector<double> qGerr;
+labelList cellsHrch0; std::vector<double> cellsHrchData;std::vector<double> qHrch;std::vector<double> clayRch;
+
+// reading the data for hfix
 std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
-cellsHfxData = {std::istream_iterator<float>{inputHfxdata}, {}};
+cellsHfxData = {std::istream_iterator<double>{inputHfxdata}, {}};
+if (cellsHfxData.size()>0) { cellSet selectedHfx(mesh, "hfix"); cellsHfx0 = selectedHfx.toc();}
+qHfx.resize(cellsHfx0.size());
+std::vector<int> cellsHfx = indexC(cellsHfx0,cellsHfxData) ;
+Info <<" hfx sz "<<cellsHfx0.size()<<" "<<cellsHfx.size()<<endl;
 
 // reading the hwell data for wells
-labelList cellsHw;
-std::vector<float> cellsHwData;
-cellSet selectedCells1(mesh, "hwel");
-cellsHw = selectedCells1.toc();
 std::ifstream inputHwdata{cur_dir+"/constant/options/hwel"}; //
-cellsHwData = {std::istream_iterator<float>{inputHwdata}, {}};
+cellsHwData = {std::istream_iterator<double>{inputHwdata}, {}};
+if (cellsHwData.size()>0) {	cellSet selectedHwel(mesh, "hwel");cellsHw0 = selectedHwel.toc();}
+qHw.resize(cellsHw0.size());
+std::vector<int> cellsHw = indexC(cellsHw0,cellsHwData) ;
+for (i=0;i<cellsHw.size();i++) {Info<<"i "<<cellsHw[i]<<" center "<<mesh.C()[cellsHw[i]]<<endl;}
+
+// reading the hdrn data for drains
+std::ifstream inputHdrndata{cur_dir+"/constant/options/hdrn"}; //
+cellsHdrnData = {std::istream_iterator<double>{inputHdrndata}, {}};
+if (cellsHdrnData.size()>0){cellSet selectedHdrn(mesh, "hdrn");cellsHdrn0 = selectedHdrn.toc();}
+std::vector<int> cellsHdrn = indexC(cellsHdrn0,cellsHdrnData) ;
+qHdrn.resize(cellsHdrn0.size());
+
+// reading the hriv data for riv cells
+std::ifstream inputHrivdata{cur_dir+"/constant/options/hriv"}; //
+cellsHrivData = {std::istream_iterator<double>{inputHrivdata}, {}};
+if (cellsHrivData.size()>0){cellSet selectedHriv(mesh, "hriv");cellsHriv0 = selectedHriv.toc();}
+std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
+qHriv.resize(cellsHriv0.size());
+	
+// reading the hghb data for GHb cells
+std::ifstream inputHghbdata{cur_dir+"/constant/options/hghb"}; //
+cellsHghbData = {std::istream_iterator<double>{inputHghbdata}, {}};
+if (cellsHghbData.size()>0){cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
+std::vector<int> cellsHghb = indexC(cellsHghb0,cellsHghbData) ;
+qHghb.resize(cellsHghb0.size());qGerr.resize(cellsHghb0.size());
+
+// reading the rch data for Recharge cells
+std::ifstream inputHrchdata{cur_dir+"/constant/options/hrch"}; //
+cellsHrchData = {std::istream_iterator<double>{inputHrchdata}, {}};
+if (cellsHrchData.size()>0){cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
+std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
+qHrch.resize(cellsHrch0.size());clayRch.resize(cellsHrch0.size());
 

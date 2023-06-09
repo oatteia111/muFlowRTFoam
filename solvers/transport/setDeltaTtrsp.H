@@ -17,16 +17,16 @@ scalar dCmax_rel =
 scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
 scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
 scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
-Info<< "dCmax " <<dCmax<<" dC1 "<< dC1 <<" deltaTValue " << runTime.deltaTValue()<<endl;
 
 //scalar dCdTmax = max(dCmax_rel*gMax(Cw),dCmax_abs)/runTime.deltaTValue();
 //dtForC =  max(dCmax*gMax(Cw),dCresidual)/(dCdTmax+SMALL);
 //if (dC1>dCmax) {dtForC = runTime.deltaTValue();}
 //else {dtForC *=1.2;}
-dtForC = dCmax/(max(dC1,0)+SMALL)*runTime.deltaTValue(); // we use dtForC for both temperature and C
+Info<<" dC "<<dC<<endl;
+dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); // we use dtForC for both temperature and C
 if (activateThermal==1) {dtForC = dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue();}
 
-Info<< "dtForC " << dtForC << endl; 
+Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 
 //scalar newDeltaT = 1.2*runTime.deltaTValue();
 //if (tcnt>0) {} //for reactive steps

@@ -6,10 +6,10 @@
         (
             fvm::laplacian(-Mf, p) + fvc::div(phiGr)
             + fvc::div(phiPc)*activateCapillarity
-            ==
-			b*fvOptions(sw,p)
+            //==
+			//b*fvOptions(sw,p)
         );
-    fvOptions.constrain(pEqn);
+    //fvOptions.constrain(pEqn);
 	pEqn.solve();
 	//for (j=0; j<3;j++) {Info<<"p after peq "<<p[j]<<" sw "<<sw[j]<<endl;}
 

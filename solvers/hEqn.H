@@ -61,7 +61,7 @@ stor.dimensions().reset(dimless/dimLength);
 	} Info<<"Hfw read ";
 	//----- get the ghb conditions
 	icount = 0;	//get the ghb conditions
-int ic0=2657;
+	int ic0=2657;
 	if (cellsHghb.size()>0)
 	{
 		float tnow = cellsHghbData[2]*day;
@@ -122,10 +122,17 @@ int ic0=2657;
 
 fvScalarMatrix hEqn
 	( stor*fvm::ddt(h) - fvm::laplacian(Mf,h) - hSu + fvm::SuSp(hSp,h) ); // + fvc::div(phiG) == b*fvOptions(sw,h) 
-//fvOptions.constrain(hEqn);
-for (int i=0; i<cellsHfx.size(); i++) {hEqn.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]);}
+//fixed head cells
+if (cellsHfx.size()>0)
+{
+	float tnow = cellsHfxData[2]*day; 
+	while (time>=tnow) {icount += cellsHfx.size(); tnow = cellsHfxData[2+icount*4]*day; }
+	if (icount>0) {icount -= cellsHfx.size();} 
+	for (int i=0; i<cellsHfx.size(); i++) {hEqn.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]);}
+}
 
 hEqn.solve(); 
+
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
 Uw = fvc::reconstruct(phiw);

@@ -15,7 +15,7 @@ hp.storePrevIter();
 			Info<<i<<" ic "<<cellsHw[i]<<" q "<<qHw[i]<<endl; }
 	}
 	//get the fixed head conditions
-	icount = 0;
+	/*icount = 0;
 	if (cellsHfx.size()>0)
 	{
 		float tnow = cellsHfxData[2]*day; //time in files is in days
@@ -25,16 +25,25 @@ hp.storePrevIter();
 		for (int i=0; i<cellsHfx.size(); i++) 
 			{hSu[cellsHfx[i]] = cellsHfxData[2+(icount+i)*4+2]*1e4; hSp[cellsHfx[i]] = 1e4; }
 			//Info<<i<<" ic "<<cellsHfx[i]<<" icdat "<<cellsHfxData[2+(icount+i)*4+1]<<endl; }
-	}
+	}*/
 
 fvScalarMatrix hpEqn
 	( stor*fvm::ddt(hp) - fvm::laplacian(Mf,hp)  + fvc::div(phiGr) 
 		- hSu + fvm::SuSp(hSp,hp) ); //== b*fvOptions(sw,hp) ); //
-//fvOptions.constrain(hpEqn);
-//Info<< fvOptions(sw,hp) <<endl;
+//hp fixed
+if (cellsHfx.size()>0)
+{
+	float tnow = cellsHfxData[2]*day; 
+	while (time>=tnow) {icount += cellsHfx.size(); tnow = cellsHfxData[2+icount*4]*day; }
+	if (icount>0) {icount -= cellsHfx.size();} 
+	for (int i=0; i<cellsHfx.size(); i++) {hpEqn.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]);}
+}
+
 hpEqn.solve(); //Info << "h 500 " << h[500] << " iter "<<runTime.solverInfo()<<endl;//nIterations() //hEaqn.solver() ok //SolverPerformance() not ok
 //Info<<"end solve"<<endl;
 //phiw =  hpEqn.flux() ;
+Info<<"phiGr ";for (int i=0;i<4;i++) {Info<<phiGr[i]<<" ";}
+Info<<endl;
 phiw =  (phiGr - ((Mf * fvc::interpolate(fvc::grad(hp)) ) & mesh.Sf() ) ) ;//fvc::interpolate(sw) *
 //phiw ==  phiGr - (Mf * fvc::snGrad(hp)) * mesh.magSf() ;//same as hpeqn
 //phiw = phiGr - (Mf * fvc::grad(h))* mesh.magSf();Info<<" phiw calc"<<endl;

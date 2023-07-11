@@ -44,3 +44,31 @@ surfaceScalarField phiPc ("phiPc", (Mwf * gradpc) & mesh.Sf() );
 phiGr = (Lf * g) & mesh.Sf();Info<<"phiGr 0 1 "<<phiGr[0]<<" "<<phiGr[1]<<endl;
 surfaceScalarField phi ("phi", phiw);
 Info<<"units phiGr"<<phiGr.dimensions()<<"units gradpc"<<gradpc.dimensions()<<"units phiPc"<<phiPc.dimensions()<<endl;
+
+// Su
+volScalarField::Internal pSu
+(
+   IOobject("pSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,
+		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
+);
+// -------------- conditions for pressure -------------
+labelList cellsPfx0; std::vector<double> cellsPfxData;std::vector<double> qPfx;
+labelList cellsPw0; std::vector<double> cellsPwData;std::vector<double> qPw;
+
+// reading the data for hfix
+std::ifstream inputPfxdata{cur_dir+"/constant/options/pfix"}; //
+cellsPfxData = {std::istream_iterator<double>{inputPfxdata}, {}};
+if (cellsPfxData.size()>0) { cellSet selectedPfx(mesh, "pfix"); cellsPfx0 = selectedPfx.toc();}
+qPfx.resize(cellsPfx0.size());
+std::vector<int> cellsPfx = indexC(cellsPfx0,cellsPfxData) ;
+//Info <<" hfx sz "<<cellsHfx0.size()<<" "<<cellsHfx.size()<<endl;
+
+// reading the hwell data for wells
+std::ifstream inputPwdata{cur_dir+"/constant/options/pwel"}; //
+cellsPwData = {std::istream_iterator<double>{inputPwdata}, {}};
+if (cellsPwData.size()>0) {	cellSet selectedPwel(mesh, "pwel");cellsPw0 = selectedPwel.toc();}
+qPw.resize(cellsPw0.size());
+std::vector<int> cellsPw = indexC(cellsPw0,cellsPwData) ;
+//for (i=0;i<cellsPw.size();i++) {Info<<"i "<<cellsPw[i]<<" center "<<mesh.C()[cellsPw[i]]<<endl;}
+

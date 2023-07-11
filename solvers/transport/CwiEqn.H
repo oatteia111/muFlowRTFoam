@@ -14,7 +14,7 @@ float time = mesh.time().value(); //const Time&
 icount=0;
 if (cellsSwl.size()>0)
 	{
-	float tnow = cellsHwData[2]*day; //time in files is in days
+	float tnow = cellsSwlData[2]*day; //time in files is in days
 	while (time>=tnow) {icount += cellsSwl.size(); tnow = cellsSwlData[2+icount*4]*day; }
 	if (icount>0) {icount -= cellsSwl.size();};
 	for (int i=0; i<cellsSwl.size(); i++) {condSwl[i] = (int)cellsSwlData[2+(icount+i)*4+2];}
@@ -79,7 +79,7 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 				}
 		} //Info<<"Hwi set"<<endl;
 		// conc at fixed head places 
-		if (cellsHfx.size()>0)
+		if (cellsSfx.size()>0)
 		{
 			for (int i=0; i<cellsHfx.size(); i++) 
 				{ //Info<<"i "<<i<<" condSfx "<<condSfx[i]<<endl;

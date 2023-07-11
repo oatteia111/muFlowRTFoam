@@ -49,6 +49,9 @@ std::vector<double> c_ph,gm_ph,gvol,ractive,solu_conc,gas_conc;
 float atmPa=101325.;float vmw,Cgtot;
 int i,j,iw;
 my_phq freak; //need to be here to be availabel for every chem condition
+#include "myFunc.H"
+// read the myfunc file
+dicFunc fDe_T;		   		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,6 +82,10 @@ int main(int argc, char *argv[])
     simpleControl simple(mesh);
 	#include "createThetaFields.H"
 	#include "create2phaseFields.H"
+	//parms of the De=f(T) function
+	std::vector<double> parm0(1,1e-3); // the parameters for the modification of DEffg with temperature
+	#include "readFunc.H"
+	Info << "fDe parms "<< fDe_T.parms[1] << endl;																																   
 	
 	if (activateReaction==1)
 	{
@@ -91,14 +98,16 @@ int main(int argc, char *argv[])
 	nxyz=ph_init[0];ph_ncomp=ph_init[1];ph_gcomp=ph_init[2];ph_nsolu=ph_init[3];
 	freak.setDB(cur_dir/"phreeqc.dat");
 	//make a first init to calculate the inital solutions (poro required for the initial solutions)
+	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
 	freak.setData(ph_init);
 	std::vector<double> poro(ph_nsolu,0.25);
 	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];Info<<"init eps "<<eps[i]<<endl;}
 	freak.setPoro(poro);
-	gvol.resize(ph_nsolu,1);
-	//if (ph_gcomp>0) {gvol={1e-4,0.99};} //!!!!!!!!! this is very simple : sol 1 is for only gaz
-	freak.setGvol(gvol);  Info << "gvol 0 1  " << gvol[0]<< " "<<gvol[1] << endl; // set gas volume in phreqc
-	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
+	gvol.resize(ph_nsolu,1); 
+	for (i=0;i<ph_nsolu;i++) {gvol[i] = eps[i]*0.01;}
+	freak.setGvol(gvol);  // set gas volume in phreqc
+	std::vector<double> wsat(ph_nsolu,0.99); // at teh beginning we set high gaz volume so the solution does not modify the gaz composition
+	freak.setWsat(wsat);
 	freak.init(); //Info << "nxyz " << nxyz << endl;
 	
 	//################ writes the initial solutions and gases to files
@@ -135,12 +144,12 @@ int main(int argc, char *argv[])
 	poro.resize(nxyz,0);Info<<"poro size "<<poro.size()<<endl;
 	for (i=0;i<nxyz;i++) {poro[i]=eps[i];}
 	freak.setPoro(poro); Info << "poro 10 350  " << poro[10]<< " "<<poro[350] << endl;
-	gvol.resize(nxyz,0);
-	for (i=0;i<nxyz;i++) {gvol[i] = max(eps[i]*(1.-sw[i]),1e-16);}
-	std::vector<double> wsat(nxyz,1.);
-	for (i=0;i<nxyz;i++) {wsat[i] = max(sw[i],1e-5);}
-	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
-	//freak.setGvol(gvol);  Info << "gvol 0 1  " << gvol[0]<< " "<<gvol[1] << endl; // set gas volume in phreqc
+	gvol.resize(nxyz,1);
+	//for (i=0;i<nxyz;i++) {gvol[i] = max(eps[i]*(1.-sw[i]),1e-16);}
+	wsat.resize(nxyz,0.1);
+	//for (i=0;i<nxyz;i++) {wsat[i] = max(sw[i],1e-5);}
+	freak.setGvol(gvol);  Info << "gvol 0 1  " << gvol[0]<< " "<<gvol[1] << endl; // set gas volume in phreqc
+	freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
 	freak.init();
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
@@ -201,11 +210,13 @@ int main(int argc, char *argv[])
 			#include "hstdEqn.H"
 			}
 		}
-	runTime.setTime(st,0); // 12/3/21 time value and index
-	runTime.setEndTime(et); // 12/3/21 set end time that was lost during the simple loop in hstdEqn
+	Info <<"st time "<<st<<endl;
+	//runTime.setTime(st,0); // 12/3/21 time value and index
+	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
-	runTime.read();
-	runTime.setDeltaT(1);
+	//runTime.read();
+	Info <<"dt time "<<dt<<endl;
+	runTime.setDeltaT(dt);
 	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	
@@ -286,7 +297,7 @@ int main(int argc, char *argv[])
 					}
 				} 
 			Info <<"icnt "<<icnt<<endl;
-			// transfer to phreeqc for c and g, for g we send moles and not pressures!!!
+			// transfer to phreeqc for c and g, for g we send moles and not pressures, phreeqc does not know the cell volume it considers to be one
 			//int icnt = 0;
 			for (j=0; j<nxyz;j++) { forAll(Cw,i) {c_ph[i*nxyz+j] = Cw[i]()[ractive[j]];} } 
 			if (flowType == 4)
@@ -304,24 +315,22 @@ int main(int argc, char *argv[])
 						} //Cg in fraction and Vm in L/mol
 					} 
 				}
-			//Info<<" tosend tophq gvol "<<gvol[3]<<" gm 3 "; forAll(Cg,i){Info<<gm_ph[i*nxyz+3]<<" ";}; Info<<endl;
-			//Info<<" Vm "<<phreeqcVm[3]<<endl;
+			Info<<" tosend tophq gvol "<<gvol[3]<<" gm 3 "; forAll(Cg,i){Info<<gm_ph[i*nxyz+3]<<" ";}; Info<<endl;
+			Info<<" Vm "<<phreeqcVm[3]<<endl;
 			
 			//Info<<" sw 2 "<<sw[2]<<" "<<endl;
 			
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
-				//for (j=0; j<nxyz;j++) {
-				//	rchange[j] = max(sw[j]*rchange[j]-sw_min[j],0);
-				//	}//Info<<"rch "<<rchange[j]<<endl;}
+				for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];}//Info<<"rch "<<rchange[j]<<endl;}
 				freak.setGvol(gvol); // set gas volume in phreeqc
 				freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
 				freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
 				freak.setGm(gm_ph);//transfer gm_ph to freak
 				//freak.setP(pback);//transfer pressure to freak
 				freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
-				Info << "running phreeqc "<<endl;
+				Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
 				freak.run();
 				freak.getSelOutput();
 				Info << "phreeqc done "<<endl;
@@ -364,22 +373,23 @@ int main(int argc, char *argv[])
 					}
 				}
 	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
-			// find the variation of wsat from nb moles H2O in gas phase
+			// find the variation of wsat from nb moles H2O in gas phase, phreeqc considers a volume of 1 dm3
 			if (freak.iGwater>-1) //should consider ractive
 				{
 				double a1=0.;
 				//iw = freak.iGwater; done at start
 				for (j=0; j<nxyz;j++)
 					{
-					a1 = max(freak.gm[iw*nxyz+j],0.) - gm_ph[iw*nxyz+j]; // delta moles of water as gas
-					if (j<5) {Info<< " gm_ph "<< gm_ph[iw*nxyz+j] << " frk "<< freak.gm[iw*nxyz+j] <<" a "<<a<< endl;}
-					sw[j] = max(sw_min[j],sw[j] - a1*.08101/eps[j]);
+					a1 = max(freak.gm[iw*nxyz+j],0.) - gm_ph[iw*nxyz+j]; // delta gm water 
+					//a1 = a1 *   //gm_ph = Cg[i]()*gvol/phreeqcVm
+					if (j<5) {Info<< " gm_ph "<< gm_ph[iw*nxyz+j] << " frk "<< freak.gm[iw*nxyz+j] <<" a1 "<<a1<< endl;}
+					sw[j] = max(sw_min[j],sw[j] - a1*.01801/eps[j]); 
 					}
 				} 
 				//nb of moles of H2O(g) transformed in water volume (1 mol 18.01 mL at 25°C)
 			for (j=0;j<3;j++) {Info <<" new sw "<<sw[j]<< endl;}
 				
-			oldTime = runTime.value();
+			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
 		bool ts;

@@ -13,31 +13,19 @@ lbdaT = thetaw*lbdaTw + (1-eps)*lbdaTs;
 
 // --------------------- internal conditions ------------------------
 float time = mesh.time().value(); //const Time&
-if (cellsTw.size()>0)
+if (cellsHw.size()>0)
 	{
-	//int nlay = int(cellsHwData[0]);int ncell_lay = int(cellsHwData[1]);
-	float q=0;
-	float tnow = cellsHwData[2]*day; //time in files is in days
-
-	//get the temperature well data
-	while (time>=tnow) // this is done here and in heqn because the timing in hwel ad twel files can be different
-	{
-		icount += cellsTw.size(); 
-		tnow = cellsTwData[2+icount*4]*day; 
-	}
-	if (icount>0) {icount -= cellsHw.size();};
-	for (int i=0; i<cellsHw.size(); i++) {a[i] = cellsTwData[2+(icount+i)*4+2];}
-
-	// set the values in the matrix
-	TSu*=0; TSp*=0; //previous cells with values must be destroyed
-	for (int i=0; i<cellsHw.size(); i++) 
-		{ 
-		//q = condHw[i]/mesh.V()[cellsHw[i]]; // dataAdd is the rate (from hwel here without dimension)
-		scalar tloc = mag(T()[cellsHw[i]]);
-		if (q<0) {TSp[cellsHw[i]] = -qHw[i];} //in Sp term as discharge prop to local concentration
-		else {TSu[cellsHw[i]] = -qHw[i]*a[i];} //the injected heat is the water flow x the temp
-		//Info<<"cell "<<cellsHw[i]<<" q "<<q<<" tloc "<<tloc<<" Su "<<TSu[cellsHw[i]]<<" Sp "<<TSp[cellsHw[i]]<<endl;
-		}
+		//get the temp well data
+		float tnow = cellsHwData[2]*day; //time in files is in days
+		while (time>=tnow) {icount += cellsTw.size(); tnow = cellsTwData[2+icount*4]*day; }
+		if (icount>0) {icount -= cellsTw.size();};
+		for (int i=0; i<cellsTw.size(); i++) 
+			{ 
+			i1=cellsTw[i];v=mesh.V()[i1];
+			if (qHw[i]<0) {TSp[i1] = -qHw[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
+			else {TSu[i1] = -qHw[i]/v*cellsTwData[2+(icount+i)*4+2];} //the injected mass is the water flow x the conc
+			//Info<<"cellw "<<cellsCw[i]<<" q "<<qHw[i]<<" cloc "<<cloc<<" Su "<<CSu[cellsCw[i]]<<" Sp "<<CSp[cellsCw[i]]<<endl;
+			}
 	}
 	
 //get the fixed temperature conditions
@@ -50,15 +38,6 @@ if (cellsTw.size()>0)
 	}
 
 	
-// find the place where there is water leaving the domain (e.g. fixed head cells)
-//volScalarField dvPhi = fvc::div(phiw, C, "div(phiw,C)"); oes not work, it provides null div at cell with fix h
-//dffPhi *=0;
-
-//for (int i=0;i<3;i++) {Info<<" Kh "<<Kh[i]<<" Kf "<<Kf[i]<<" Mf "<<Mf[i]<<" grdh "<<fvc::grad(h)()[i]<<" surf "<<mesh.Sf()[i]<<endl;}
-
-//forAll(mesh.neighbour(),iface ) {dffPhi[mesh.neighbour()[iface]] -= phiw[iface];Info<< "i fc "<<iface<<" ng "<<mesh.neighbour()[iface]<<" Kf "<<Kf[iface]<<" Mf "<<Mf[iface]<<" dffP "<<dffPhi[mesh.neighbour()[iface]]<<endl;}
-//forAll(mesh.owner(),iface ) {dffPhi[mesh.owner()[iface]] += phiw[iface];Info<< "i fc "<<iface<<" "<<mesh.owner()[iface]<<" dffPh "<< dffPhi[mesh.owner()[iface]]<<endl;}
-//Info<<"dffPhi "<<dffPhi<<endl;
 /*forAll(mesh.cells(), celli)
     {
 		const labelList& cFaces = mesh.cells()[celli];

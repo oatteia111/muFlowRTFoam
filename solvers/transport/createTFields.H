@@ -45,19 +45,19 @@ labelList cellsTfx0; std::vector<double> cellsTfxData;std::vector<double> condTf
 labelList cellsTw0; std::vector<double> cellsTwData;std::vector<double> condTw;
 
 //if (activateThermal==1)
+//{
+	// reading the Tfx data for drains
+std::ifstream inputTfxdata{cur_dir+"/constant/options/tfix"}; //
+cellsTfxData = {std::istream_iterator<double>{inputTfxdata}, {}};
+if (cellsTfxData.size()>0){cellSet selectedTfx(mesh, "tfix");cellsTfx0 = selectedTfx.toc();}
+condTfx.resize(cellsTfx0.size());
+std::vector<int> cellsTfx = indexC(cellsTfx0,cellsTfxData) ;
 
-	// reading the Tfx data for drains a
-	std::ifstream inputTfxdata{cur_dir+"/constant/options/tfix"}; //
-	cellsTfxData = {std::istream_iterator<double>{inputTfxdata}, {}};
-	if (cellsTfxData.size()>0){cellSet selectedTfx(mesh, "tfix");cellsTfx0 = selectedTfx.toc();}
-	condTfx.resize(cellsTfx0.size());
-	std::vector<int> cellsTfx = indexC(cellsTfx0,cellsTfxData) ;
-
-	// reading the Twel data for drains
-	std::ifstream inputTwdata{cur_dir+"/constant/options/twel"}; //
-	cellsTwData = {std::istream_iterator<double>{inputTwdata}, {}};
-	if (cellsTwData.size()>0){cellSet selectedTw(mesh, "twel");cellsTw0 = selectedTw.toc();}
-	condTw.resize(cellsTw0.size());
-	std::vector<int> cellsTw = indexC(cellsTw0,cellsTwData) ;
-
+// reading the Twel data for drains
+std::ifstream inputTwdata{cur_dir+"/constant/options/twel"}; //
+cellsTwData = {std::istream_iterator<double>{inputTwdata}, {}};
+if (cellsTwData.size()>0){cellSet selectedTw(mesh, "twel");cellsTw0 = selectedTw.toc();}
+condTw.resize(cellsTw0.size());
+std::vector<int> cellsTw = indexC(cellsTw0,cellsTwData) ;
+//}	
 Info<< "All T read\n" << endl;

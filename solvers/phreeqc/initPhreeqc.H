@@ -93,6 +93,7 @@ public:
 		this->PhreeqcRM_ptr = phreeqc_rm;
 		IRM_RESULT status;
 		status = phreeqc_rm->SetErrorHandlerMode(1);
+		status = phreeqc_rm->SetScreenOn(false);
 		status = phreeqc_rm->SetComponentH2O(true); // to get water,excess H an dexcess O transported
 		status = phreeqc_rm->SetRebalanceFraction(0.5);
 		status = phreeqc_rm->SetRebalanceByCell(true);
@@ -104,12 +105,11 @@ public:
 		status = phreeqc_rm->SetUnitsSurface(sunits);            // 0, mol/L RV; 1, mol/L water; 2 mol/L rock
 		status = phreeqc_rm->SetUnitsGasPhase(0);           // 0, mol/L RV; 1, mol/L water; 2 mol/L rock
 		status = phreeqc_rm->SetUnitsSSassemblage(sunits);       // 0, mol/L cell; 1, mol/L water; 2 mol/L rock
-		status = phreeqc_rm->SetUnitsKinetics(1);           // 0, mol/L cell; 1, mol/L water; 2 mol/L rock
+		status = phreeqc_rm->SetUnitsKinetics(0);           // 0, mol/L cell; 1, mol/L water; 2 mol/L rock
 		if (this->EK) {status = phreeqc_rm->SetSpeciesSaveOn(true);}
 				
-		std::vector<double> rv;
-		rv.resize(nxyz, 1.);
-		status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
+		std::vector<double> rv(nxyz, 1.);
+		//status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
 		Info<<"poro size "<<this->poro.size()<<endl;
 		status = phreeqc_rm->SetPorosity(this->poro);
 		
@@ -124,7 +124,7 @@ public:
 		status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask);
 
 		//load database and chemistry files and make the first run of the chem file
-		status = phreeqc_rm->SetPrintChemistryOn(false, true, false); // workers, initial_phreeqc, utility
+		status = phreeqc_rm->SetPrintChemistryOn(true, true, true); // workers, initial_phreeqc, utility
 		status = phreeqc_rm->LoadDatabase(this->DB);
 	Info << "dbase opened " << endl;
 		bool workers = true;             // Worker instances do the reaction calculations for transport
@@ -170,12 +170,15 @@ public:
 
 		// run initial conditions
 		int ncell = phreeqc_rm->GetChemistryCellCount();
-		std::cerr << "ncell "<< ncell << " ph_ncomp "<< ph_ncomp<< " starting init phreeqc \n";
-		//status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
+		Info << "ncell "<< ncell << " ph_ncomp "<< ph_ncomp<< " starting init phreeqc \n"<<endl;
+		status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
+		status = phreeqc_rm->SetSaturation(this->wsat);
 		//status = phreeqc_rm->SetPressure(this->p);
 		//phreeqc_rm->SetPrintChemistryOn(true,false,false);
+		
 		status = phreeqc_rm->RunCells();
-		std::cerr << " cells run \n";
+		
+		Info << " cells run \n" << endl;;
 		status = phreeqc_rm->GetConcentrations(this->c);
 		if (this->EK) {
 			int nspc = phreeqc_rm->GetSpeciesCount(); Info<<"phq eK nspc "<<EK<<" "<<nspc<<endl;
@@ -193,7 +196,7 @@ public:
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
-	Info << "in phq poro "<<this->poro[2]<<endl;
+	Info << "in phq poro "<<this->poro[1]<<endl;
 	Info << "c 1-4 ";for (int i=0; i<4;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
 	Info << "c 5-9 ";for (int i=4; i<8;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
 	Info<<"gvol 1 "<<this->gvol[1]<<" sat "<<this->wsat[1]<<endl;
@@ -224,37 +227,37 @@ public:
 	{
 		IRM_RESULT status;
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
-		/*
+		
 		status = phreeqc_rm->SetErrorHandlerMode(1);
 		status = phreeqc_rm->SetFilePrefix("phq_run");
 		phreeqc_rm->OpenFiles();
 		std::vector<int> print_chemistry_mask;
-		print_chemistry_mask.resize(nxyz, 0);print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
-		status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); */
+		print_chemistry_mask.resize(nxyz, 1);//print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
+		status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
 		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //Info<<"phq gcomp0 "<<gcomp[0]<<endl;
 	Info << "in phq poro "<<this->poro[2]<<endl;
-	Info<<"nb gcomp "<<gcompn.size()<<" gvol 3 "<<this->gvol[3]<<" sat "<<this->wsat[3]<<endl;
-	Info << "c 3 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+3]<<" ";} Info<<endl;
-	Info<<"g 3 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+3]<<" ";} Info<<endl;
-	Info<<"gm 3 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+3]<<" ";} Info<<endl;
+	Info<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
+	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
+	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
+	Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
 		if (gcompn.size()>0) {
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetSaturation(this->wsat);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
 			}
 		else 
-			{status = phreeqc_rm->SetSaturation(this->wsat);} // we cannot set both saturation and gvol !! not sure!!!
-	//status = phreeqc_rm->SetPressure(this->p);
+			{status = phreeqc_rm->SetSaturation(this->wsat);}
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
 		else {status = phreeqc_rm->SetConcentrations(this->c);}
-		status = phreeqc_rm->SetTimeStep(this->tstep);
+		status = phreeqc_rm->SetTimeStep(this->tstep);Info<<"tstep "<<this->tstep<<endl;
 		status = phreeqc_rm->RunCells();
 		//status = phreeqc_rm->GetSaturation(this->wsat);
 		status = phreeqc_rm->GetSaturation(this->wsat);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
+	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz]<<" ";} Info<<endl;
 		if (gcompn.size()>0) {
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
@@ -265,11 +268,12 @@ public:
 		bool append = false;
 		status = phreeqc_rm->SetDumpFileName("phreeqc.dmp");
 		status = phreeqc_rm->DumpModule(dump_on, append);
-	Info<<"nb gcomp "<<gcompn.size()<<" gvol 3 "<<this->gvol[3]<<" sat "<<this->wsat[3]<<endl;
-	Info << "c 3 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+3]<<" ";} Info<<endl;
-	Info<<"g 3 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+3]<<" ";} Info<<endl;
-	Info<<"gm 3 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+3]<<" ";} Info<<endl;
+	Info<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
+	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
+	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
+	Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
 	}
+	
 	void getSelOutput()
 	{
 		IRM_RESULT status;

@@ -4,8 +4,8 @@ if (diffusionEqn==1) {Deffg = Dg0 * pow(thetag,2.333) / pow(eps,2.) * tensor::I;
 //fDe_T = runTime.controlDict().lookupOrDefault("fDe_T",1);
 std::vector<double> resu ;
 resu.resize(nxyz);
-resu = myFunc(fDe_T.type,T,fDe_T.parms);Info<<"ftype "<<fDe_T.type<<" De parms "<<fDe_T.parms[0]<<" "<<fDe_T.parms[1]<<endl;
-Info<<"Deff 0 "<<Deffg[0]<<" resu 0 "<<resu[0]<<endl;
+resu = myFunc(fDe_T.type,T,fDe_T.parms);
+Info<<"Deff 0 "<<Deffg[i]<<endl;
 for (i=0;i<nxyz;i++) {Deffg[i] *= resu[i];}
 int ig;
 // -----------------  get internal conditions  ----------------------

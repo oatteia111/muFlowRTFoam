@@ -46,7 +46,7 @@ forAll(stor(), celli)
 stor.dimensions().reset(dimless/dimLength);
 
 // -################# - conditions  ---####################---
-	hSu*=0; hSp*=0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
 	float time = mesh.time().value();float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge/recharge
 	icount = 0;	//get the ghb conditions
@@ -61,7 +61,7 @@ stor.dimensions().reset(dimless/dimLength);
 	} Info<<"Hfw read ";
 	//----- get the ghb conditions
 	icount = 0;	//get the ghb conditions
-	int ic0=2657;
+	int ic0=10;
 	if (cellsHghb.size()>0)
 	{
 		float tnow = cellsHghbData[2]*day;
@@ -69,7 +69,7 @@ stor.dimensions().reset(dimless/dimLength);
 		if (icount>0) {icount -= cellsHghb.size();} 
 		for (int i=0; i<cellsHghb.size(); i++) 
 			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[2+(icount+i)*4+2]/v/day; hSp[i1] = cellsHghbData[2+(icount+i)*4+3]/v/day;}
-	} Info<<"Hghb read hSu "<<hSu[ncell_lay*3+ic0]<<" ";
+	} Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
 	icount = 0; 
 	if (cellsHriv.size()>0)
@@ -116,7 +116,7 @@ stor.dimensions().reset(dimless/dimLength);
 				hSu[nc] = qHrch[i]/mesh.V()[nc]; 
 				} // injeciton of recharge in the lowest unconfined layer only if no fix cond here
 			} 	
-	} Info<<"Hrch read "<<" Hghb "<<hSu[ncell_lay*3+ic0]<<" "<<endl;
+	} Info<<"Hrch read ";//<<" Hghb "<<hSu[ncell_lay*3+ic0]<<" "<<endl;
 
 // ***************** solving
 

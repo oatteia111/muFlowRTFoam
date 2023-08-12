@@ -2,7 +2,7 @@
 {
 
 // -################# - conditions  ---####################---
-	pSu*=0; //previous cells with values must be destroyed
+	pSu=pSu*0; //previous cells with values must be destroyed
 	float time = mesh.time().value();float f; 
 	icount = 0;	//get the ghb conditions
 	if (cellsPw.size()>0)

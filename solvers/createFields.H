@@ -216,3 +216,6 @@ if (cellsHrchData.size()>0){cellSet selectedHrch(mesh, "hrch");cellsHrch0 = sele
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 qHrch.resize(cellsHrch0.size());clayRch.resize(cellsHrch0.size());
 
+//--------------------------- neural network ------------------------------------
+scalar activateNNtransport(transportProperties.lookupOrDefault<scalar>("activateNNtransport",0));
+int indxNNt=0;

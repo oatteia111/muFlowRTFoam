@@ -61,7 +61,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	// -------------- conditions  ---------------------- (can be simplified only the 1st time is needed)
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
-	hSu*=0; hSp*=0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
 	if (cellsHw.size()>0)
 	{
 		for (int i=0; i<cellsHw.size(); i++) 

@@ -14,7 +14,7 @@ std::vector<double> myFunc(std::string ftype, Foam::volScalarField fvar, std::ve
 {
 	std::vector<double> resu; 
 		int i;
-		int n = fvar.size();Info<<"in func n "<<n<<" type "<<ftype<<endl;
+		int n = fvar.size();//Info<<"in func n "<<n<<" type "<<ftype<<endl;
 		resu.resize(n);
 		if (ftype == "linear")
 		{

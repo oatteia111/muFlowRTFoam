@@ -109,12 +109,13 @@ public:
 		if (this->EK) {status = phreeqc_rm->SetSpeciesSaveOn(true);}
 				
 		std::vector<double> rv(nxyz, 1.);
-		//status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
+		status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
 		Info<<"poro size "<<this->poro.size()<<endl;
 		status = phreeqc_rm->SetPorosity(this->poro);
-		
+
 		// Open for writing file
-		status = phreeqc_rm->SetFilePrefix("phq_out");
+		//std::quoted prf = "phq_out";
+		status = phreeqc_rm->SetFilePrefix("q");
 		phreeqc_rm->OpenFiles();
 		//Info << "Outfile opened " << endl;
 		//set mask
@@ -161,6 +162,10 @@ public:
 				//if (j==369) {Info << i << " cell "<< j << " " << this->data[icnt]<< endl;}
 			}
 		}
+		const std::vector<IPhreeqcPhast *> w = phreeqc_rm->GetWorkers();
+		w[0]->AccumulateLine("Delete; -all");
+		int w0 = w[0]->RunAccumulated();
+
 		status = phreeqc_rm->InitialPhreeqc2Module(ic1);
 		
 		// Set solutions composition at fixed cells HERE only TWO solutions (shall be modified)
@@ -171,8 +176,9 @@ public:
 		// run initial conditions
 		int ncell = phreeqc_rm->GetChemistryCellCount();
 		Info << "ncell "<< ncell << " ph_ncomp "<< ph_ncomp<< " starting init phreeqc \n"<<endl;
-		status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
-		status = phreeqc_rm->SetSaturation(this->wsat);
+		//status = phreeqc_rm->SetSaturation(this->wsat);
+		//status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
+		//status = phreeqc_rm->SetGasCompMoles(this->gm);
 		//status = phreeqc_rm->SetPressure(this->p);
 		//phreeqc_rm->SetPrintChemistryOn(true,false,false);
 		
@@ -199,7 +205,8 @@ public:
 	Info << "in phq poro "<<this->poro[1]<<endl;
 	Info << "c 1-4 ";for (int i=0; i<4;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
 	Info << "c 5-9 ";for (int i=4; i<8;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
-	Info<<"gvol 1 "<<this->gvol[1]<<" sat "<<this->wsat[1]<<endl;
+	Info<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<endl;
+	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
 	Info<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+1]<<" ";} Info<<endl;
 			for (i=0;i<gcompn.size();i++) {
 				if (gcompn[i]=="H2O(g)") {this->iGwater = i;}
@@ -217,12 +224,14 @@ public:
 		bc_f1.resize(nbound, 1.0);                  // mixing fraction for bc1
 		status = phreeqc_rm->InitialPhreeqc2Concentrations(this->solu_conc, bc1, bc2, bc_f1); */
 		
-		
 		//printing to file
 		status = phreeqc_rm->CloseFiles();
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, true); // workers, initial_phreeqc, utility
 
 	}
+	
+	//--------------------------- RUN ------------------------------
+	
 	void run()
 	{
 		IRM_RESULT status;
@@ -230,29 +239,32 @@ public:
 		
 		status = phreeqc_rm->SetErrorHandlerMode(1);
 		status = phreeqc_rm->SetFilePrefix("phq_run");
-		phreeqc_rm->OpenFiles();
-		std::vector<int> print_chemistry_mask;
-		print_chemistry_mask.resize(nxyz, 1);//print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
-		status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
+		//phreeqc_rm->OpenFiles();
+		//std::vector<int> print_chemistry_mask;
+		//print_chemistry_mask.resize(nxyz, 1);//print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
+		//status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
 		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //Info<<"phq gcomp0 "<<gcomp[0]<<endl;
 	Info << "in phq poro "<<this->poro[2]<<endl;
 	Info<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
 	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
-	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
-	Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
 		if (gcompn.size()>0) {
+			Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
+			Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
+			//status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
-			status = phreeqc_rm->SetSaturation(this->wsat);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
+			//status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
 			}
 		else 
 			{status = phreeqc_rm->SetSaturation(this->wsat);}
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
 		else {status = phreeqc_rm->SetConcentrations(this->c);}
 		status = phreeqc_rm->SetTimeStep(this->tstep);Info<<"tstep "<<this->tstep<<endl;
+		//----- run here ------
 		status = phreeqc_rm->RunCells();
+		
 		//status = phreeqc_rm->GetSaturation(this->wsat);
 		status = phreeqc_rm->GetSaturation(this->wsat);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
@@ -262,6 +274,7 @@ public:
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
+			this->p = phreeqc_rm->GetPressure();
 			}
 		//writes to the dump file
 		bool dump_on = true;
@@ -270,8 +283,11 @@ public:
 		status = phreeqc_rm->DumpModule(dump_on, append);
 	Info<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
 	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
-	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
-	Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
+	if (ph_gcomp>0) {
+		Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
+		Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
+		Info<<"p ";for (int i=0;i<5;i++) {Info<<this->p[i]<<" ";} Info<<endl;
+		}
 	}
 	
 	void getSelOutput()

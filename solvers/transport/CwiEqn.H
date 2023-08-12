@@ -17,7 +17,7 @@ if (cellsSwl.size()>0)
 	float tnow = cellsSwlData[2]*day; //time in files is in days
 	while (time>=tnow) {icount += cellsSwl.size(); tnow = cellsSwlData[2+icount*4]*day; }
 	if (icount>0) {icount -= cellsSwl.size();};
-	for (int i=0; i<cellsSwl.size(); i++) {condSwl[i] = (int)cellsSwlData[2+(icount+i)*4+2];}
+	for (int i=0; i<cellsSwl.size(); i++) {condSwl[i] = static_cast<int>(cellsSwlData[2+(icount+i)*4+2]);}
 	}
 //no solutions for drains
 //get the solution ghb data
@@ -27,7 +27,7 @@ if (cellsSghb.size()>0)
 	float tnow = cellsSghbData[2]*day; //time in files is in days
 	while (time>=tnow) {icount += cellsSghb.size(); tnow = cellsSghbData[2+icount*4]*day; }
 	if (icount>0) {icount -= cellsSghb.size();};
-	for (int i=0; i<cellsSghb.size(); i++) {condSghb[i] = (int)cellsSghbData[2+(icount+i)*4+2];}
+	for (int i=0; i<cellsSghb.size(); i++) {condSghb[i] = static_cast<int>(cellsSghbData[2+(icount+i)*4+2]);}
 	}
 // get fixed solutions 
 icount=0;
@@ -36,7 +36,7 @@ if (cellsSfx.size()>0)
 	float tnow = cellsSfxData[2]*day; //time in files is in days
 	while (time>=tnow) {icount += cellsSfx.size(); tnow = cellsSfxData[2+icount*4]*day; }
 	if (icount>0) {icount -= cellsSfx.size();};
-	for (int i=0; i<cellsSfx.size(); i++) {condSfx[i] = (int)cellsSfxData[2+(icount+i)*4+2];}
+	for (int i=0; i<cellsSfx.size(); i++) {condSfx[i] = static_cast<int>(cellsSfxData[2+(icount+i)*4+2]);}
 	}
 //get the solution recharge data
 icount=0;
@@ -50,7 +50,7 @@ if (cellsSrch.size()>0)
 		i1 = cellsSrch[i];
 		for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
 		ilay1 = max(0, ilay-1); // ilay1 from top
-		condSrch[i] = (int)cellsSrchData[2+(icount+i)*4+2];
+		condSrch[i] = static_cast<int>(cellsSrchData[2+(icount+i)*4+2]);
 		}
 	}
 
@@ -77,8 +77,8 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 				if (qHw[i]<0) {CiSp[i1] = -qHw[i]/v;} //in Sp term as discharge prop to local concentration
 				else { CiSu[i1] = -qHw[i]/v*solu_conc[condSwl[i]*ph_ncomp+ic]; } 
 				}
-		} //Info<<"Hwi set"<<endl;
-		// conc at fixed head places 
+		} //Info<<"Cweli set"<<endl;
+		// solu at fixed head places (Sfix) need to be the same zones as Hfix (as we use Hfix[i])
 		if (cellsSfx.size()>0)
 		{
 			for (int i=0; i<cellsHfx.size(); i++) 
@@ -87,7 +87,7 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 				if (qHfx[i]<0) {CiSp[i1] = -qHfx[i]/v;} //in Sp term as discharge prop to local concentration
 				else { CiSu[i1] = -qHfx[i]/v*solu_conc[condSfx[i]*ph_ncomp+ic]; } 
 				} 
-		} //Info<<"Hfx set"<<endl;
+		} //Info<<"Cfxi set"<<endl;
 		// conc at ghb places
 		if (cellsHghb.size()>0)
 		{
@@ -97,14 +97,14 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 				if (qHghb[i]<0) {CiSp[i1] = -(qHghb[i])/v;} //in Sp term as discharge prop to local concentration
 				else {CiSu[i1] = -qHghb[i]/v*solu_conc[condSghb[i]*ph_ncomp+ic];}
 				} 
-		} //Info<<"Hghb set"<<endl;
+		} //Info<<"Cghbi set"<<endl;
 		//remove conc at drn places
 		if (cellsHdrn.size()>0)
 		{
 			for (int i=0; i<cellsHdrn.size(); i++) 
 				{ i1=cellsHdrn[i];v=mesh.V()[i1];CiSp[i1] = -qHdrn[i]/v; } 
-		} //Info<<"Hdrn set"<<endl;
-		//recharge
+		} //Info<<"Cdrni set"<<endl;
+		//recharge, for recharge however there shall be a solution at all surface cells so Srch and Hrch correspond
 		if (cellsSrch.size()>0)
 		{
 			for (int i=0; i<cellsSrch.size(); i++) 
@@ -115,7 +115,7 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 					} // recharge does not occur at drains, ghb, fix...
 				//if (ic==0) {Info<<"rch "<< i<<" ilay " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<solu_conc[condSrch[i]*ph_ncomp+ic]<<endl;}
 				} 
-		} //Info<<"Hrdh set"<<endl;
+		} //Info<<"Crchi set"<<endl;
 
 		// for fixed solution cells with a search of the presence of fixed head or ghb cells
 		icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;

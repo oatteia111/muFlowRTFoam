@@ -1,7 +1,7 @@
 hp.storePrevIter();
 
 // -------------- conditions  ----------------------
-	hSu*=0; hSp*=0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
 	if (cellsHw.size()>0)

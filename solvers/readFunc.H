@@ -2,7 +2,7 @@
 std::string fname;
 fname = cur_dir+"/myFunc.txt";
 //verify if the file exists
-ifstream f(fname.c_str());
+std::ifstream f(fname.c_str());
 std::vector<double> parms(1.,0.);
 
 if (f.good())
@@ -14,11 +14,12 @@ std::string key;
 std::string ftype;
 int nb;
 double aa;
-if0 >> key;Info<<" key "<<key<<endl;
+if0 >> key;//Info<<" key "<<key<<endl;
 if (key=="fDe_T")
 {
 	// read the type
-	if0 >> ftype;Info<<" type "<<ftype<<endl;
+	if0 >> ftype;
+	//Info<<" type "<<ftype<<endl;
 	fDe_T.setType(ftype);
 	// read the number of parameters
 	if0 >> nb;

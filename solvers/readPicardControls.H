@@ -33,16 +33,16 @@ Description
 scalar maxDeltaT =
     runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", GREAT);
 
-const dictionary& PicardDict = mesh.solutionDict().subDict("Picard");
+//const dictionary& PicardDict = mesh.fvSolutionDict().subDict("Picard");
 
-const scalar tolPicard = PicardDict.lookupOrDefault<scalar>("tolerance", 1.);
+const scalar tolPicard = 1.; //PicardDict.lookupOrDefault<scalar>("tolerance", 1.);
 
-const label maxIterPicard = PicardDict.lookupOrDefault<label>("maxIter",10);
+const label maxIterPicard = 10;//PicardDict.lookupOrDefault<label>("maxIter",10);
 
 
 //- if dtFromPicard used
-const label nIterStability = PicardDict.lookupOrDefault<label>("nIterStability",5);
-const label minIterPicard = PicardDict.lookupOrDefault<label>("minIter",3);
+const label nIterStability = 5;//PicardDict.lookupOrDefault<label>("nIterStability",5);
+const label minIterPicard = 3;//PicardDict.lookupOrDefault<label>("minIter",3);
 label iterStability = 0;
 const scalar dTFactIncrease = runTime.controlDict().lookupOrDefault<scalar>("dTFactIncrease",1.5);
 const scalar dTFactDecrease = runTime.controlDict().lookupOrDefault<scalar>("dTFactDecrease",0.5);

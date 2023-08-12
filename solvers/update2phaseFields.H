@@ -35,16 +35,15 @@ krwf = fvc::interpolate(krw,"krw");
 krgf = fvc::interpolate(krg,"krg");
 
 //- mobility computation 
-Mwf = Kf*krwf/muw;
-Mf = Mwf + Kf*krgf/mug;
+Mf = Kf*krwf/muw + Kf*krgf/mug;
 //Info<<"Mf "<<Mf[10]<<endl;
-Lwf = Kf*rhow*krwf/muw;
-Lf = Lwf + Kf*rhog*krgf/mug;
+Lf = Kf*rhow*krwf/muw + Kf*rhog*krgf/mug;
 //Info<<"Lf 10 "<<Lf[10]<<" size "<<Lf.size()<<endl;
 Fwf = (krwf/muw) / (krgf/mug + krwf/muw);
 //Info<<"Mf done"<<endl;
 //- compute fluxes
 gradpc = fvc::interpolate(dpcdS*fvc::grad(sw),"pc");//Info<<"dpcds "<<dpcdS[2]<<" sw "<<sw[1]<<" "<<sw[2]<<endl;
 phiGr = (Lf * g) & mesh.Sf();//Info<<"phiGr ok "<<"PhiGr "<<phiGr[10]<<endl;
+
 phiPc = (Mwf * gradpc) & mesh.Sf();//Info<<"<<endl;
 	//Info<<"PhiG "<<phiG[10]<<endl;

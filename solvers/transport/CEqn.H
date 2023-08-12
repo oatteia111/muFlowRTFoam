@@ -18,7 +18,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 
 // --------------------- internal conditions ------------------------
 	float time = mesh.time().value(); //const Time&
-	CSu*=0; CSp*=0; a1=1; double conc;//previous cells with values must be destroyed
+	CSu=CSu*0; CSp=CSp*0; a1=1; double conc;//previous cells with values must be destroyed
 				
 	icount = 0;
 	if (cellsHw.size()>0)
@@ -136,7 +136,7 @@ CEqn.solve();
 //Info<<"max dCw " <<max(mag(Cw-Cw.prevIter()))<<endl;
 
 //calculating dC, removing negative C and compensating mass
-a *= 0;dC=0;mxC=0;double dff=0;int i1=0;
+a =a* 0;dC=0;mxC=0;double dff=0;int i1=0;
 for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}
 C=max(C,a); // removing negative
 for (i=0;i<ncell;i++) {
@@ -148,4 +148,49 @@ for (i=0;i<ncell;i++) {
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
 
-
+//--------------- writing info to file for NN (7/23) --------------------
+//up to now only for saturated transport
+//will write Uw(0) Uw(1) h grdH0 grdH 1 C gradC0 gradC1 dC
+bool ts;
+ts = runTime.write();//oldTime=runTime.value();
+if (activateNNtransport==1)
+{
+	std::vector<double> vnn(10,0.);
+	std::vector<int> count(10,0);
+	std::ofstream outNNdata(cur_dir/"NNdata.txt");
+	std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
+	volVectorField grdC = fvc::grad(C);
+	volVectorField grdh = fvc::grad(h);
+	double mxU = max(mag(Uw)).value()+SMALL;
+	double mxGh = max(mag(grdh)).value()+SMALL;
+	double mxh = max(h).value()+SMALL;
+	double mnh = min(h).value();
+	//double mxlk = max(lKh).value()+SMALL;
+	double mxC = max(C).value()+SMALL;
+	double mxGC = max(mag(grdC)).value()+SMALL;
+	double x;
+	for (i=0;i<ncell;i++) 
+	{
+		//if (mag(C()[i])>1e-7) // && indxNNt<1000)
+		//{
+			vnn[6] = C()[i]/mxC;
+			int catg = static_cast<int>(vnn[6]*10);
+			if (count[catg]<10) {
+				count[catg]+=1;
+				vnn[0] = Uw()[i].component(0)/mxU ;
+				vnn[1] = Uw()[i].component(1)/mxU;
+				vnn[2] = (h()[i]-mnh)/(mxh-mnh) ;
+				vnn[3] = grdh()[i].component(0)/mxGh ;
+				vnn[4] = grdh()[i].component(1)/mxGh ;
+				vnn[5] = (std::log10(Kh()[i])-10.)/4+5;
+				vnn[7] = grdC()[i].component(0)/mxGC;
+				vnn[8] = grdC()[i].component(1)/mxGC;
+				vnn[9] = std::log10(mesh.time().time().value());
+				for (const auto &x : vnn) outNNdata << x << " ";
+				outNNdata <<"\n";
+				x = (C()[i]-C.prevIter()[i])/runTime.deltaTValue()*1e6;
+				outNNtarget << x << "\n";
+			}
+		//}
+	}
+}

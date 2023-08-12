@@ -33,6 +33,8 @@ Developers
 \*---------------------------------------------------------------------------*/
 //#include <cmath.h>
 //#include <iomanip> //NB when in < > don't add the .h
+//#include "torch/torch.h"
+
 #include <chrono>  // for high_resolution_clock
 #include "fvCFD.H"
 #include "incompressiblePhase.H"
@@ -44,9 +46,10 @@ Developers
 #include "cellSet.H"
 
 #include "phreeqc/initPhreeqc.H"
+
 std::vector<double> a(12,0.);
-std::vector<double> c_ph,gm_ph,gvol,ractive,solu_conc,gas_conc;
-float atmPa=101325.;float vmw,Cgtot;
+std::vector<double> c_ph,gm_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+float atmPa=101325.;float vmw,Cgtot,Gmtot;
 int i,j,iw;
 my_phq freak; //need to be here to be availabel for every chem condition
 #include "myFunc.H"
@@ -62,7 +65,7 @@ std::vector<int> indexC(labelList &cells, std::vector<double> &data)
     std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
 	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
 		{
-		auto iter = std::find(cells.begin(), cells.end(), (int)data[2+i*4+1]);
+		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[2+i*4+1]));
 		int i1 = {std::distance(cells.begin(), iter)};  //Info << i << " icd "<< icd << " cll " << cells_[i] << " indx " << a << endl; // cell number in cellsData //index of cellsData in cells_
 		c1[i] = cells[i1];
 		}
@@ -101,13 +104,12 @@ int main(int argc, char *argv[])
 	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
 	freak.setData(ph_init);
 	std::vector<double> poro(ph_nsolu,0.25);
-	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];Info<<"init eps "<<eps[i]<<endl;}
+	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];}
+	//gvol.resize(ph_nsolu,1.); 
+	//for (i=0;i<ph_nsolu;i++) {gvol[i] = eps[i]*0.1;}
+	//p_ph.resize(ph_nsolu,1.);
+	//std::vector<double> wsat(ph_nsolu,0.9); // at teh beginning we set high gaz volume so the solution does not modify the gaz composition
 	freak.setPoro(poro);
-	gvol.resize(ph_nsolu,1); 
-	for (i=0;i<ph_nsolu;i++) {gvol[i] = eps[i]*0.01;}
-	freak.setGvol(gvol);  // set gas volume in phreqc
-	std::vector<double> wsat(ph_nsolu,0.99); // at teh beginning we set high gaz volume so the solution does not modify the gaz composition
-	freak.setWsat(wsat);
 	freak.init(); //Info << "nxyz " << nxyz << endl;
 	
 	//################ writes the initial solutions and gases to files
@@ -141,28 +143,32 @@ int main(int argc, char *argv[])
 	nxyz=ph_data[0];ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
 	freak.setData(ph_data); Info << "nxyz " << nxyz << endl;
 	//initiate poro and gas volume
-	poro.resize(nxyz,0);Info<<"poro size "<<poro.size()<<endl;
+	poro.resize(nxyz,0);
 	for (i=0;i<nxyz;i++) {poro[i]=eps[i];}
-	freak.setPoro(poro); Info << "poro 10 350  " << poro[10]<< " "<<poro[350] << endl;
-	gvol.resize(nxyz,1);
-	//for (i=0;i<nxyz;i++) {gvol[i] = max(eps[i]*(1.-sw[i]),1e-16);}
-	wsat.resize(nxyz,0.1);
-	//for (i=0;i<nxyz;i++) {wsat[i] = max(sw[i],1e-5);}
-	freak.setGvol(gvol);  Info << "gvol 0 1  " << gvol[0]<< " "<<gvol[1] << endl; // set gas volume in phreqc
-	freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
+	//wsat.resize(nxyz,0.994);
+	freak.setPoro(poro);
+	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
+	//for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
+	//freak.setP(p_ph);
 	freak.init();
+	gvol.resize(nxyz,0.01);
+	//p_ph.resize(nxyz,1.);
+	//freak.run();
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
 	c_ph.resize(nxyz*ph_ncomp,0);
 	for (i=0; i<ph_ncomp;i++)
 		for (int j=0;j<nxyz;j++) 
 			{c_ph[i*nxyz+j] = freak.c[i*nxyz+j];}
-	// gases are in bars (freak.g)
+	// gases are in atm (freak.g) we start with ideal gas
 	gm_ph.resize(nxyz*ph_gcomp,0); // moles of gas
 	Info<<"gcomp "<<ph_gcomp<<" g size "<<freak.g.size()<<" frk.c size "<<freak.c.size()<<endl;
 	for (i=0; i<ph_gcomp;i++)
 		for (int j=0;j<nxyz;j++) 
-			{gm_ph[i*nxyz+j] = freak.g[i*nxyz+j]/(p[j]/atmPa)*gvol[j]/phreeqcVm[j];}
+			{
+			phreeqcVm[j] = 24.5/(p[j]/atmPa);
+			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
+			}
 	iw = freak.iGwater;
 	
 	} //end of activateReation
@@ -296,7 +302,6 @@ int main(int argc, char *argv[])
 					if (abs(gm_ph[i*nxyz+j]-Cg[i]()[ractive[j]])/(gm_ph[i*nxyz+j]+1e-20)>1e-5 && sw[ractive[j]]>sw_min[j]) {rchange[j] = max(rchange[j],1.);}
 					}
 				} 
-			Info <<"icnt "<<icnt<<endl;
 			// transfer to phreeqc for c and g, for g we send moles and not pressures, phreeqc does not know the cell volume it considers to be one
 			//int icnt = 0;
 			for (j=0; j<nxyz;j++) { forAll(Cw,i) {c_ph[i*nxyz+j] = Cw[i]()[ractive[j]];} } 
@@ -304,7 +309,9 @@ int main(int argc, char *argv[])
 				{
 				for (j=0; j<nxyz;j++) { 
 					forAll(Cg,i) {
-					gm_ph[i*nxyz+j] = max(Cg[i]()[j]*gvol[j]/phreeqcVm[j],1e-16);} //Cg in fraction and Vm in L/mol
+					gm_ph[i*nxyz+j] = max(Cg[i]()[j]*gvol[j]/phreeqcVm[j],1e-6);//Cg in fraction and Vm in L/mol
+					//gm_ph[i*nxyz+j] = max(Cg[i]()[j]*gvol[j]/phreeqcVm[j],1e-6);//Cg in fraction and Vm in L/mol
+						}	
 					} 
 				}
 			else 
@@ -315,10 +322,9 @@ int main(int argc, char *argv[])
 						} //Cg in fraction and Vm in L/mol
 					} 
 				}
-			Info<<" tosend tophq gvol "<<gvol[3]<<" gm 3 "; forAll(Cg,i){Info<<gm_ph[i*nxyz+3]<<" ";}; Info<<endl;
-			Info<<" Vm "<<phreeqcVm[3]<<endl;
+			//for (j=0; j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 			
-			//Info<<" sw 2 "<<sw[2]<<" "<<endl;
+			Info<<" phqVm[0] "<<phreeqcVm[0]<<" "<<endl;
 			
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
@@ -328,16 +334,21 @@ int main(int argc, char *argv[])
 				freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
 				freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
 				freak.setGm(gm_ph);//transfer gm_ph to freak
-				//freak.setP(pback);//transfer pressure to freak
+				//freak.setP(p_ph);//transfer pressure to freak
 				freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 				Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
 				freak.run();
 				freak.getSelOutput();
 				Info << "phreeqc done "<<endl;
+				
+			// write to intermediate file, input (for gases)
+			if (ph_gcomp>0) {
+				std::ofstream inPhq(cur_dir/"phq_input.txt");
+				for (j=0; j<nxyz;j++) { inPhq<<j<<" "<<p[j]<<" "<<rchange[j]<<" "<<gvol[j]<<" "; for (i=0; i<ph_gcomp;i++) {inPhq<< gm_ph[i*nxyz+j] <<" ";} inPhq<<"\n"; }
+				}
 			
 			//auto finish = std::chrono::high_resolution_clock::now();
 			//std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();
-			
 			// transfer back to C but before keep the previous values for outside domain of calculation
 			forAll(Cw,i) {Cw[i]() = Cw[i]().prevIter();}
 			if (ph_gcomp>0) {forAll(Cg,i) {Cg[i]() = Cg[i]().prevIter();} }
@@ -355,24 +366,36 @@ int main(int argc, char *argv[])
 				{
 				for (j=0; j<nxyz;j++) //should consider ractive
 					{
-					Cgtot = 0;
-					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j];}
+					Cgtot = 0; Gmtot = 0;
+					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j]; Gmtot += freak.gm[i*nxyz+j];}
 					forAll(Cg,i) {Cg[i]()[j] = freak.g[i*nxyz+j]/Cgtot;} // /Cgtot/phreeqcVm;}
+					phreeqcVm[j] = gvol[j]/Gmtot;
 					p[j] = Cgtot*atmPa;
+					//sw[j] = freak.wsat[j];
 					}
 				for (int i=0; i<ph_gcomp;i++){for (j=0;j<3;j++) {Info <<"g_spc "<< i <<" Cg "<< Cg[i]()[j] <<" sw "<<sw[j]<< endl;}}
 				}
-			else if (ph_gcomp>0) //unsaturated
+			else if (ph_gcomp>0) //unsaturated (not diffrent from above now)
 				{
 				for (j=0; j<nxyz;j++) //should consider ractive
 					{
 					Cgtot = 0;
-					phreeqcVm[j] = freak.g[j]*gvol[j]/freak.gm[j];
+					//phreeqcVm[j] = freak.g[j]*gvol[j]/freak.gm[j];
 					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j];}
 					forAll(Cg,i) {Cg[i]()[j] = freak.g[i*nxyz+j]/Cgtot;} // /Cgtot or Cgtot/phreeqcVm;}
 					}
 				}
 	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
+			// write to phq output file			
+			if (ph_gcomp>0) {
+				std::ofstream outPhq(cur_dir/"phq_output.txt");
+				for (j=0; j<nxyz;j++) { outPhq<<j<<" "<<p[j]<<" "<<freak.gvol[j]<<" "<<phreeqcVm[j]<<" "<<freak.p[j]<<" "<<freak.wsat[j]<<" "; 
+					for (i=0; i<ph_gcomp;i++) {outPhq<< freak.g[i*nxyz+j] <<" ";} 
+					for (i=0; i<ph_gcomp;i++) {outPhq<< freak.gm[i*nxyz+j] << " ";} 
+					outPhq<<"\n"; 
+					}
+				}
+
 			// find the variation of wsat from nb moles H2O in gas phase, phreeqc considers a volume of 1 dm3
 			if (freak.iGwater>-1) //should consider ractive
 				{
@@ -395,10 +418,10 @@ int main(int argc, char *argv[])
 		bool ts;
 		ts = runTime.write();//oldTime=runTime.value();
 		//write species
+		if (ts && flowType==4) {phiGr.write();}
 		if (ts && activateReaction==1) {
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
-			//outFile.setf(ios::fixed);
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (const auto &x : freak.spc) outFile << x << "\n";
 		}
@@ -408,7 +431,10 @@ int main(int argc, char *argv[])
 			<< nl << endl;
 
 		Info<< "End\n" << endl;
-		//Info <<"phreeqc time" << dure << endl;
+		double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
+		Info <<" time" << mesh.time().time().value() <<" w intv " <<rt<<endl;
+		//if (mesh.time().time().value()>rt/10) {
+		//int inpt = cin.get();//}
 		istep ++;
 	}
     return 0;

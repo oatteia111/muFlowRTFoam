@@ -1,29 +1,10 @@
 #if defined(USE_MPI)
 #include <mpi.h>
 #endif
-#include <stdlib.h>
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <sstream>
-#include <string>
 #include "PhreeqcRM.h"
 #include "IPhreeqc.hpp"
 #include "IPhreeqcPhast.h"
 int nthreads = 3;
-
-//////////////////// find local dir
-#include <unistd.h>
-#define GetCurrentDir getcwd
-
-std::string get_current_dir() {
-   char buff[FILENAME_MAX]; //create string buffer to hold path
-   GetCurrentDir( buff, FILENAME_MAX );
-   std::string current_working_dir(buff);
-   return current_working_dir;
-}
-string cur_dir = get_current_dir();
 
 ///////////////// get some important values
 /* ifstream f0(cur_dir/"phqfoam.txt");

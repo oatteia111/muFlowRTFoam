@@ -218,4 +218,10 @@ qHrch.resize(cellsHrch0.size());clayRch.resize(cellsHrch0.size());
 
 //--------------------------- neural network ------------------------------------
 scalar activateNNtransport(transportProperties.lookupOrDefault<scalar>("activateNNtransport",0));
-int indxNNt=0;
+scalar activateNNchemistry(transportProperties.lookupOrDefault<scalar>("activateNNchemistry",0));
+my_NN Cnn;
+my_NN Cwgnn;
+scalar nn_epoc(transportProperties.lookupOrDefault<scalar>("nn_epoc",6));
+scalar nn_batch(transportProperties.lookupOrDefault<scalar>("nn_batch",16));
+scalar nn_lr(transportProperties.lookupOrDefault<scalar>("nn_lr",1e-3));
+scalar nn_minr(transportProperties.lookupOrDefault<scalar>("nn_minr",1e-3));

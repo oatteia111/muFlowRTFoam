@@ -16,6 +16,9 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 //std::vector<double> sC(ncell_lay,0);
 //for (i=0;i<ncell_lay;i++) {sC+=abs(Cw()[i]);mxC=max(mxC,Cw()[i]);}
 
+// ---------------  global view including NN -------------
+// Normally, if the conditions don't change and the model is trained we use NN, if not we use the eqs
+
 // --------------------- internal conditions ------------------------
 	float time = mesh.time().value(); //const Time&
 	CSu=CSu*0; CSp=CSp*0; a1=1; double conc;//previous cells with values must be destroyed
@@ -100,20 +103,6 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			//else {Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[2+(icount+i)*4+2]<<endl;}
 			} 
 	} //Info<<"Hrdh set"<<endl;
-
-
-//Info<<"0 "<<i<<" csu "<<CSu[0]<<" csp "<<CSp[0]<<" c "<<C()[0]<<endl;
-	
-//get the fixed conc conditions
-/*	if (cellsCfx.size()>0)
-	{
-		float tnow = cellsCfxData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsCfx.size(); tnow = cellsCfxData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsCfx.size();};
-		for (int i=0; i<cellsCfx.size(); i++) {condCfx[i] = cellsCfxData[2+(icount+i)*4+2];} //Info<<"cfx "<<b[i]<<endl;} // discharge must be in s-1
-	} */
-//forAll(C(), i)  { if (sw[i]<sw_min[i]*1.5) {cellSet -noFlip -cellNumber $i -region interior;} } chatGPT -> wrong
-//forAll(C(), i)  { if (sw[i]<sw_min[i]*1.5) {a1[i]=0;} }
 	
 // ----------------------  equation  --------------------------
 C.storePrevIter();//Info<<"c 10740 avt "<<C()[10740]<<endl;
@@ -127,7 +116,10 @@ fvScalarMatrix CEqn
 	); 
 
 for (int i=0; i<cellsCfx.size(); i++) {CEqn.setReference(cellsCfx[i],condCfx[i]);}
-CEqn.solve();
+if (Cnn.trained==0)
+	{
+	CEqn.solve();
+	}
 //Info<<"c 10740 apr "<<C()[10740]<<endl;
 //Info <<"resid "<<CwEqn.residual()()[67171]<<endl;//.value()<<endl;
 //Info << "Ceqn solve, alphaL "<<alphaL<<" theta 5 "<<thetaw[5]<<" Deffw 5"<<Deffw[5]<<endl;
@@ -148,16 +140,15 @@ for (i=0;i<ncell;i++) {
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
 
-//--------------- writing info to file for NN (7/23) --------------------
+//--------------- Neural network (8/23) --------------------
 //up to now only for saturated transport
 //will write Uw(0) Uw(1) h grdH0 grdH 1 C gradC0 gradC1 dC
-bool ts;
-ts = runTime.write();//oldTime=runTime.value();
-if (activateNNtransport==1)
+if (activateNNtransport==1) // here istep is the time of writing
 {
-	std::vector<double> vnn(10,0.);
-	std::vector<int> count(10,0);
-	std::ofstream outNNdata(cur_dir/"NNdata.txt");
+	//put data in the model
+	std::vector<float> vnn(10,0.);
+	std::vector<float> data, target; // TORCH only accepts floats ???? (to vbe validated)
+	//std::ofstream outNNdata(cur_dir/"NNdata.txt");
 	std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
 	volVectorField grdC = fvc::grad(C);
 	volVectorField grdh = fvc::grad(h);
@@ -165,32 +156,78 @@ if (activateNNtransport==1)
 	double mxGh = max(mag(grdh)).value()+SMALL;
 	double mxh = max(h).value()+SMALL;
 	double mnh = min(h).value();
-	//double mxlk = max(lKh).value()+SMALL;
 	double mxC = max(C).value()+SMALL;
 	double mxGC = max(mag(grdC)).value()+SMALL;
-	double x;
-	for (i=0;i<ncell;i++) 
-	{
-		//if (mag(C()[i])>1e-7) // && indxNNt<1000)
-		//{
-			vnn[6] = C()[i]/mxC;
-			int catg = static_cast<int>(vnn[6]*10);
-			if (count[catg]<10) {
+	volScalarField rC = C/mxC;
+	float x;
+	// what we need: select a part for train, another part for eval to calculate loss and finally the total for eval
+	// makes a shuffle of index not to always sample the same cells
+	int nd=0;
+ 
+	std::vector<int> cell1; 
+	if (Cnn.trained==0) { // train mode, including a part for eval, creating cell list (cell1)
+		//create a random vecor of indices
+		std::vector<int> idx(ncell);
+		std::iota(idx.begin(), idx.end(), 0);		
+		std::random_device rd;
+		std::mt19937 g(rd());
+		std::shuffle(idx.begin(), idx.end(), g);
+		std::vector<int> count(16,0); // will add 16 values from the same category of C/Cmax 
+
+		for (i=0;i<ncell;i++) {
+			i1 = idx[i];
+			int catg = static_cast<int>(rC[i1]*10);
+			if (count[catg]<16) {
+				cell1.push_back(i1);// we keep i1 in the cell1 vector
 				count[catg]+=1;
-				vnn[0] = Uw()[i].component(0)/mxU ;
-				vnn[1] = Uw()[i].component(1)/mxU;
-				vnn[2] = (h()[i]-mnh)/(mxh-mnh) ;
-				vnn[3] = grdh()[i].component(0)/mxGh ;
-				vnn[4] = grdh()[i].component(1)/mxGh ;
-				vnn[5] = (std::log10(Kh()[i])-10.)/4+5;
-				vnn[7] = grdC()[i].component(0)/mxGC;
-				vnn[8] = grdC()[i].component(1)/mxGC;
-				vnn[9] = std::log10(mesh.time().time().value());
-				for (const auto &x : vnn) outNNdata << x << " ";
-				outNNdata <<"\n";
-				x = (C()[i]-C.prevIter()[i])/runTime.deltaTValue()*1e6;
-				outNNtarget << x << "\n";
+				nd +=1;
+				}
 			}
-		//}
+		}
+	std::cout<<" nd "<<nd<<std::endl;
+	//std::cout<<" cell1 "<<cell1<<std::endl;
+	
+	if (Cnn.trained==1) { // finally eval the domain, without shuffle, at places where C>small and gradC>small
+		for (i=0;i<ncell;i++) {
+			if ((rC[i]>1e-6)&&(abs(mag(grdC[i]))>1e-6)) { cell1.push_back(i);nd+=1;}
+			}
 	}
+	
+	for (i=0;i<cell1.size();i++) // variables in data : Ux,Uy,h,grdhx,grdhy,Kh,C/Cmax,grdCx,grdCy,log(time)
+	{  
+		i1 = cell1[i];
+		//outNNdata << i1 <<" ";
+		vnn[0]=static_cast<float>(Uw()[i1].component(0)/mxU);data.push_back(vnn[0]); 
+		vnn[1]=static_cast<float>(Uw()[i1].component(1)/mxU);data.push_back(vnn[1]);
+		vnn[2]=static_cast<float>((h()[i1]-mnh)/(mxh-mnh));data.push_back(vnn[2]);
+		vnn[3]=static_cast<float>(grdh()[i1].component(0)/mxGh);data.push_back(vnn[3]);
+		vnn[4]=static_cast<float>(grdh()[i1].component(1)/mxGh);data.push_back(vnn[4]);
+		vnn[5]=static_cast<float>((std::log10(Kh()[i1])-10.)/4+5);data.push_back(vnn[5]);
+		vnn[6]=static_cast<float>(rC[i1]);data.push_back(vnn[6]);
+		vnn[7]=static_cast<float>(grdC()[i1].component(0)/mxGC);data.push_back(vnn[7]);
+		vnn[8]=static_cast<float>(grdC()[i1].component(1)/mxGC);data.push_back(vnn[8]);
+		vnn[9]=static_cast<float>(std::log10(mesh.time().time().value()));data.push_back(vnn[9]);
+		//for (const auto &x : vnn) {outNNdata << x << " ";}
+		//outNNdata <<"\n";
+		x = static_cast<float>((C()[i1]-C.prevIter()[i1])/runTime.deltaTValue()*1e4);
+		target.push_back(x);
+		outNNtarget << x <<"\n";
+	}
+	if (Cnn.trained==1) {
+		Cnn.setNd(nd);Cnn.setData(data);Cnn.eval();
+		for (i=0;i<nd;i++) {
+			x = static_cast<double>(Cnn.output[i][0].item<float>())*runTime.deltaTValue()/1e4;//std::cout<<" "<<x;
+			C[cell1[i]] += x;
+			} // transfer Cnn output to C
+		}
+	//std::cout<<" nd "<<nd<<std::endl;std::cout<<" data "<<data<<std::endl;std::cout<<" target "<<target<<std::endl;
+	if ((Cnn.trained==0)&&(nd>80)) { // train the model with a part for eval, start to train when there is enough values
+		Cnn.setNd(nd);
+		Cnn.setData(data);
+		Cnn.setTarget(target);
+		float rmse = Cnn.train(); std::cout << "rmse "<<rmse<<std::endl;
+		if (rmse<0.001) {
+			
+			Cnn.trained = 1;}
+		} 
 }

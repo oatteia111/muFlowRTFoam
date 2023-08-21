@@ -175,15 +175,5 @@ int ic0=2657;
 			Info <<"comp "<<ic<<" dC0 "<<dC0<<" dC "<<dC<<endl;
 		}
 		dC = max(dC,dC0); // we consider the species that leads to the max dC*/
-	}
-
-
-/* int nc;float minCwat=100.;
-for (i=0;i<ncell_lay;i++) //set cw_lay i = cw_lay i-1 if sw=sw_min
-	{
-	for (ilay=1;ilay<nlay;ilay++) 
-		{ 
-		nc = i+ilay*ncell_lay;if (Cw[0]()[nc]<minCwat) {imin=nc;minCwat=Cw[0]()[nc];}
-		}
-	}
-Info<<"minCw "<<imin<<" "<<minCwat<<" in frk "<<freak.c[imin]<<endl; */
+	} // of species loop
+	

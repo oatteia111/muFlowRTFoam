@@ -38,6 +38,8 @@ public:
 	void setG(std::vector<double> g){this->g = g;}
 	std::vector<double> gm;
 	void setGm(std::vector<double> gm){this->gm = gm;}
+	std::vector<double> temp;
+	void setTemp(std::vector<double> temp){this->temp = temp;}
 	std::vector<double> p;
 	void setP(std::vector<double> p){this->p = p;}
 	std::vector<double> spc;
@@ -230,6 +232,7 @@ public:
 	Info << "in phq poro "<<this->poro[2]<<endl;
 	Info<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
 	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
+		status = phreeqc_rm->SetTemperature(this->temp);
 		if (gcompn.size()>0) {
 			Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
 			Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
@@ -247,7 +250,7 @@ public:
 		status = phreeqc_rm->RunCells();
 		
 		//status = phreeqc_rm->GetSaturation(this->wsat);
-		status = phreeqc_rm->GetSaturation(this->wsat);
+		status = phreeqc_rm->GetSaturation(this->temp);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
 	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz]<<" ";} Info<<endl;

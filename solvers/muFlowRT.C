@@ -33,7 +33,13 @@ Developers
 \*---------------------------------------------------------------------------*/
 //#include <cmath.h>
 //#include <iomanip> //NB when in < > don't add the .h
-//#include "torch/torch.h"
+#include <stdlib.h>
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <sstream>
+#include <string>
 
 #include <chrono>  // for high_resolution_clock
 #include "fvCFD.H"
@@ -45,10 +51,23 @@ Developers
 #include "simpleControl.H"
 #include "cellSet.H"
 
+//////////////////// find local dir
+#include <unistd.h>
+#define GetCurrentDir getcwd
+
+std::string get_current_dir() {
+   char buff[FILENAME_MAX]; //create string buffer to hold path
+   GetCurrentDir( buff, FILENAME_MAX );
+   std::string current_working_dir(buff);
+   return current_working_dir;
+}
+std::string cur_dir = get_current_dir();
+
+
 #include "phreeqc/initPhreeqc.H"
 
 std::vector<double> a(12,0.);
-std::vector<double> c_ph,gm_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+std::vector<double> c_ph,gm_ph,t_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
 float atmPa=101325.;float vmw,Cgtot,Gmtot;
 int i,j,iw;
 my_phq freak; //need to be here to be availabel for every chem condition
@@ -152,7 +171,7 @@ int main(int argc, char *argv[])
 	//freak.setP(p_ph);
 	freak.init();
 	gvol.resize(nxyz,0.01);
-	//p_ph.resize(nxyz,1.);
+	t_ph.resize(nxyz,20.);
 	//freak.run();
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
@@ -329,11 +348,14 @@ int main(int argc, char *argv[])
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
-				for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];}//Info<<"rch "<<rchange[j]<<endl;}
+				
+				Info<<"temp ";
+				for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
 				freak.setGvol(gvol); // set gas volume in phreeqc
 				freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
 				freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
 				freak.setGm(gm_ph);//transfer gm_ph to freak
+				freak.setTemp(t_ph);
 				//freak.setP(p_ph);//transfer pressure to freak
 				freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 				Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
@@ -403,7 +425,7 @@ int main(int argc, char *argv[])
 				//iw = freak.iGwater; done at start
 				for (j=0; j<nxyz;j++)
 					{
-					a1 = max(freak.gm[iw*nxyz+j],0.) - gm_ph[iw*nxyz+j]; // delta gm water 
+					a1 = max(freak.gm[iw*nxyz+j],0.) - gm_ph[iw*nxyz+j]; // delta gm water in moles in gvol (equiv of 1L of medium volume)
 					//a1 = a1 *   //gm_ph = Cg[i]()*gvol/phreeqcVm
 					if (j<5) {Info<< " gm_ph "<< gm_ph[iw*nxyz+j] << " frk "<< freak.gm[iw*nxyz+j] <<" a1 "<<a1<< endl;}
 					sw[j] = max(sw_min[j],sw[j] - a1*.01801/eps[j]); 

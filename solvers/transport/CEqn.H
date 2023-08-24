@@ -116,10 +116,8 @@ fvScalarMatrix CEqn
 	); 
 
 for (int i=0; i<cellsCfx.size(); i++) {CEqn.setReference(cellsCfx[i],condCfx[i]);}
-if (Cnn.trained==0)
-	{
-	CEqn.solve();
-	}
+CEqn.solve();
+
 //Info<<"c 10740 apr "<<C()[10740]<<endl;
 //Info <<"resid "<<CwEqn.residual()()[67171]<<endl;//.value()<<endl;
 //Info << "Ceqn solve, alphaL "<<alphaL<<" theta 5 "<<thetaw[5]<<" Deffw 5"<<Deffw[5]<<endl;
@@ -139,95 +137,3 @@ for (i=0;i<ncell;i++) {
 	Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
-
-//--------------- Neural network (8/23) --------------------
-//up to now only for saturated transport
-//will write Uw(0) Uw(1) h grdH0 grdH 1 C gradC0 gradC1 dC
-if (activateNNtransport==1) // here istep is the time of writing
-{
-	//put data in the model
-	std::vector<float> vnn(10,0.);
-	std::vector<float> data, target; // TORCH only accepts floats ???? (to vbe validated)
-	//std::ofstream outNNdata(cur_dir/"NNdata.txt");
-	std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
-	volVectorField grdC = fvc::grad(C);
-	volVectorField grdh = fvc::grad(h);
-	double mxU = max(mag(Uw)).value()+SMALL;
-	double mxGh = max(mag(grdh)).value()+SMALL;
-	double mxh = max(h).value()+SMALL;
-	double mnh = min(h).value();
-	double mxC = max(C).value()+SMALL;
-	double mxGC = max(mag(grdC)).value()+SMALL;
-	volScalarField rC = C/mxC;
-	float x;
-	// what we need: select a part for train, another part for eval to calculate loss and finally the total for eval
-	// makes a shuffle of index not to always sample the same cells
-	int nd=0;
- 
-	std::vector<int> cell1; 
-	if (Cnn.trained==0) { // train mode, including a part for eval, creating cell list (cell1)
-		//create a random vecor of indices
-		std::vector<int> idx(ncell);
-		std::iota(idx.begin(), idx.end(), 0);		
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(idx.begin(), idx.end(), g);
-		std::vector<int> count(16,0); // will add 16 values from the same category of C/Cmax 
-
-		for (i=0;i<ncell;i++) {
-			i1 = idx[i];
-			int catg = static_cast<int>(rC[i1]*10);
-			if (count[catg]<16) {
-				cell1.push_back(i1);// we keep i1 in the cell1 vector
-				count[catg]+=1;
-				nd +=1;
-				}
-			}
-		}
-	std::cout<<" nd "<<nd<<std::endl;
-	//std::cout<<" cell1 "<<cell1<<std::endl;
-	
-	if (Cnn.trained==1) { // finally eval the domain, without shuffle, at places where C>small and gradC>small
-		for (i=0;i<ncell;i++) {
-			if ((rC[i]>1e-6)&&(abs(mag(grdC[i]))>1e-6)) { cell1.push_back(i);nd+=1;}
-			}
-	}
-	
-	for (i=0;i<cell1.size();i++) // variables in data : Ux,Uy,h,grdhx,grdhy,Kh,C/Cmax,grdCx,grdCy,log(time)
-	{  
-		i1 = cell1[i];
-		//outNNdata << i1 <<" ";
-		vnn[0]=static_cast<float>(Uw()[i1].component(0)/mxU);data.push_back(vnn[0]); 
-		vnn[1]=static_cast<float>(Uw()[i1].component(1)/mxU);data.push_back(vnn[1]);
-		vnn[2]=static_cast<float>((h()[i1]-mnh)/(mxh-mnh));data.push_back(vnn[2]);
-		vnn[3]=static_cast<float>(grdh()[i1].component(0)/mxGh);data.push_back(vnn[3]);
-		vnn[4]=static_cast<float>(grdh()[i1].component(1)/mxGh);data.push_back(vnn[4]);
-		vnn[5]=static_cast<float>((std::log10(Kh()[i1])-10.)/4+5);data.push_back(vnn[5]);
-		vnn[6]=static_cast<float>(rC[i1]);data.push_back(vnn[6]);
-		vnn[7]=static_cast<float>(grdC()[i1].component(0)/mxGC);data.push_back(vnn[7]);
-		vnn[8]=static_cast<float>(grdC()[i1].component(1)/mxGC);data.push_back(vnn[8]);
-		vnn[9]=static_cast<float>(std::log10(mesh.time().time().value()));data.push_back(vnn[9]);
-		//for (const auto &x : vnn) {outNNdata << x << " ";}
-		//outNNdata <<"\n";
-		x = static_cast<float>((C()[i1]-C.prevIter()[i1])/runTime.deltaTValue()*1e4);
-		target.push_back(x);
-		outNNtarget << x <<"\n";
-	}
-	if (Cnn.trained==1) {
-		Cnn.setNd(nd);Cnn.setData(data);Cnn.eval();
-		for (i=0;i<nd;i++) {
-			x = static_cast<double>(Cnn.output[i][0].item<float>())*runTime.deltaTValue()/1e4;//std::cout<<" "<<x;
-			C[cell1[i]] += x;
-			} // transfer Cnn output to C
-		}
-	//std::cout<<" nd "<<nd<<std::endl;std::cout<<" data "<<data<<std::endl;std::cout<<" target "<<target<<std::endl;
-	if ((Cnn.trained==0)&&(nd>80)) { // train the model with a part for eval, start to train when there is enough values
-		Cnn.setNd(nd);
-		Cnn.setData(data);
-		Cnn.setTarget(target);
-		float rmse = Cnn.train(); std::cout << "rmse "<<rmse<<std::endl;
-		if (rmse<0.001) {
-			
-			Cnn.trained = 1;}
-		} 
-}

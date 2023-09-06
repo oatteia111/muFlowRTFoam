@@ -41,21 +41,23 @@ volScalarField::Internal TSp
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false
 );
 
-labelList cellsTfx0; std::vector<double> cellsTfxData;std::vector<double> condTfx;
-labelList cellsTw0; std::vector<double> cellsTwData;std::vector<double> condTw;
+labelList cellsTfx0; std::vector<float> cellsTfxData;std::vector<float> condTfx;
+labelList cellsTw0; std::vector<float> cellsTwData;std::vector<float> condTw;
 
 //if (activateThermal==1)
 //{
 	// reading the Tfx data for drains
 std::ifstream inputTfxdata{cur_dir+"/constant/options/tfix"}; //
-cellsTfxData = {std::istream_iterator<double>{inputTfxdata}, {}};
+//cellsTfxData = {std::istream_iterator<float>{inputTfxdata}, {}};
+while (inputTfxdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsTfxData.push_back(f0);}
 if (cellsTfxData.size()>0){cellSet selectedTfx(mesh, "tfix");cellsTfx0 = selectedTfx.toc();}
 condTfx.resize(cellsTfx0.size());
 std::vector<int> cellsTfx = indexC(cellsTfx0,cellsTfxData) ;
 
 // reading the Twel data for drains
 std::ifstream inputTwdata{cur_dir+"/constant/options/twel"}; //
-cellsTwData = {std::istream_iterator<double>{inputTwdata}, {}};
+//cellsTwData = {std::istream_iterator<float>{inputTwdata}, {}};
+while (inputTwdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsTwData.push_back(f0);}
 if (cellsTwData.size()>0){cellSet selectedTw(mesh, "twel");cellsTw0 = selectedTw.toc();}
 condTw.resize(cellsTw0.size());
 std::vector<int> cellsTw = indexC(cellsTw0,cellsTwData) ;

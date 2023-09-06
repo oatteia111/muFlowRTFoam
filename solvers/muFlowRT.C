@@ -79,7 +79,7 @@ dicFunc fDe_T;
 
 using namespace Foam;
 
-std::vector<int> indexC(labelList &cells, std::vector<double> &data)
+std::vector<int> indexC(labelList &cells, std::vector<float> &data)
 {
     std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
 	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
@@ -445,7 +445,17 @@ int main(int argc, char *argv[])
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
-			for (const auto &x : freak.spc) outFile << x << "\n";
+			/*//start write species file in columns
+			j=0;
+			for (i=0;i<cells.size();i++) {
+				for (k=0;k<freak.nspc;k++) {
+					if (i==ractive[j]) {outFile << freak.spc[i*nxyz+j]<<" ";j+=1;}
+					else {outFile << 0.<<" "}
+					}
+				outFile<<"\n";
+			} //end write species file*/
+			
+			//for (const auto &x : freak.spc) outFile << x << "\n";
 		}
 		
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

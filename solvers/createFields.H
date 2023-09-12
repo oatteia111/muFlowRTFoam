@@ -165,64 +165,65 @@ volScalarField::Internal hSp
 
 
 // -------------- conditions for head -------------
-labelList cellsHfx0; std::vector<float> cellsHfxData;std::vector<float> qHfx;
-labelList cellsHw0; std::vector<float> cellsHwData;std::vector<float> qHw;
-labelList cellsHdrn0; std::vector<float> cellsHdrnData;std::vector<float> qHdrn;
-labelList cellsHriv0; std::vector<float> cellsHrivData;std::vector<float> qHriv;
-labelList cellsHghb0; std::vector<float> cellsHghbData;std::vector<float> qHghb;std::vector<float> qGerr;
-labelList cellsHrch0; std::vector<float> cellsHrchData;std::vector<float> qHrch;std::vector<float> clayRch;
+labelList cellsHfix0; std::vector<float> qHfix;
+labelList cellsHwel0; std::vector<float> qHwel;
+labelList cellsHdrn0; std::vector<float> qHdrn;
+labelList cellsHriv0; std::vector<float> qHriv;
+labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> qGerr;
+labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> clayRch;
 
-float f0;
 // reading the data for hfix
 //std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
 //cellsHfxData = {std::istream_iterator<double>{inputHfxdata}, {}};
-std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix", std::ios::binary}; //
-while (inputHfxdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHfxData.push_back(f0);}
-if (cellsHfxData.size()>0) { cellSet selectedHfx(mesh, "hfix"); cellsHfx0 = selectedHfx.toc();}
-qHfx.resize(cellsHfx0.size());
-std::vector<int> cellsHfx = indexC(cellsHfx0,cellsHfxData) ;
-Info <<" hfx sz "<<cellsHfx0.size()<<" "<<cellsHfx.size()<<endl;
+if (fexists(cur_dir+"/constant/options/hfix")) { cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();}
+if (fexists(cur_dir+"/constant/options/hwel")) { cellSet selectedHwel(mesh, "hwel");cellsHwel0 = selectedHwel.toc();}
+if (fexists(cur_dir+"/constant/options/hdrn")) { cellSet selectedHdrn(mesh, "hdrn");cellsHdrn0 = selectedHdrn.toc();}
+if (fexists(cur_dir+"/constant/options/hriv")) { cellSet selectedHriv(mesh, "hriv");cellsHriv0 = selectedHriv.toc();}
+if (fexists(cur_dir+"/constant/options/hghb")) { cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
+if (fexists(cur_dir+"/constant/options/hrch")) { cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
+//get the data
+outData output;
+int itHfix=0;output = getCbuffer("hfix",itHfix,cellsHfix0.size()); 
+float tHfix = output.t; std::vector<float> cellsHfixData=output.d;
+
+int itHwel=0;output = getCbuffer("hwel",itHwel,cellsHwel0.size()); 
+float tHwel = output.t; std::vector<float> cellsHwelData=output.d;
+
+int itHdrn=0;output = getCbuffer("hdrn",itHdrn,cellsHdrn0.size()); 
+float tHdrn = output.t; std::vector<float> cellsHdrnData=output.d;
+
+int itHriv=0; output = getCbuffer("hriv",itHriv,cellsHriv0.size()); 
+float tHriv = output.t; std::vector<float> cellsHrivData=output.d;
+
+int itHghb=0; output = getCbuffer("hghb",itHriv,cellsHghb0.size()); 
+float tHghb = output.t; std::vector<float> cellsHghbData=output.d;
+
+int itHrch=0; output = getCbuffer("hrch",itHrch,cellsHrch0.size()); 
+float tHrch = output.t; std::vector<float> cellsHrchData=output.d;
+
+qHfix.resize(cellsHfix0.size());
+qHwel.resize(cellsHwel0.size());
+qHdrn.resize(cellsHdrn0.size());
+qHriv.resize(cellsHriv0.size());
+qHghb.resize(cellsHghb0.size());qGerr.resize(cellsHghb0.size());
+qHrch.resize(cellsHrch0.size());clayRch.resize(cellsHrch0.size());
+std::vector<int> cellsHfix = indexC(cellsHfix0,cellsHfixData) ;
+std::vector<int> cellsHwel = indexC(cellsHwel0,cellsHwelData) ;
+std::vector<int> cellsHdrn = indexC(cellsHdrn0,cellsHdrnData) ;
+std::vector<int> cellsHghb = indexC(cellsHghb0,cellsHghbData) ;
+std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
+std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
 // reading the hwell data for wells
-std::ifstream inputHwdata{cur_dir+"/constant/options/hwel", std::ios::binary}; //
+//std::ifstream inputHwdata{cur_dir+"/constant/options/hwel", std::ios::binary}; //
 //cellsHwData = {std::istream_iterator<float>{inputHwdata}, {}};
-while (inputHwdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHwData.push_back(f0);}
-if (cellsHwData.size()>0) {	cellSet selectedHwel(mesh, "hwel");cellsHw0 = selectedHwel.toc();}
-qHw.resize(cellsHw0.size());
-std::vector<int> cellsHw = indexC(cellsHw0,cellsHwData) ;
-for (i=0;i<cellsHw.size();i++) {Info<<"i "<<cellsHw[i]<<" center "<<mesh.C()[cellsHw[i]]<<endl;}
-
-// reading the hdrn data for drains
-std::ifstream inputHdrndata{cur_dir+"/constant/options/hdrn", std::ios::binary}; //
-//cellsHdrnData = {std::istream_iterator<float>{inputHdrndata}, {}};
-while (inputHdrndata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHdrnData.push_back(f0);}
-if (cellsHdrnData.size()>0){cellSet selectedHdrn(mesh, "hdrn");cellsHdrn0 = selectedHdrn.toc();}
-std::vector<int> cellsHdrn = indexC(cellsHdrn0,cellsHdrnData) ;
-qHdrn.resize(cellsHdrn0.size());
-
-// reading the hriv data for riv cells
-std::ifstream inputHrivdata{cur_dir+"/constant/options/hriv", std::ios::binary}; //
-//cellsHrivData = {std::istream_iterator<float>{inputHrivdata}, {}};
-while (inputHrivdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHrivData.push_back(f0);}
-if (cellsHrivData.size()>0){cellSet selectedHriv(mesh, "hriv");cellsHriv0 = selectedHriv.toc();}
-std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
-qHriv.resize(cellsHriv0.size());
+//while (inputHwdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHwData.push_back(f0);}
 	
-// reading the hghb data for GHb cells
-std::ifstream inputHghbdata{cur_dir+"/constant/options/hghb", std::ios::binary}; //
-//cellsHghbData = {std::istream_iterator<float>{inputHghbdata}, {}};
-while (inputHghbdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHghbData.push_back(f0);}
-if (cellsHghbData.size()>0){cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
-std::vector<int> cellsHghb = indexC(cellsHghb0,cellsHghbData) ;
-qHghb.resize(cellsHghb0.size());qGerr.resize(cellsHghb0.size());
-
 // reading the rch data for Recharge cells
-std::ifstream inputHrchdata{cur_dir+"/constant/options/hrch", std::ios::binary}; //
+//std::ifstream inputHrchdata{cur_dir+"/constant/options/hrch", std::ios::binary}; //
 //cellsHrchData = {std::istream_iterator<float>{inputHrchdata}, {}};
-while (inputHrchdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHrchData.push_back(f0);}
-if (cellsHrchData.size()>0){cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
-std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
-qHrch.resize(cellsHrch0.size());clayRch.resize(cellsHrch0.size());
+//while (inputHrchdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHrchData.push_back(f0);}
+//if (cellsHrchData.size()>0){cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
 
 
 //--------------------------- neural network ------------------------------------

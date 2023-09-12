@@ -8,49 +8,52 @@ Deffw = (alphaT * mag(Uw))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL
 
 double conc,dC0,mxC,sC,sC1;int ic;
 
-float time = mesh.time().value(); //const Time&
+float time = mesh.time().value()/day; //const Time&
 
 //get the solution well data
-icount=0;
-if (cellsSwl.size()>0)
+if (cellsSwel.size()>0)
 	{
-	float tnow = cellsSwlData[2]*day; //time in files is in days
-	while (time>=tnow) {icount += cellsSwl.size(); tnow = cellsSwlData[2+icount*4]*day; }
-	if (icount>0) {icount -= cellsSwl.size();};
-	for (int i=0; i<cellsSwl.size(); i++) {condSwl[i] = static_cast<int>(cellsSwlData[2+(icount+i)*4+2]);}
+	if (time>=tSwel) {
+		output = getCbuffer("swel",itSwel,cellsSwel.size()); 
+		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
+		}
+	for (int i=0; i<cellsSwel.size(); i++) {condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);}
 	}
 //no solutions for drains
 //get the solution ghb data
 icount=0;
 if (cellsSghb.size()>0)
 	{
-	float tnow = cellsSghbData[2]*day; //time in files is in days
-	while (time>=tnow) {icount += cellsSghb.size(); tnow = cellsSghbData[2+icount*4]*day; }
-	if (icount>0) {icount -= cellsSghb.size();};
-	for (int i=0; i<cellsSghb.size(); i++) {condSghb[i] = static_cast<int>(cellsSghbData[2+(icount+i)*4+2]);}
+	if (time>=tSghb) {
+		output = getCbuffer("sghb",itSghb,cellsSghb.size()); 
+		tSghb = output.t; cellsSghbData=output.d; itSghb +=1;
+		}
+	for (int i=0; i<cellsSghb.size(); i++) {condSghb[i] = static_cast<int>(cellsSghbData[i*4+2]);}
 	}
 // get fixed solutions 
 icount=0;
-if (cellsSfx.size()>0)
+if (cellsSfix.size()>0)
 	{
-	float tnow = cellsSfxData[2]*day; //time in files is in days
-	while (time>=tnow) {icount += cellsSfx.size(); tnow = cellsSfxData[2+icount*4]*day; }
-	if (icount>0) {icount -= cellsSfx.size();};
-	for (int i=0; i<cellsSfx.size(); i++) {condSfx[i] = static_cast<int>(cellsSfxData[2+(icount+i)*4+2]);}
+	if (time>=tSfix) {
+		output = getCbuffer("sfix",itSfix,cellsSfix.size()); 
+		tSfix = output.t; cellsSfixData=output.d; itSfix +=1;
+		}
+	for (int i=0; i<cellsSfix.size(); i++) {condSfix[i] = static_cast<int>(cellsSfixData[i*4+2]);}
 	}
 //get the solution recharge data
 icount=0;
 if (cellsSrch.size()>0)
 	{
-	float tnow = cellsSrchData[2]*day; 
-	while (time>=tnow) {icount += cellsSrch.size(); tnow = cellsSrchData[2+icount*4]*day; }
-	if (icount>0) {icount -= cellsSrch.size();};
+	if (time>=tSrch) {
+		output = getCbuffer("srch",itSrch,cellsSrch.size()); 
+		tSrch = output.t; cellsSrchData=output.d; itSrch +=1;
+		}
 	for (int i=0; i<cellsSrch.size(); i++) 
 		{
 		i1 = cellsSrch[i];
 		for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
 		ilay1 = max(0, ilay-1); // ilay1 from top
-		condSrch[i] = static_cast<int>(cellsSrchData[2+(icount+i)*4+2]);
+		condSrch[i] = static_cast<int>(cellsSrchData[i*4+2]);
 		}
 	}
 
@@ -69,23 +72,23 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 		icnt=0;
 		CiSu*=0; CiSp*=0; //previous cells with values must be destroyed
 		// --------------------- internal conditions ------------------------
-		if (cellsHw.size()>0)  // solution in well (even if no Swl data we ned to pump the conc)
+		if (cellsHwel.size()>0)  // solution in well (even if no Swl data we ned to pump the conc)
 		{
-			for (int i=0; i<cellsHw.size(); i++) 
+			for (int i=0; i<cellsHwel.size(); i++) 
 				{ 
-				i1=cellsHw[i];v=mesh.V()[i1];
-				if (qHw[i]<0) {CiSp[i1] = -qHw[i]/v;} //in Sp term as discharge prop to local concentration
-				else { CiSu[i1] = -qHw[i]/v*solu_conc[condSwl[i]*ph_ncomp+ic]; } 
+				i1=cellsHwel[i];v=mesh.V()[i1];
+				if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration
+				else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
 				}
 		} //Info<<"Cweli set"<<endl;
 		// solu at fixed head places (Sfix) need to be the same zones as Hfix (as we use Hfix[i])
-		if (cellsSfx.size()>0)
+		if (cellsSfix.size()>0)
 		{
-			for (int i=0; i<cellsHfx.size(); i++) 
+			for (int i=0; i<cellsHfix.size(); i++) 
 				{ //Info<<"i "<<i<<" condSfx "<<condSfx[i]<<endl;
-				i1=cellsHfx[i];v=mesh.V()[i1];
-				if (qHfx[i]<0) {CiSp[i1] = -qHfx[i]/v;} //in Sp term as discharge prop to local concentration
-				else { CiSu[i1] = -qHfx[i]/v*solu_conc[condSfx[i]*ph_ncomp+ic]; } 
+				i1=cellsHfix[i];v=mesh.V()[i1];
+				if (qHfix[i]<0) {CiSp[i1] = -qHfix[i]/v;} //in Sp term as discharge prop to local concentration
+				else { CiSu[i1] = -qHfix[i]/v*solu_conc[condSfix[i]*ph_ncomp+ic]; } 
 				} 
 		} //Info<<"Cfxi set"<<endl;
 		// conc at ghb places
@@ -119,7 +122,7 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 
 		// for fixed solution cells with a search of the presence of fixed head or ghb cells
 		icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;
-int ic0=2657;
+		//int ic0=2657;
 		
 		/*
 		if (cellsSfx.size()>0)
@@ -149,7 +152,7 @@ int ic0=2657;
 			+ CiSu + fvm::SuSp(CiSp, Cwi)
 		);
 
-		for (int i=0; i<cellsSfx.size(); i++) {CwiEqn.setReference(cellsSfx[i],solu_conc[condSfx[i]*ph_ncomp+ic]);}
+		for (int i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
 		/*int nc;
 		for (i=0;i<ncell_lay;i++) //set dry cells to solution 0
 			{

@@ -62,37 +62,41 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
 	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
-	if (cellsHw.size()>0)
+	//Info << "Hwdata "<<cellsHwData[0]<<" "<<cellsHwData[1]<<" "<<cellsHwData[2]<<" "<<cellsHwData[3]<<endl;
+	if (cellsHwel.size()>0)
 	{
-		for (int i=0; i<cellsHw.size(); i++) 
-			{i1=cellsHw[i]; v=mesh.V()[i1];hSu[i1] = cellsHwData[2+i*4+2]/v/day;} // discharge must be in s-1
-	} //Info<<"Hw read "<<endl;
+		std::cout<<" hsuw ";
+		for (int i=0; i<cellsHwel.size(); i++) 
+			{i1=cellsHwel[i]; v=mesh.V()[i1];hSu[i1] = cellsHwelData[i*4+2]/v/day;} // discharge must be in s-1
+	} Info<<"\nHw read ";
 	// set the values in the matrix
 	//get the ghb conditions
 	if (cellsHghb.size()>0)
 	{
+		std::cout<<" hsughb ";
 		for (int i=0; i<cellsHghb.size(); i++) 
-			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[2+i*4+2]/v/day; hSp[i1] = cellsHghbData[2+i*4+3]/v/day; }
-	} //Info<<"Hghb read "<<endl;
+			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day; }
+	} Info<<"Hghb read ";
 	//get the riv conditions
 	if (cellsHriv.size()>0)
 	{
 		for (int i=0; i<cellsHriv.size(); i++) 
-			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[2+i*4+2]/v/day; hSp[i1] = cellsHrivData[2+i*4+3]/v/day; }
-	} //Info<<"Hriv read "<<endl;
+			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day; }
+	} Info<<"Hriv read ";
 	//get the drn conditions
 	if (cellsHdrn.size()>0)
 	{
+		std::cout<<" hdrn ";
 		for (int i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i];v=mesh.V()[i1];//Info<<"i1 "<<i1<<" h "<<h()[i1]<<endl;
-			hSu[i1] = cellsHdrnData[2+i*4+2]/v/day; hSp[i1] = cellsHdrnData[2+i*4+3]/v/day;
+			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1] = cellsHdrnData[i*4+3]/v/day; 
 			//hSp[i1] = cellsHdrnData[2+(icount+i)*4+3]/day;
 			//if (i<5) {Info<<"drn i1 "<<i1<<" h(i1) "<<h()[i1]<<" hSu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 			//scalar dff = hSu[i1]-hSp[i1]*h()[i1];
 			//if (dff>0) {hSu[i1]/=1000;hSp[i1]/=1000;}
 			}
-	} //Info<<"Hdrn read "<<endl;
+	} Info<<"Hdrn read ";
 	// recharge conditions	
 	float dv =0;	
 	if (cellsHrch.size()>0)
@@ -103,9 +107,9 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 			for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
 			ilay1 = max(0, ilay-1); // ilay1 from top
 			nc = i1-ilay1*ncell_lay;
-			hSu[nc] += cellsHrchData[2+i*4+2]/mesh.V()[nc]/day; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
+			hSu[nc] += cellsHrchData[i*4+2]/mesh.V()[nc]/day; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
 			} 
-	}
+	} Info<<"Hdrn read "<<endl;
 	//fixed head cells
 	/*float cnd0 = 1e-4; float cnd=0;
 	if (cellsHfx.size()>0)
@@ -123,12 +127,10 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	//fvOptions.constrain(hEqnStd);
 	//hEqnStd.relax();
 	//get the fixed head conditions
-	if (cellsHfx.size()>0)
+	if (cellsHfix.size()>0)
 	{
-		float tnow = cellsHfxData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsHfx.size(); tnow = cellsHfxData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHfx.size();}
-		for (int i=0; i<cellsHfx.size(); i++) {hEqnStd.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]) ;}//Info<<"setRef "<<cellsHfx[i]<<endl;}
+		std::cout<<" hfix ";
+		for (int i=0; i<cellsHfix.size(); i++) {hEqnStd.setReference(cellsHfix[i],cellsHfixData[i*4+2]) ; std::cout<<cellsHfixData[i*4+2]<<" ";}//Info<<"setRef "<<cellsHfx[i]<<endl;}
 	}
 	//Info << hEqnStd.solver().solve() <<endl; //typeid().name()//hEqnStd.lower() works
 	hEqnStd.solve(); //Info << "h 5 " << h[5] << endl;

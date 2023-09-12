@@ -84,11 +84,40 @@ std::vector<int> indexC(labelList &cells, std::vector<float> &data)
     std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
 	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
 		{
-		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[2+i*4+1]));
+		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[i*4+1]));
 		int i1 = {std::distance(cells.begin(), iter)};  //Info << i << " icd "<< icd << " cll " << cells_[i] << " indx " << a << endl; // cell number in cellsData //index of cellsData in cells_
 		c1[i] = cells[i1];
 		}
     return c1;
+}
+
+inline bool fexists(const std::string& name) {
+    ifstream f(name.c_str());
+    return f.good();
+}
+
+struct outData {float t; std::vector<float> d;};
+ 
+// a function to get data from binary file
+outData getCbuffer(char* fname, int itime, int ncell) {
+    std::vector<float> data(ncell*4);
+	std::ifstream inputData{cur_dir+"/constant/options/"+fname, std::ios::binary}; //
+	//while (inputHdrndata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHdrnData.push_back(f0);}
+	//for (int ic=0;ic<ncell;ic++) {inputData.read(reinterpret_cast<char*>(&f0), sizeof(float));data.push_back(f0);}
+	// position at the place
+	inputData.seekg(ncell*itime*4*sizeof(float)); //each line is composed of 4 numbers and there are two values at the beginning
+
+    inputData.read(reinterpret_cast<char*>(&data[0]), ncell*4*sizeof(float));
+	float time;	
+	inputData.read(reinterpret_cast<char*>(&time), sizeof(float));
+	// other possiblity
+	/*char buffer[BUFFERSIZE];
+	FILE * filp = fopen("filename.bin", "rb"); 
+	int bytes_read = fread(buffer, sizeof(char), BUFFERSIZE, filp); */
+	outData output;
+	output.t = time;std::cout<<"readbin "<<fname <<" "<<itime<<" "<<ncell;
+	output.d = data;
+    return output;
 }
 
 int main(int argc, char *argv[])
@@ -348,20 +377,20 @@ int main(int argc, char *argv[])
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
-				
-				Info<<"temp ";
-				for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
-				freak.setGvol(gvol); // set gas volume in phreeqc
-				freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
-				freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
-				freak.setGm(gm_ph);//transfer gm_ph to freak
-				freak.setTemp(t_ph);
-				//freak.setP(p_ph);//transfer pressure to freak
-				freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
-				Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
-				freak.run();
-				freak.getSelOutput();
-				Info << "phreeqc done "<<endl;
+			
+			Info<<"temp ";
+			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
+			freak.setGvol(gvol); // set gas volume in phreeqc
+			freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
+			freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
+			freak.setGm(gm_ph);//transfer gm_ph to freak
+			freak.setTemp(t_ph);
+			//freak.setP(p_ph);//transfer pressure to freak
+			freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
+			Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
+			freak.run();
+			freak.getSelOutput();
+			Info << "phreeqc done "<<endl;
 				
 			// write to intermediate file, input (for gases)
 			if (ph_gcomp>0) {
@@ -379,7 +408,7 @@ int main(int argc, char *argv[])
 					for (j=0; j<nxyz;j++)
 						{
 						Cw[i]()[ractive[j]] = freak.c[i*nxyz+j];
-						if (j==imin) {Info<<"ic "<<i<<" imin "<<imin<<" c "<<Cw[i]()[imin]<<endl;}
+						//if (j==imin) {Info<<"ic "<<i<<" imin "<<imin<<" c "<<Cw[i]()[imin]<<endl;}
 						}
 				} 
 			
@@ -456,7 +485,7 @@ int main(int argc, char *argv[])
 			} //end write species file*/
 			
 			//for (const auto &x : freak.spc) outFile << x << "\n";
-		}
+			}
 		
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"

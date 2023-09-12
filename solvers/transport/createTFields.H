@@ -41,25 +41,20 @@ volScalarField::Internal TSp
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false
 );
 
-labelList cellsTfx0; std::vector<float> cellsTfxData;std::vector<float> condTfx;
-labelList cellsTw0; std::vector<float> cellsTwData;std::vector<float> condTw;
+labelList cellsTfix0; std::vector<float> condTfix;
+labelList cellsTwel0; std::vector<float> condTwel;
 
-//if (activateThermal==1)
-//{
-	// reading the Tfx data for drains
-std::ifstream inputTfxdata{cur_dir+"/constant/options/tfix"}; //
-//cellsTfxData = {std::istream_iterator<float>{inputTfxdata}, {}};
-while (inputTfxdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsTfxData.push_back(f0);}
-if (cellsTfxData.size()>0){cellSet selectedTfx(mesh, "tfix");cellsTfx0 = selectedTfx.toc();}
-condTfx.resize(cellsTfx0.size());
-std::vector<int> cellsTfx = indexC(cellsTfx0,cellsTfxData) ;
+if (fexists(cur_dir+"/constant/options/tfix")) {cellSet selectedTfix(mesh, "tfix");cellsTfix0 = selectedTfix.toc();}
+if (fexists(cur_dir+"/constant/options/twel")) {cellSet selectedTwel(mesh, "twel");cellsTwel0 = selectedTwel.toc();}
 
-// reading the Twel data for drains
-std::ifstream inputTwdata{cur_dir+"/constant/options/twel"}; //
-//cellsTwData = {std::istream_iterator<float>{inputTwdata}, {}};
-while (inputTwdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsTwData.push_back(f0);}
-if (cellsTwData.size()>0){cellSet selectedTw(mesh, "twel");cellsTw0 = selectedTw.toc();}
-condTw.resize(cellsTw0.size());
-std::vector<int> cellsTw = indexC(cellsTw0,cellsTwData) ;
-//}	
+int itTfix=0;output = getCbuffer("tfix",itTfix,cellsTfix0.size()); 
+float tTfix = output.t; std::vector<float> cellsTfixData=output.d;
+
+int itTwel=0;output = getCbuffer("twel",itTwel,cellsTwel0.size()); 
+float tTwel = output.t; std::vector<float> cellsTwelData=output.d;
+
+condTfix.resize(cellsTfix0.size());
+condTwel.resize(cellsTwel0.size());
+std::vector<int> cellsTfix = indexC(cellsTfix0,cellsTfixData) ;
+std::vector<int> cellsTwel = indexC(cellsTwel0,cellsTwelData) ;
 Info<< "All T read\n" << endl;

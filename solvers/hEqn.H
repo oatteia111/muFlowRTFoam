@@ -47,16 +47,21 @@ stor.dimensions().reset(dimless/dimLength);
 
 // -################# - conditions  ---####################---
 	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
-	float time = mesh.time().value();float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
+	float time = mesh.time().value()/day;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge/recharge
 	icount = 0;	//get the ghb conditions
-	if (cellsHw.size()>0)
+	if (cellsHwel.size()>0)
 	{
-		float tnow = cellsHwData[2]*day;//time in files is in days
-		while (time>=tnow) {icount += cellsHw.size(); tnow = cellsHwData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHw.size();};
-		for (int i=0; i<cellsHw.size(); i++)
-			{v=mesh.V()[cellsHw[i]];qHw[i] = cellsHwData[2+(icount+i)*4+2]/day; hSu[cellsHw[i]] = qHw[i]/v;}
+		//float tnow = cellsHwData[2]*day;//time in files is in days
+		//while (time>=tnow) {icount += cellsHw.size(); tnow = cellsHwData[2+icount*4]*day; }
+		if (time>=tHwel) {
+			output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
+			tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
+			}
+ //it is the step
+		//if (icount>0) {icount -= cellsHw.size();};
+		for (int i=0; i<cellsHwel.size(); i++)
+			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;}
 		//Info<<i<<" ic "<<cellsHw[i]<<" icdat "<<cellsHwData[2+(icount+i)*4+1]<<endl; }
 	} Info<<"Hfw read ";
 	//----- get the ghb conditions
@@ -64,53 +69,53 @@ stor.dimensions().reset(dimless/dimLength);
 	int ic0=10;
 	if (cellsHghb.size()>0)
 	{
-		float tnow = cellsHghbData[2]*day;
-		while (time>=tnow) {icount += cellsHghb.size(); tnow = cellsHghbData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHghb.size();} 
+		if (time>=tHghb) {
+			output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
+			tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
+			}
 		for (int i=0; i<cellsHghb.size(); i++) 
-			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[2+(icount+i)*4+2]/v/day; hSp[i1] = cellsHghbData[2+(icount+i)*4+3]/v/day;}
+			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day;}
 	} Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
 	icount = 0; 
 	if (cellsHriv.size()>0)
 	{
-		float tnow = cellsHrivData[2]*day;
-		while (time>=tnow) {icount += cellsHriv.size(); tnow = cellsHrivData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHriv.size();} 
+		if (time>=tHriv) {
+			output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
+			tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
+			}
 		for (int i=0; i<cellsHriv.size(); i++) 
-			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[2+(icount+i)*4+2]/v/day; hSp[i1] = cellsHrivData[2+(icount+i)*4+3]/v/day;
-			Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
+			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day;}
+			//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 	} //Info<<"Hriv read "<<endl;
 	//----- get the drn conditions
 	icount = 0; 
 	if (cellsHdrn.size()>0)
 	{
-		float tnow = cellsHdrnData[2]*day; 
-		while (time>=tnow) {icount += cellsHdrn.size(); tnow = cellsHdrnData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHdrn.size();} 
+		if (time>=tHdrn) {
+			output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
+			tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
+			}
 		for (int i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i]; v=mesh.V()[i1];
-			hSu[i1] = cellsHdrnData[2+(icount+i)*4+2]/v/day; hSp[i1]=cellsHdrnData[2+(icount+i)*4+3]/v/day;
-			//hSp[i1] = cellsHdrnData[2+(icount+i)*4+3]/day;
-			//scalar dff = hSu[i1]-hSp[i1]*h[i1];
-			//if (dff>0) {hSu[i1]/=1e4;hSp[i1]/=1e4;}
-			//if (i<5) {Info<<"drn i1 "<<i1<<" h(i1) "<<h()[i1]<<" data1 "<< cellsHdrnData[2+(icount+i)*4+2]<<" data 2 "<< cellsHdrnData[2+(icount+i)*4+3]<<" hSu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
+			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1]=cellsHdrnData[i*4+3]/v/day;
 			}
 	}  Info<<"Hdrn read ";
 	//---- recharge conditions		
 	icount = 0; //float dv=0;
 	if (cellsHrch.size()>0)
 	{
-		float tnow = cellsHrchData[2]*day;
-		while (time>=tnow) {icount += cellsHrch.size(); tnow = cellsHrchData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHrch.size();} Info<<" Hdrch size "<<cellsHrch.size();
+		if (time>=tHrch) {
+			output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
+			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
+			}
 		for (int i=0; i<cellsHrch.size(); i++) 
 			{
 			i1 = cellsHrch[i];//Info<<" i "<<i<<" i1 "<<i1<<" nla "<<nlay<<" ncl "<<ncell_lay;
 			for (ilay=0;ilay<nlay;ilay++) { nc=i1-ilay*ncell_lay; if (sw[nc]>=sw_max) {break;} ;} //search for the first confined layer from the top
 			ilay1 = max(0, ilay-1);// ilay1 from top
-			nc = i1-ilay1*ncell_lay;clayRch[i] = nc;qHrch[i] = cellsHrchData[2+(icount+i)*4+2]/day;
+			nc = i1-ilay1*ncell_lay;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2]/day;
 			//if(hSu[nc]!=0) {Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;}
 			if (hSu[nc]==0) {
 				hSu[nc] = qHrch[i]/mesh.V()[nc]; 
@@ -123,12 +128,13 @@ stor.dimensions().reset(dimless/dimLength);
 fvScalarMatrix hEqn
 	( stor*fvm::ddt(h) - fvm::laplacian(Mf,h) - hSu + fvm::SuSp(hSp,h) ); // + fvc::div(phiG) == b*fvOptions(sw,h) 
 //fixed head cells
-if (cellsHfx.size()>0)
+if (cellsHfix.size()>0)
 {
-	float tnow = cellsHfxData[2]*day; 
-	while (time>=tnow) {icount += cellsHfx.size(); tnow = cellsHfxData[2+icount*4]*day; }
-	if (icount>0) {icount -= cellsHfx.size();} 
-	for (int i=0; i<cellsHfx.size(); i++) {hEqn.setReference(cellsHfx[i],cellsHfxData[2+(icount+i)*4+2]);}
+	if (time>=tHfix) {
+		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
+		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
+		}
+	for (int i=0; i<cellsHfix.size(); i++) {hEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}
 }
 
 hEqn.solve(); 
@@ -194,8 +200,8 @@ forAll( mesh.owner() , iface ) {
 	}
 */
 
-for (i=0;i<cellsHfx.size();i++) {
-	i1=cellsHfx[i];qHfx[i] = (q1[i1]-d1[i1])*mesh.V()[i1];//Info<<"qhfx "<<i<<" "<<qHfx[i]<<endl;//scalar q1 = fvc::surfaceIntegrate(Uw(), mesh.Sf(),0)[i1];
+for (i=0;i<cellsHfix.size();i++) {
+	i1=cellsHfix[i];qHfix[i] = (q1[i1]-d1[i1])*mesh.V()[i1];//Info<<"qhfx "<<i<<" "<<qHfx[i]<<endl;//scalar q1 = fvc::surfaceIntegrate(Uw(), mesh.Sf(),0)[i1];
 	}
 	/*qHfx[i]=0; //ci-dessous, donne la mm chose que div
 	forAll(mesh.cells()[i1],j) {

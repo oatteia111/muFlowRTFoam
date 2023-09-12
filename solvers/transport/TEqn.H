@@ -11,30 +11,32 @@ forAll(Deffw.boundaryField(),patchi)
 	}
 lbdaT = thetaw*lbdaTw + (1-eps)*lbdaTs;
 
+float time = mesh.time().value()/day; //const Time&
 // --------------------- internal conditions ------------------------
-float time = mesh.time().value(); //const Time&
-if (cellsHw.size()>0)
+if (cellsHwel.size()>0)
 	{
 		//get the temp well data
-		float tnow = cellsHwData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsTw.size(); tnow = cellsTwData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsTw.size();};
-		for (int i=0; i<cellsTw.size(); i++) 
+		if (time>=tTwel) {
+			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
+			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
+			}
+		for (int i=0; i<cellsTwel.size(); i++) 
 			{ 
-			i1=cellsTw[i];v=mesh.V()[i1];
-			if (qHw[i]<0) {TSp[i1] = -qHw[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
-			else {TSu[i1] = -qHw[i]/v*cellsTwData[2+(icount+i)*4+2];} //the injected mass is the water flow x the conc
+			i1=cellsTwel[i];v=mesh.V()[i1];
+			if (qHwel[i]<0) {TSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
+			else {TSu[i1] = -qHwel[i]/v*cellsTwelData[i*4+2];} //the injected mass is the water flow x the conc
 			//Info<<"cellw "<<cellsCw[i]<<" q "<<qHw[i]<<" cloc "<<cloc<<" Su "<<CSu[cellsCw[i]]<<" Sp "<<CSp[cellsCw[i]]<<endl;
 			}
 	}
 	
 //get the fixed temperature conditions
-	if (cellsTfx.size()>0)
+	if (cellsTfix.size()>0)
 	{
-		float tnow = cellsTfxData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsTfx.size(); tnow = cellsTfxData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsTfx.size();};
-		for (int i=0; i<cellsTfx.size(); i++) {b[i] = cellsTfxData[2+(icount+i)*4+2];} // discharge must be in s-1
+		if (time>=tTfix) {
+			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
+			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
+			}
+		for (int i=0; i<cellsTfix.size(); i++) {b[i] = cellsTfixData[i*4+2];} // discharge must be in s-1
 	}
 
 	
@@ -61,7 +63,7 @@ fvScalarMatrix TEqn
 	);
 
 //fvOptions.constrain(TEqn);
-for (int i=0; i<cellsTfx.size(); i++) {TEqn.setReference(cellsTfx[i],b[i]);}
+for (int i=0; i<cellsTfix.size(); i++) {TEqn.setReference(cellsTfix[i],b[i]);}
 TEqn.solve();
 
 //calculating dT

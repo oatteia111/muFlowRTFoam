@@ -16,16 +16,15 @@ struct Net : torch::nn::Module {
   Net(int n_in,int n_hidden,int n_out) {
     fc1 = register_module("fc1", torch::nn::Linear(n_in, n_hidden));
     fc2 = register_module("fc2", torch::nn::Linear(n_hidden, n_hidden));
-    //fc3 = register_module("fc3", torch::nn::Linear(n_hidden, n_hidden));
-    //fc4 = register_module("fc4", torch::nn::Linear(n_hidden, n_hidden));
     fc3 = register_module("fc3", torch::nn::Linear(n_hidden, n_out));
+    //fc4 = register_module("fc4", torch::nn::Linear(n_hidden, n_out));
   }
 
   torch::Tensor forward(torch::Tensor x) {
     x = torch::tanh(fc1->forward(x));
     x = torch::tanh(fc2->forward(x));
-    x = torch::relu(fc3->forward(x));
-    //x = torch::relu(fc4->forward(x));
+    x = torch::tanh(fc3->forward(x)); // NB : relu produces only positive values
+    //x = torch::tanh(fc4->forward(x));
     //x = torch::tanh(fc5->forward(x));
     return x;
   }
@@ -60,66 +59,66 @@ class my_NN {
 	
 	std::vector<float> data;
 	std::vector<float> target;
-	std::vector<int> parms {10,12,1};
-	std::vector<float> rparms {6.,16.,1e-3};
+	std::vector<int> parms {10,12,1}; // network
+	std::vector<float> rparms {6.,16.,1e-3,0.75}; //run params (epoc,batch,learning rate,%train)
 
 	int trained=0;
 	torch::Tensor output;
 	int nd,nvar;
-	// valid only with c++17
 	void setNNParms(std::vector<int> parms) {this->parms = parms;}
 	void setRunParms(std::vector<float> rparms) {this->rparms = rparms;}
 	void setData(std::vector<float> data){this->data = data;}
 	void setTarget(std::vector<float> target){this->target = target;}
 	void setNd(int nd){this->nd = nd;}
 	//https://www.cppstories.com/2015/02/non-static-data-members-initialization/#the-case-with-auto	
+	// valid only with c++17
 	static inline auto nn = std::make_shared<Net>(10,12,9);
 	
 	void init() {
 		this->nn = std::make_shared<Net>(this->parms[0],this->parms[1],this->parms[2]); //static inline 
-		torch::nn::init::xavier_uniform_(this->nn->fc1->weight, 1.0);
+		//torch::nn::init::xavier_uniform_(this->nn->fc1->weight, 1.0);
 	}
 	
 	
 	//------- train the model (also test on the last 25% of the dataset)
 	float train() {	
 		auto options = torch::TensorOptions().dtype(torch::kFloat);
+		torch::manual_seed(0.5);
 		//torch::optim::Adam optimizer(this->nn->parameters(), torch::optim::AdamOptions(this->rparms[2]));
 		torch::optim::SGD optimizer(this->nn->parameters(), torch::optim::SGDOptions(this->rparms[2]));
-		int n_in = this->parms[0];std::cout<<"nvar "<<nvar<<std::endl;
+		int n_in = this->parms[0];
 		int n_out = this->parms[2];
 		int n_epochs = static_cast<int>(this->rparms[0]); // Number of epochs
 		float ls=0.;
 		int batch_size = static_cast<int>(this->rparms[1]);
-		int nd1 = this->nd*0.75;
+		int nd1 = this->nd*this->rparms[3]; //parm 3 is the prportion of maple to use for training
 		std::vector<float> data1 = {this->data.begin(), this->data.begin()+nd1*n_in};
 		std::vector<float> target1 = {this->target.begin(), this->target.begin()+nd1*n_out};
 
 		torch::Tensor tdata = torch::from_blob(data1.data(), {nd1,n_in}, torch::TensorOptions(torch::kFloat));//.to(torch::kFloat64);
 		torch::Tensor ttarget = torch::from_blob(target1.data(), {nd1,n_out},torch::TensorOptions(torch::kFloat));//.to(torch::kDouble);
 		auto dataset = CustomDataset(tdata, ttarget).map(torch::data::transforms::Stack<>()); // map is needed even if nothing in
-		auto dataloader = torch::data::make_data_loader(std::move(dataset),torch::data::DataLoaderOptions().batch_size(batch_size));
-		
+		auto dataloader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(dataset),torch::data::DataLoaderOptions().batch_size(batch_size));
+		this->nn->train(); 
 		//std::cout<<"parms "<<this->nn->parameters()<<std::endl;
-		
+		namespace F = torch::nn::functional;
 		for(int epoch=1; epoch<=n_epochs; epoch++) {
 			//std::cout << "Train Epoch: "<< epoch <<std::endl;//<<"b size "<<batch.size()
+			optimizer.zero_grad();int nb=0; //zero_grad must be here not in the loop below
 			for (torch::data::Example<>& batch : *dataloader) {
 				auto data = batch.data; 
-				//std::cout<<"batch "<<data<<std::endl;
 				auto target = batch.target; 
 				// Clear the optimizer parameters, create output and loss fct
-				optimizer.zero_grad();
 				auto output = this->nn->forward(data);
-				//std::cout<<"output "<<output<<std::endl;
-				auto loss = torch::mse_loss(output, target);
+				//auto loss = torch::mse_loss(output, target);
+				auto loss = F::mse_loss(output, target, F::MSELossFuncOptions(torch::kSum));
 				// Backpropagate the loss
 				loss.backward();
 				// Update the parameters
-				optimizer.step();
+				optimizer.step();nb+=1;
 				ls = loss.item<float>();
 			  }
-			std::cout << "epoc "<<epoch<<" loss " << ls << std::endl;
+			if (epoch==n_epochs-1) {std::cout << " epoc "<<epoch<<" loss " << ls << " nb "<<nb<<std::endl;}
 		}
 		//std::cout<<"parm "<<nn->parameters()<<std::endl; // ok parameters vary
 		// testing
@@ -136,15 +135,17 @@ class my_NN {
 		outNNdata1<<tdata;
 		ttarget = torch::from_blob(target1.data(), {nd2,n_out},torch::TensorOptions(torch::kFloat));//.to(torch::kDouble);
 		outNNtarget1<<ttarget;
+		this->nn->eval(); 
 		output = this->nn->forward(tdata);
-		outNNoutput1<<output;
-		auto loss = torch::mse_loss(output, ttarget);
+		outNNoutput1<<output; //torch::nn::MSELossOptions(
+		auto loss = F::mse_loss(output, ttarget, F::MSELossFuncOptions(torch::kSum));std::cout<<"loss "<<loss<<"\n";//here loss is mean((ypred-y)**2)
 		//float sqr = 0;
 		//for (int i=0;i<nd2;i++) {sqr+=std::pow(target1[i],2.);}
 		return loss.item<float>()/n_out;
 	}
 
 	void eval() {
+		this->nn->eval(); 
 		int n_in= this->parms[0];int n_out=this->parms[2];
 		torch::Tensor tdata = torch::from_blob(this->data.data(), {this->nd,n_in}, torch::TensorOptions(torch::kFloat));//.to(torch::kFloat64);
 		std::cout<<"nd "<<this->nd<<" data_eval size "<<tdata.sizes()<<std::endl;

@@ -1,45 +1,43 @@
 //std::vector<int> cell1; 
-std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
 std::vector<float> vnn(nvar,0.);
 std::vector<float> vnn1(nvar,0.);
-std::vector<double> Cmin {0,0,0,0};
-std::vector<double> Cmax {5e-4,1e-3,2e-4,5e-6}; // Dce,Pce, Tce, Vc
+	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
+	std::vector<float> nntarget;
 
-if (Cwgnn.trained==1) {
+double crel;
+
+if ((activateNNchemistry==1)&&(istep>=20)) { //(Cwgnn.trained==1)&&
+	//Cwgnn.trained=0;
 	// reads conc and transfer to vector for nn
 	std::ofstream outNNdata_eval(cur_dir/"NNdata_eval.txt");
-	nndata.resize(nxyz*nvar);
-	for (i=0;i<nxyz;i++) //
+	std::cout<<"nxyz "<<nxyz<<"\n";
+	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
+	std::vector<float> nntarget;float x;
+	for (j=0;j<nxyz;j++) //
 	{  
-		for (int j=0;j<ph_ncomp-4;j++) { 
+		for (int i=0;i<ph_ncomp-4;i++) { 
 			//vnn[j]=static_cast<float>((std::log10(std::max(Cw[j+4]()[i],1e-20))+10)/5);
-			vnn[j] = (static_cast<float>(Cw[j+4]()[i] - Cmin[j])/(Cmax[j]-Cmin[j]));
-			nndata.push_back(vnn[j]); 
+			x= static_cast<float>((Cw[i+4]()[j] - Cmin[i])/(Cmax[i]-Cmin[i]));
+			nndata.push_back(x);outNNdata_eval << x << " "; //data is Crelative
 			}
-		for (const auto &x : vnn) {outNNdata_eval << x << " ";}
-		float dt = static_cast<float>(std::log10(runTime.value()-oldTime)/5);
-		nndata.push_back(dt);
-		outNNdata_eval<<dt<<"\n";
+		outNNdata_eval<<"\n";
 	}
+	std::cout<<"in eval \n";
 	Cwgnn.setNd(nxyz);Cwgnn.setData(nndata);Cwgnn.eval();
 	// transfer Cwgnn output to C
-	int icount=0;
 	std::ofstream outNNresu_eval(cur_dir/"NNresu_eval.txt");
-	for (i=0;i<nxyz;i++) {
-		for (int j=0;j<ph_ncomp-4;j++) {
-			double x = static_cast<double>(Cwgnn.output[i][j].item<float>());
-			//Cw[j+4]()[i] += 5*std::pow(10,x-10);
-			Cw[j+4]()[i] += (x-Cmin[j])*(Cmax[j]-Cmin[j]);
+	float dt = static_cast<float>(runTime.value()-oldTime); Info<<"dt "<<dt<<endl; 
+	for (j=0;j<nxyz;j++) {
+		for (int i=0;i<ph_ncomp-4;i++) {
+			double x = static_cast<double>(Cwgnn.output[j][i].item<float>()); // the target was x=dC/dt*1e9
+			Cw[i+4]()[j] = max(Cw[i+4]()[j]+ x*dt/5e9,0.); //model produces a dC (not dCrelative)
 			outNNresu_eval << x <<" ";
-			//std::cout<<x<<" ";
-			icount +=1;
 		}
-		icount +=1;
 		outNNresu_eval <<"\n";//std::cout<<" "<<std::endl;
 	}
 }
 
-if (Cwgnn.trained==0) { // case of nn not trained, we store values and use phreeqc to calculate chemistry
+if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store values and use phreeqc to calculate chemistry
 	// find the cells where the chcemistry has changed to calculate there
 	//icnt = 0;
 	// first stores C values to train NN
@@ -106,76 +104,63 @@ if (Cwgnn.trained==0) { // case of nn not trained, we store values and use phree
 	//auto finish = std::chrono::high_resolution_clock::now();
 	//std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();
 	//---------------- send data to NN  ----------------------------------------
-	
+	/*
 	if ((activateNNchemistry==1)&&(istep>3))
 	{
 		std::cout<<"start cnn ";
 		//put data in the model
 		float x;
 		// makes an approximate vector to select vairable chemcial composition 
-		//dimensionedScalar one = ("one",dimVol/dimMass,1.0);
-		//volScalarField Clog = ("Clog",dimless,Cw[4]()*one);Clog=log(Clog); // does not work, strange
-		/*std::vector<double>  Clog(nxyz,0.); double mnCl;double mxCl = -35.;
-		for (i=0;i<nxyz;i++) { 
-			for (int j=4;j<ph_ncomp;j++) { Clog[i] += std::log10(std::max(Cw[j]()[i],1e-7)); }
-			//if ((i>150)&&(i<200)) {std::cout<<Clog[i]<<" ";}
-			if (Clog[i]<mnCl) {mnCl=Clog[i];}
-			if (Clog[i]>mxCl) {mxCl=Clog[i];}
-		}
-		std::cout<<"mn mx C "<<mnCl<<" "<<mxCl<<std::endl;
-		for (i=0;i<nxyz;i++) { 
-			Clog[i] = (Clog[i]-mnCl)/(mxCl-mnCl);if ((i>150)&&(i<200)) {std::cout<<Clog[i]<<" ";}
-		}*/
 		//create a random vecor of indices
 		std::vector<int> idx(nxyz);
 		std::iota(idx.begin(), idx.end(), 0);		
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(idx.begin(), idx.end(), g);
+		//std::random_device rd;
+		//std::mt19937 g(rd());
+		std::shuffle(idx.begin(), idx.end(), shuf);
 		
-		/*std::vector<int> count(32,0); // will add 16 values from the same category of C/Cmax 
-		for (i=0;i<nxyz;i++) 
-			{
-			i1 = idx[i];int catg = static_cast<int>(Clog[i1]*10);
-			if (count[catg]<32) {cell1.push_back(i1);count[catg]+=1;nd +=1;}
-			}*/
-		//random select where conc changed (rchange)
-		
-		std::ofstream outNNdata(cur_dir/"NNdata.txt");
-		int change;int nd=0;
-		std::cout<<" nd "<<nd<<std::endl;
+		if (nstack==0) { //when nstack=0 we reset all files and vectors to 0
+			std::ofstream outNNdata(cur_dir/"NNdata.txt");
+			std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
+			std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
+			std::vector<float> nntarget;
+			} //new files
+
+		float sC;int nC0=0;int nd0=0;  // I want 80% of conc at places where conc !=0
+		float dt = static_cast<float>(runTime.value()-oldTime);
 		for (int j=0;j<nxyz;j++) //
 		{  
-			int j1 = idx[j];change =0;//std::cout<<" vnn "<<j;
+			int j1 = idx[j];sC =0;//std::cout<<" vnn "<<j;
 			for (int i=0;i<ph_ncomp-4;i++) { 
-				//vnn[j]=static_cast<float>((std::log10(std::max(Cw[j+4]()[i1],1e-20))+10)/5);
-				//float x = static_cast<float>((Cw[j+4]()[i1] - Cmin[j])/(Cmax[j]-Cmin[j]));
 				vnn[i] = static_cast<float>(Cw[i+4]()[j1]); // conc before (not modified)
-				vnn1[i] = static_cast<float>(freak.c[(i+4)*nxyz+j1]); // conc after phq
-				//std::cout<<" "<<vnn[i]<<" "<<vnn1[i];
-				//if ((vnn1[j]-vnn[j])/(vnn[j]+1e-20)>1e-4) {change=1;}
-				//nndata.push_back(x); 
+				sC += vnn[i];
+				vnn1[i] = static_cast<float>(freak.c[(i+4)*nxyz+j1]-vnn[i]); // dC diff conc
+				if (sC<1e-7) {nC0+=1;}
+			} 
+			if ((nC0<50)||(sC>1e-7)) { //50 values close to 0
+				for (int i=0;i<ph_ncomp-4;i++) { 
+					x = (vnn[i] - Cmin[i])/(Cmax[i]-Cmin[i]); // data is relative conc
+					nndata.push_back(x);outNNdata << x << " ";
+					x = vnn1[i]/dt*5e9; // target is dC/dt*5e9
+					nntarget.push_back(x);outNNtarget << x << " ";
+				}
+				outNNdata<<"\n";outNNtarget<<"\n";
+				nd +=1;nd0+=1;
 			}
-			if (rchange[j1]>0) {
-				outNNdata << j1 <<" ";
-				for (const auto &x : vnn) outNNdata << x << " ";
-				for (const auto &x : vnn1) outNNdata << x << " ";
-				float dt = static_cast<float>(runTime.value()-oldTime);
-				//nndata.push_back(dt);
-				//std::cout<<" "<<dt<<std::endl;;
-				outNNdata <<dt<<"\n";
-			}
-			nd +=1 ; if (nd>500) {break;}
+			if (nd0>500) {break;}
 		}
-		//Cwgnn.setNd(nd);
-		//Cwgnn.setData(nndata);
-		/*Cwgnn.setTarget(nntarget);
-		float rmse = Cwgnn.train(); std::cout << "rmse "<<rmse<<std::endl;
-		outNNrmse <<" " << rmse << "\n";
-		if (rmse<nn_minr) {Cwgnn.trained = 1;}*/
-
+		std::cout<<" nd "<<nd<<" nstack "<<nstack<<std::endl;
+		if (nstack>9) {
+			Cwgnn.setNd(nd);Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});
+			Cwgnn.setData(nndata);
+			Cwgnn.setTarget(nntarget);
+			float rmse = Cwgnn.train(); std::cout << "rmse "<<rmse<<std::endl;
+			outNNrmse <<" " << rmse << "\n";
+			if (rmse<nn_minr) {Cwgnn.trained = 1;}
+			nstack = 0;nd=0;
+		}
+	nstack += 1;
 	} // end of store for activateNN=1
-	
+	*/
 	
 	//------------------ end of NN , store phreeqc results ------------------------------
 	// transfer back to C but before keep the previous values for outside domain of calculation

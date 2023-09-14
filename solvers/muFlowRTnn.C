@@ -40,6 +40,7 @@ Developers
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <chrono>
 
 //////////////////// find local dir
 #include <unistd.h>
@@ -73,7 +74,8 @@ int i,j,iw;
 my_phq freak; //need to be here to be availabel for every chem condition
 #include "myFunc.H"
 // read the myfunc file
-dicFunc fDe_T;		   		  
+dicFunc fDe_T;
+my_NN Cwgnn;	   		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -93,6 +95,7 @@ std::vector<int> indexC(labelList &cells, std::vector<double> &data)
 
 int main(int argc, char *argv[])
 {
+	namespace chr = std::chrono;
 	//init openFoam
     #include "setRootCase.H"
     #include "createTime.H"
@@ -107,8 +110,11 @@ int main(int argc, char *argv[])
 	//parms of the De=f(T) function
 	std::vector<double> parm0(1,1e-3); // the parameters for the modification of DEffg with temperature
 	#include "readFunc.H"
-	Info << "fDe parms "<< fDe_T.parms[1] << endl;																																   
-	
+	Info << "fDe parms "<< fDe_T.parms[1] << endl;		
+	std::vector<double> Cmin, Cmax;
+	char sep ='/'; //don't understand why here sep is needed as char while in muFlow just work directly
+	std::ofstream outTime(cur_dir+sep+"time.txt");
+
 	if (activateReaction==1)
 	{
 	//##############  phreeqc intiialisation for solutions and gases
@@ -156,17 +162,32 @@ int main(int argc, char *argv[])
 		}
 	outFile1.close();
 
+	//#################  NN init ################### (must be before full domain as it also initialize cells in phreeqc)
+	int nvar = ph_ncomp-4;Cmin.resize(nvar,0.);Cmax.resize(nvar,0.);
+	Cwgnn.setNNParms({nvar,nvar,nvar});Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});Cwgnn.init(); //+1 for time step
+	std::ofstream outNNrmse(cur_dir/"NNrmse.txt");
+	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
+	std::vector<float> nntarget;
+	std::ofstream outNNdata(cur_dir/"NNdata.txt");
+	std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
+	if (activateNNchemistry==1) 
+		{
+		#include "phreeqc/nnFreakFirst.H"
+		}
+	
 	//##################### make the initialization for the full domain in phreeqc : data,poro, gvol
 	std::ifstream inputData{cur_dir/"phqfoam.txt"};
 	std::vector<int> ph_data{std::istream_iterator<int>{inputData}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
 	nxyz=ph_data[0];ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
 	freak.setData(ph_data); Info << "nxyz " << nxyz << endl;
+	freak.setDB(cur_dir+sep+"phreeqc.dat");
+	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
 	//initiate poro and gas volume
 	poro.resize(nxyz,0);
 	for (i=0;i<nxyz;i++) {poro[i]=eps[i];}
-	//wsat.resize(nxyz,0.994);
+	std::vector<double> wsat(ph_nsolu,0.9999);
 	freak.setPoro(poro);
-	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
+	freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
 	//for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
 	//freak.setP(p_ph);
 	freak.init();
@@ -189,7 +210,6 @@ int main(int argc, char *argv[])
 			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
 			}
 	iw = freak.iGwater;
-	// start the NN 
 	
 	} //end of activateReation
 	else  //only flow or flow+transport
@@ -221,7 +241,8 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
-	
+	int nvar=ph_ncomp-4;
+
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();
 	dimensionedScalar et = runTime.endTime();
@@ -251,28 +272,26 @@ int main(int argc, char *argv[])
 
     // Récupération des cellules réordonnées
     //const labelList& cellLevel = mesh.cellLevels();
-
-// Obtention des niveaux de raffinement pour la cellule 42
-//const labelList& localIndices = mesh.cells().local();
-    // Affichage des index des cellules réordonnées
-    //Info << "Index des cellules réordonnées : " << level << endl;
-	int nvar = ph_ncomp-4;
-	Cwgnn.setNNParms({nvar+1,nvar+6,nvar});Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr});Cwgnn.init(); //+1 for time step
+	int tcnt=0;int flag1step=0;	int istep = 0;
 	std::vector<double> rchange(nxyz,0.);
-	std::ofstream outNNrmse(cur_dir/"NNrmse.txt");
-	int istep = 0;int tcnt = 0;
+	
 	while (runTime.run())
     {
 		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
 		runTime++;
 		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		outTime << mesh.time().value()/86400.<<" ";
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
 		//for (j=0; j<nxyz;j++) {if (j<6) {Info<<"p before flow "<<p[j]/atmPa<<" sw "<<sw[j]<<endl;}}
 		if (flowType>0) {
+			auto t1 = chr::high_resolution_clock::now();
 			#include "flow.H"
+			auto t2 = chr::high_resolution_clock::now();
+			auto ms_int = chr::duration_cast<chr::milliseconds>(t2 - t1);
+			outTime << ms_int.count()<< " ";
 			}
 		deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
@@ -287,8 +306,13 @@ int main(int argc, char *argv[])
 				#include "transport/CEqn.H"
 				}
 			else {
+				auto t1 = chr::high_resolution_clock::now();
 				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
 				#include "transport/CwiEqn.H"
+				auto t2 = chr::high_resolution_clock::now();
+				auto ms_int = chr::duration_cast<chr::milliseconds>(t2 - t1);
+				outTime << ms_int.count()<< " ";
+				
 				if (ph_gcomp>0) {
 					forAll(Cg,i) {Cg[i]().storePrevIter();}
 					#include "transport/CgiEqn.H"
@@ -307,16 +331,20 @@ int main(int argc, char *argv[])
 		//if (activateReaction==1 && deltaTchem<=0)  //runTime.value()-oldTime>dT1
 		if (activateReaction==1 && tcnt==reactionSteps-1)
 		{
+			auto t1 = chr::high_resolution_clock::now();
 			#include "chem_nn.h"
+			auto t2 = chr::high_resolution_clock::now();
+			auto ms_int = chr::duration_cast<chr::milliseconds>(t2 - t1);
+			outTime << ms_int.count()<< "\n";std::flush(outTime);
 			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
-		bool ts;
+		bool ts;std::cout<<"flag1 "<<flag1step<<"\n";
 		ts = runTime.write();//oldTime=runTime.value();
 		//write species
 		if (ts && flowType==4) {phiGr.write();}
 		if (ts && activateReaction==1) {
-			phiw.write();phig.write();
+			phiw.write();phig.write();flag1step=1;
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (const auto &x : freak.spc) outFile << x << "\n";
@@ -330,7 +358,7 @@ int main(int argc, char *argv[])
 		double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
 		Info <<" time" << mesh.time().time().value() <<" w intv " <<rt<<endl;
 		//if (mesh.time().time().value()>rt/10) {
-		int inpt = cin.get();//}
+		//int inpt = cin.get();//}
 		istep ++;
 	}
     return 0;

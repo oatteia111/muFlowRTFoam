@@ -474,6 +474,7 @@ int main(int argc, char *argv[])
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
+			for (const auto &x : freak.spc) outFile << x << "\n";
 			/*//start write species file in columns
 			j=0;
 			for (i=0;i<cells.size();i++) {
@@ -484,7 +485,6 @@ int main(int argc, char *argv[])
 				outFile<<"\n";
 			} //end write species file*/
 			
-			//for (const auto &x : freak.spc) outFile << x << "\n";
 			}
 		
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"

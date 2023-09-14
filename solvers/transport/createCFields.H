@@ -47,24 +47,24 @@ volScalarField::Internal CSp
 );
 
 // -------------- conditions for concentration -------------
-labelList cellsCfx0; std::vector<float> cellsCfxData;std::vector<float> condCfx;
-labelList cellsCw0; std::vector<float> cellsCwData;std::vector<float> condCw;
+labelList cellsCfix0; std::vector<float> cellsCfixData;std::vector<float> condCfix;
+labelList cellsCwel0; std::vector<float> cellsCwelData;std::vector<float> condCwel;
 labelList cellsCghb0; std::vector<float> cellsCghbData;std::vector<float> condCghb;
 labelList cellsCrch0; std::vector<float> cellsCrchData;std::vector<float> condCrch;
 
 // reading the data for hfix
-std::ifstream inputCfxdata{cur_dir+"/constant/options/cfix"}; //
-cellsCfxData = {std::istream_iterator<float>{inputCfxdata}, {}};
-if (cellsCfxData.size()>0) { cellSet selectedCfx(mesh, "cfix"); cellsCfx0 = selectedCfx.toc();}
-condCfx.resize(cellsCfx0.size());
-std::vector<int> cellsCfx = indexC(cellsCfx0,cellsCfxData) ;
+std::ifstream inputCfixdata{cur_dir+"/constant/options/cfix"}; //
+cellsCfixData = {std::istream_iterator<float>{inputCfixdata}, {}};
+if (cellsCfixData.size()>0) { cellSet selectedCfix(mesh, "cfix"); cellsCfix0 = selectedCfix.toc();}
+condCfix.resize(cellsCfix0.size());
+std::vector<int> cellsCfix = indexC(cellsCfix0,cellsCfixData) ;
 
 // reading the cwell data for wells
-std::ifstream inputCwdata{cur_dir+"/constant/options/cwel"}; //
-cellsCwData = {std::istream_iterator<float>{inputCwdata}, {}};
-if (cellsCwData.size()>0) {	cellSet selectedCwel(mesh, "cwel");cellsCw0 = selectedCwel.toc();}
-condCw.resize(cellsCw0.size());
-std::vector<int> cellsCw = indexC(cellsCw0,cellsCwData) ;
+std::ifstream inputCweldata{cur_dir+"/constant/options/cwel"}; //
+cellsCwelData = {std::istream_iterator<float>{inputCweldata}, {}};
+if (cellsCwelData.size()>0) {	cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();}
+condCwel.resize(cellsCwel0.size());
+std::vector<int> cellsCwel = indexC(cellsCwel0,cellsCwelData) ;
 //for (i=0;i<cellsCw.size();i++) {Info<<"i "<<cellsCw[i]<<" center "<<mesh.C()[cellsCw[i]]<<endl;}
 
 // reading the data for ghb

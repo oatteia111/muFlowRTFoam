@@ -3,15 +3,16 @@
 
 // -################# - conditions  ---####################---
 	pSu=pSu*0; //previous cells with values must be destroyed
-	float time = mesh.time().value();float f; 
+	float time = mesh.time().value()/day;float f; 
 	icount = 0;	//get the ghb conditions
-	if (cellsPw.size()>0)
+	if (cellsPwel.size()>0)
 	{
-		float tnow = cellsPwData[2]*day;//time in files is in days
-		while (time>=tnow) {icount += cellsPw.size(); tnow = cellsPwData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsPw.size();};
-		for (int i=0; i<cellsPw.size(); i++)
-			{v=mesh.V()[cellsPw[i]];qPw[i] = cellsPwData[2+(icount+i)*4+2]/day; pSu[cellsPw[i]] = qPw[i]/v;}
+		if (time>=tPwel) {
+			output = getCbuffer("pwel",itPwel,cellsPwel.size()); 
+			tPwel = output.t; cellsPwelData=output.d; itPwel+=1;
+			}
+		for (int i=0; i<cellsPwel.size(); i++)
+			{v=mesh.V()[cellsPwel[i]];qPwel[i] = cellsPwelData[i*4+2]/day; pSu[cellsPwel[i]] = qPwel[i]/v;}
 	} Info<<"Pfw read ";
 
 	fvScalarMatrix pEqn
@@ -21,12 +22,13 @@
 			- pSu
         );
 		
-	if (cellsPfx.size()>0)
+	if (cellsPfix.size()>0)
 	{
-		float tnow = cellsPfxData[2]*day; 
-		while (time>=tnow) {icount += cellsPfx.size(); tnow = cellsPfxData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsPfx.size();} 
-		for (int i=0; i<cellsPfx.size(); i++) {pEqn.setReference(cellsPfx[i],cellsPfxData[2+(icount+i)*4+2]);}
+		if (time>=tPfix) {
+			output = getCbuffer("pfix",itPfix,cellsPfix.size()); 
+			tPfix = output.t; cellsPfixData=output.d; itPfix+=1;std::cout<<"rd pfx "<<tPfix<<" "<<cellsPfixData[2]<<"\n";
+			}
+		for (int i=0; i<cellsPfix.size(); i++) {pEqn.setReference(cellsPfix[i],cellsPfixData[i*4+2]);std::cout<<"pfix "<<i<<" "<<cellsPfix[i]<<" "<<cellsPfixData[i*4+2]<<" ";}
 	}
 
 	pEqn.solve();

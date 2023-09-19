@@ -53,22 +53,21 @@ volScalarField::Internal pSu
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
 );
 // -------------- conditions for pressure -------------
-labelList cellsPfx0; std::vector<float> cellsPfxData;std::vector<float> qPfx;
-labelList cellsPw0; std::vector<float> cellsPwData;std::vector<float> qPw;
+labelList cellsPfix0; std::vector<float> qPfix;
+labelList cellsPwel0; std::vector<float> qPwel;
 
-// reading the data for hfix
-std::ifstream inputPfxdata{cur_dir+"/constant/options/pfix"}; //
-cellsPfxData = {std::istream_iterator<float>{inputPfxdata}, {}};
-if (cellsPfxData.size()>0) { cellSet selectedPfx(mesh, "pfix"); cellsPfx0 = selectedPfx.toc();}
-qPfx.resize(cellsPfx0.size());
-std::vector<int> cellsPfx = indexC(cellsPfx0,cellsPfxData) ;
-//Info <<" hfx sz "<<cellsHfx0.size()<<" "<<cellsHfx.size()<<endl;
+if (fexists(cur_dir+"/constant/options/pfix")) { cellSet selectedPfix(mesh, "pfix");cellsPfix0 = selectedPfix.toc();}
+if (fexists(cur_dir+"/constant/options/pwel")) { cellSet selectedPwel(mesh, "pwel");cellsPwel0 = selectedPwel.toc();}
 
-// reading the hwell data for wells
-std::ifstream inputPwdata{cur_dir+"/constant/options/pwel"}; //
-cellsPwData = {std::istream_iterator<float>{inputPwdata}, {}};
-if (cellsPwData.size()>0) {	cellSet selectedPwel(mesh, "pwel");cellsPw0 = selectedPwel.toc();}
-qPw.resize(cellsPw0.size());
-std::vector<int> cellsPw = indexC(cellsPw0,cellsPwData) ;
+int itPfix=0;output = getCbuffer("pfix",itPfix,cellsPfix0.size()); 
+float tPfix = output.t; std::vector<float> cellsPfixData=output.d;
+
+int itPwel=0;output = getCbuffer("pwel",itPwel,cellsPwel0.size()); 
+float tPwel = output.t; std::vector<float> cellsPwelData=output.d;
+
+qPfix.resize(cellsPfix0.size());
+qPwel.resize(cellsPwel0.size());
+std::vector<int> cellsPfix = indexC(cellsPfix0,cellsPfixData) ;
+std::vector<int> cellsPwel = indexC(cellsPwel0,cellsPwelData) ;
 //for (i=0;i<cellsPw.size();i++) {Info<<"i "<<cellsPw[i]<<" center "<<mesh.C()[cellsPw[i]]<<endl;}
 

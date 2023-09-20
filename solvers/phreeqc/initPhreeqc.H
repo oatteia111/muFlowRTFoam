@@ -46,7 +46,7 @@ public:
 	void setSpc(std::vector<double> spc){this->spc = spc;}
 	//std::vector<double> solu_conc;
 	//void setSconc(std::vector<double> solu_conc){this->solu_conc = solu_conc;}
-	double tstep;
+	double tstep=1;
 	void setTstep(double tstep){this->tstep = tstep;}
 	std::vector<double> poro;
 	void setPoro(std::vector<double> poro){this->poro = poro;}
@@ -57,7 +57,7 @@ public:
 	int iGwater=-1;
 	void setNwat(int){this->iGwater = iGwater;}
 	bool EK;
-	int nspc;
+	int nspc,nselect;
 	std::vector<double> diff25;
 	std::vector<double> z;
 	std::vector<std::string> spcNames;
@@ -93,14 +93,14 @@ public:
 				
 		std::vector<double> rv(nxyz, 1.);
 		status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
-		Info<<"poro size "<<this->poro.size()<<endl;
+		std::cout<<"poro size "<<this->poro.size()<<"\n";
 		status = phreeqc_rm->SetPorosity(this->poro);
 
 		// Open for writing file
 		//std::quoted prf = "phq_out";
 		status = phreeqc_rm->SetFilePrefix("q");
 		phreeqc_rm->OpenFiles();
-		//Info << "Outfile opened " << endl;
+		//std::cout << "Outfile opened " << "\n";
 		//set mask
 		std::vector<int> print_chemistry_mask;
 		print_chemistry_mask.resize(nxyz, 1);
@@ -110,7 +110,7 @@ public:
 		//load database and chemistry files and make the first run of the chem file
 		status = phreeqc_rm->SetPrintChemistryOn(true, true, true); // workers, initial_phreeqc, utility
 		status = phreeqc_rm->LoadDatabase(this->DB);
-	Info << "dbase opened " << endl;
+		std::cout << "dbase opened " << "\n";
 		bool workers = true;             // Worker instances do the reaction calculations for transport
 		bool initial_phreeqc = true;     // InitialPhreeqc instance accumulates initial and boundary conditions
 		bool utility = true;             // Utility instance is available for processing
@@ -122,9 +122,9 @@ public:
 		status = phreeqc_rm->RunString(workers, initial_phreeqc, utility, input.c_str());
 		
 		int ph_ncomp = phreeqc_rm->FindComponents(); // NECESSARY don't remove
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //Info<<"phq gcomp0 "<<gcomp[0]<<endl;
+		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
 		const std::vector<std::string> &compn = phreeqc_rm->GetComponents(); 
-		Info<<"phq comp "; for (i=0;i<ph_ncomp;i++) {Info<<compn[i]<<" ";} Info <<endl;
+		std::cout<<"phq comp "; for (i=0;i<ph_ncomp;i++) {std::cout<<compn[i]<<" ";} std::cout <<"\n";
 
 		// Set array of initial conditions by reading the solution... numbers in data
 		std::vector<int> ic1, ic2;
@@ -134,15 +134,15 @@ public:
 		for (i = 0; i < 7; i++) // Solution,Equilibrium phases,Exchange,Surface,Gas phase,Solid solutions,Kinetics
 		{
 			icnt++;
-			int test = this->data[icnt];//Info<<"index "<<i<<" " <<test<<endl;
+			int test = this->data[icnt];//std::cout<<"index "<<i<<" " <<test<<"\n";
 			if (test == 0)  // if 0 just one value to read
 				{icnt++; 
 				for (int j=0;j<nxyz;j++) {ic1[i*nxyz+j] = this->data[icnt];}
-				//if (j==369) {Info << i << " cell "<< j << " " << this->data[icnt]<< endl;}
+				//if (j==369) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";}
 				}
 			else 		
 				{for (int j=0;j<nxyz;j++) {icnt++;ic1[i*nxyz+j] = this->data[icnt];}
-				//if (j==369) {Info << i << " cell "<< j << " " << this->data[icnt]<< endl;}
+				//if (j==369) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";}
 			}
 		}
 		const std::vector<IPhreeqcPhast *> w = phreeqc_rm->GetWorkers();
@@ -154,11 +154,11 @@ public:
 		// Set solutions composition at fixed cells HERE only TWO solutions (shall be modified)
 		//std::vector<double> solu_conc;
 		//std::vector<int> cf1 ={0,-1};
-		//for (i= 0;i<2;i++) {cf1[this->cfix[2+i*4+2]] = this->cfix[2+i*4+3];Info<<" cfix "<<i<<" "<< this->cfix[2+i*4+2] << endl;}
+		//for (i= 0;i<2;i++) {cf1[this->cfix[2+i*4+2]] = this->cfix[2+i*4+3];std::cout<<" cfix "<<i<<" "<< this->cfix[2+i*4+2] << "\n";}
 
 		// run initial conditions
 		int ncell = phreeqc_rm->GetChemistryCellCount();
-		Info << "ncell "<< ncell << " ph_ncomp "<< ph_ncomp<< " starting init phreeqc \n"<<endl;
+		std::cout << "ncell "<< ncell << " ph_ncomp "<< ph_ncomp<< " starting init phreeqc \n";
 		//status = phreeqc_rm->SetSaturation(this->wsat);
 		//status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 		//status = phreeqc_rm->SetGasCompMoles(this->gm);
@@ -167,10 +167,10 @@ public:
 		
 		status = phreeqc_rm->RunCells();
 		
-		Info << " cells run \n" << endl;;
+		std::cout << " cells run \n";
 		status = phreeqc_rm->GetConcentrations(this->c);
 		if (this->EK) {
-			int nspc = phreeqc_rm->GetSpeciesCount(); Info<<"phq eK nspc "<<EK<<" "<<nspc<<endl;
+			int nspc = phreeqc_rm->GetSpeciesCount(); std::cout<<"phq eK nspc "<<EK<<" "<<nspc<<"\n";
 			this->nspc = nspc;
 			status = phreeqc_rm->GetSpeciesConcentrations(this->spc);
 			const std::vector <double> & diff25 = phreeqc_rm->GetSpeciesD25();
@@ -185,17 +185,18 @@ public:
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
-	Info << "in phq poro "<<this->poro[1]<<endl;
-	Info << "c 1-4 ";for (int i=0; i<4;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
-	Info << "c 5-9 ";for (int i=4; i<8;i++){Info<< this->c[i*nxyz+1]<<" ";} Info<<endl;
-	Info<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<endl;
-	Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
-	Info<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+1]<<" ";} Info<<endl;
+			std::cout << "in phq poro "<<this->poro[1]<<"\n";
+			std::cout << "c 1-4 ";for (int i=0; i<4;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
+			std::cout << "c 5-9 ";for (int i=4; i<8;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
+			//std::cout<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<"\n";
+			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
+			//std::cout<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+1]<<" ";} std::cout<<"\n";
 			for (i=0;i<gcompn.size();i++) {
 				if (gcompn[i]=="H2O(g)") {this->iGwater = i;}
 			}
 		}
-	Info <<"end phq init "<<endl;
+	std::cout << "c ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+0]<<" ";} std::cout<<"\n";
+	std::cout <<"end phq init "<<"\n";
 
 		/* Set boundary condition
 		std::vector<double> bc_conc;
@@ -222,20 +223,21 @@ public:
 		
 		status = phreeqc_rm->SetErrorHandlerMode(1);
 		status = phreeqc_rm->SetFilePrefix("phq_run");
+		nxyz = this->data[0];
 		//phreeqc_rm->OpenFiles();
 		//std::vector<int> print_chemistry_mask;
 		//print_chemistry_mask.resize(nxyz, 1);//print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
 		//status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //Info<<"phq gcomp0 "<<gcomp[0]<<endl;
-	Info << "in phq poro "<<this->poro[2]<<endl;
-	Info<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
-	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
-		status = phreeqc_rm->SetTemperature(this->temp);
+		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
+	std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
+	//std::cout<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
+		status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
 		if (gcompn.size()>0) {
-			Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
-			Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
+			std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
+			std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
@@ -243,9 +245,11 @@ public:
 			}
 		else 
 			{status = phreeqc_rm->SetSaturation(this->wsat);}
+		std::cout<<"wsat done ";
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
 		else {status = phreeqc_rm->SetConcentrations(this->c);}
-		status = phreeqc_rm->SetTimeStep(this->tstep);Info<<"tstep "<<this->tstep<<endl;
+		std::cout<<"c done ";
+		status = phreeqc_rm->SetTimeStep(this->tstep);std::cout<<"tstep "<<this->tstep<<"\n";
 		//----- run here ------
 		status = phreeqc_rm->RunCells();
 		
@@ -253,7 +257,7 @@ public:
 		status = phreeqc_rm->GetSaturation(this->temp);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
-	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz]<<" ";} Info<<endl;
+	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";
 		if (gcompn.size()>0) {
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
@@ -261,16 +265,16 @@ public:
 			this->p = phreeqc_rm->GetPressure();
 			}
 		//writes to the dump file
-		bool dump_on = true;
-		bool append = false;
-		status = phreeqc_rm->SetDumpFileName("phreeqc.dmp");
-		status = phreeqc_rm->DumpModule(dump_on, append);
-	Info<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<endl;
-	Info << "c 0 ";for (int i=0; i<ph_ncomp;i++){Info<< this->c[i*nxyz+0]<<" ";} Info<<endl;
+		//bool dump_on = true;
+		//bool append = false;
+		//status = phreeqc_rm->SetDumpFileName("phreeqc.dmp");
+		//status = phreeqc_rm->DumpModule(dump_on, append);
+	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+0]<<" ";} std::cout<<"\n";
 	if (ph_gcomp>0) {
-		Info<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->g[i*nxyz+0]<<" ";} Info<<endl;
-		Info<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {Info <<this->gm[i*nxyz+0]<<" ";} Info<<endl;
-		Info<<"p ";for (int i=0;i<5;i++) {Info<<this->p[i]<<" ";} Info<<endl;
+	//std::cout<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+		std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
+		std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
+		std::cout<<"p ";for (int i=0;i<5;i++) {std::cout<<this->p[i]<<" ";} std::cout<<"\n";
 		}
 	}
 	
@@ -285,20 +289,21 @@ public:
 		for (int i = 0; i < ncol; i++)
 			{
 				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
-				if (heading=="g_H2O(g)") {this->nwat=i-6;Info<<heading<<" nb wat "<<this->nwat<<endl;}
+				if (heading=="g_H2O(g)") {this->nwat=i-6;std::cout<<heading<<" nb wat "<<this->nwat<<"\n";}
 			} */
 		nxyz = this->data[0];
+		this->nselect = ncol-6;
 		this->spc.resize((ncol-6)*nxyz,0);
 		std::vector<double> so;
 		status = phreeqc_rm->GetSelectedOutput(so);
 		//std::vector<std::string> headings;
 		//headings.resize(ncol);
-		for (int i = 0; i < nxyz; i++)
+		for (int j = 0; j < nxyz; j++)
 		{
-			for (int j = 6; j < ncol; j++)
+			for (int i = 6; i < ncol; i++)
 			{
-				this->spc[(j-6)*nxyz + i] = so[j*nxyz + i];
-				if (i==10) {Info<< "selout sp "<< j << " : " << so[j*nxyz + i] << endl;}
+				this->spc[(i-6)*nxyz + j] = so[i*nxyz + j];
+				if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
 			}
 		}
 	}

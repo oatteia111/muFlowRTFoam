@@ -137,12 +137,12 @@ public:
 			int test = this->data[icnt];//std::cout<<"index "<<i<<" " <<test<<"\n";
 			if (test == 0)  // if 0 just one value to read
 				{icnt++; 
-				for (int j=0;j<nxyz;j++) {ic1[i*nxyz+j] = this->data[icnt];}
-				//if (j==369) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";}
+				for (int j=0;j<nxyz;j++) {ic1[i*nxyz+j] = this->data[icnt];
+				if (j==10) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";} }
 				}
 			else 		
-				{for (int j=0;j<nxyz;j++) {icnt++;ic1[i*nxyz+j] = this->data[icnt];}
-				//if (j==369) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";}
+				{for (int j=0;j<nxyz;j++) {icnt++;ic1[i*nxyz+j] = this->data[icnt];
+				if (j==10) {std::cout << i << " cell "<< j << " " << this->data[icnt]<< "\n";} }
 			}
 		}
 		const std::vector<IPhreeqcPhast *> w = phreeqc_rm->GetWorkers();
@@ -222,29 +222,31 @@ public:
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
 		
 		status = phreeqc_rm->SetErrorHandlerMode(1);
-		status = phreeqc_rm->SetFilePrefix("phq_run");
-		nxyz = this->data[0];
+		//status = phreeqc_rm->SetFilePrefix("phq_run");
 		//phreeqc_rm->OpenFiles();
 		//std::vector<int> print_chemistry_mask;
 		//print_chemistry_mask.resize(nxyz, 1);//print_chemistry_mask[0]=1;print_chemistry_mask[50]=1;
 		//status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
-	std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
-	//std::cout<<"nb gcomp before "<<gcompn.size()<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
-		status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
+		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcompn.size()<<"ph ws "<<this->wsat[0]<<"\n";
+		nxyz = this->data[0];
+		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
+		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
+		//status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
 		if (gcompn.size()>0) {
-			std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
-			std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
+			std::cout<<"nb gcomp before "<<gcompn.size();//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
+			//std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
 			//status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
 			}
 		else 
-			{status = phreeqc_rm->SetSaturation(this->wsat);}
+			{std::cout<<"phq wsat "<<this->wsat[0];
+			//status = phreeqc_rm->SetSaturation(this->wsat);
+			}
 		std::cout<<"wsat done ";
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
 		else {status = phreeqc_rm->SetConcentrations(this->c);}
@@ -254,7 +256,7 @@ public:
 		status = phreeqc_rm->RunCells();
 		
 		//status = phreeqc_rm->GetSaturation(this->wsat);
-		status = phreeqc_rm->GetSaturation(this->temp);
+		//status = phreeqc_rm->GetTemperature(this->temp);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
 	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";
@@ -284,27 +286,33 @@ public:
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
 		int n_user = phreeqc_rm->GetNthSelectedOutputUserNumber(0);
 		status = phreeqc_rm->SetCurrentSelectedOutputUserNumber(n_user);
-		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();
-		/* std::string heading;
+		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();std::cout<<"in phq ncol "<<ncol<<"\n";
+		std::string heading;int nphase=0;
 		for (int i = 0; i < ncol; i++)
 			{
 				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
-				if (heading=="g_H2O(g)") {this->nwat=i-6;std::cout<<heading<<" nb wat "<<this->nwat<<"\n";}
-			} */
-		nxyz = this->data[0];
-		this->nselect = ncol-6;
-		this->spc.resize((ncol-6)*nxyz,0);
-		std::vector<double> so;
+				if (heading.substr(0,2)=="d_")  {nphase +=1;}
+			}
+		nxyz = this->data[0];std::cout<<"in phq nphase "<<nphase<<"\n";
+		this->nselect = ncol-6-nphase;
+		this->spc.resize((this->nselect)*nxyz,0);
+		std::vector<double> so(ncol*nxyz);
 		status = phreeqc_rm->GetSelectedOutput(so);
 		//std::vector<std::string> headings;
 		//headings.resize(ncol);
+		nphase = 0;/*
 		for (int j = 0; j < nxyz; j++)
 		{
 			for (int i = 6; i < ncol; i++)
 			{
-				this->spc[(i-6)*nxyz + j] = so[i*nxyz + j];
-				if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
+				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
+				if (heading.substr(0,2)=="d_") {nphase +=1;}
+				else 
+					{
+					this->spc[(i-6-nphase)*nxyz + j] = so[i*nxyz + j];
+					if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
+					}
 			}
-		}
+		}*/
 	}
 };

@@ -44,19 +44,23 @@ forAll (Cg, i)
 }
 
 // -------------- conditions for gas mixtures -------------
-labelList cellsGfx; std::vector<float> cellsGfxData;std::vector<double> condGfx;
-labelList cellsGwl; std::vector<float> cellsGwlData;std::vector<double> condGwl;
+labelList cellsGfix0; std::vector<double> condGfix;
+labelList cellsGwel0; std::vector<double> condGwel;
 
-// reading the data for hfix
-std::ifstream inputGfxdata{cur_dir+"/constant/options/gfix"}; //
-cellsGfxData = {std::istream_iterator<float>{inputGfxdata}, {}};
-if (cellsGfxData.size()>0) { cellSet selectedGfx(mesh, "gfix"); cellsGfx = selectedGfx.toc();}
-condGfx.resize(cellsGfx.size());
+if (fexists(cur_dir+"/constant/options/gfix")) { cellSet selectedGfix(mesh, "gfix");cellsGfix0 = selectedGfix.toc();}
+if (fexists(cur_dir+"/constant/options/gwel")) { cellSet selectedGwel(mesh, "gwel");cellsGwel0 = selectedGwel.toc();}
 
-// reading the hwell data for wells
-std::ifstream inputGwldata{cur_dir+"/constant/options/gwel"}; //
-cellsGwlData = {std::istream_iterator<float>{inputGwldata}, {}};
-if (cellsGwlData.size()>0) {	cellSet selectedGwl(mesh, "gwel");cellsGwl = selectedGwl.toc();}
-condGwl.resize(cellsGwl.size());
+int itGfix=0;output = getCbuffer("Gfix",itGfix,cellsGfix0.size()); 
+float tGfix = output.t; std::vector<float> cellsGfixData=output.d;
+
+int itGwel=0;output = getCbuffer("Gwel",itGwel,cellsGwel0.size()); 
+float tGwel = output.t; std::vector<float> cellsGwelData=output.d;
+
+// resize + potential reorder
+condGfix.resize(cellsGfix0.size());
+condGwel.resize(cellsGwel0.size());
+std::vector<int> cellsGfix = indexC(cellsGfix0,cellsGfixData) ;
+std::vector<int> cellsGwel = indexC(cellsGwel0,cellsGwelData) ;
+//for (i=0;i<cellsPw.size();i++) {Info<<"i "<<cellsPw[i]<<" center "<<mesh.C()[cellsPw[i]]<<endl;}
 
 Info <<"end Cgifields " << endl;

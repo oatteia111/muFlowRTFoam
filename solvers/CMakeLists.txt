@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(muFlowRTnn)
-set(CMAKE_CXX_STANDARD 14)
+project(muFlowRT)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-list(APPEND CMAKE_PREFIX_PATH "/home/oatteia/muFlowRT/pytorch1/libtorch")
-find_package(Torch REQUIRED)
+#list(APPEND CMAKE_PREFIX_PATH "/home/oatteia/muFlowRT/pytorch1/libtorch")
+#find_package(Torch REQUIRED)
 
 # =====================================================================================
 #             OpenFOAM configurations
@@ -61,6 +61,7 @@ include_directories(/usr/lib) # for torch libs
 
 link_directories(${FOAM_LIB_DIR} ${FOAM_USER_LIBBIN} ${FOAM_LIB_DIR} ${PATH_LIB_OPENMPI})
 
-add_executable(muFlowRTnn muFlowRTnn.C)
-target_link_libraries(muFlowRTnn "${MPI_C_LIBRARIES}" "${TORCH_LIBRARIES}")
+add_executable(${PROJECT_NAME} muFlowRT.C)
+target_link_libraries(${PROJECT_NAME} "${MPI_C_LIBRARIES}")
+#target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}")
 target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase PhreeqcRM)

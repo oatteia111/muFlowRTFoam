@@ -5,8 +5,8 @@ class dicFunc
 	
 	std::string type;
 	void setType(std::string type){this->type = type;}
-	std::vector<double> parms;
-	void setParms(std::vector<double> parms){this->parms = parms;}
+	std::vector<double> fparms;
+	void setParms(std::vector<double> fparms){this->fparms = fparms;}
 };
 
 

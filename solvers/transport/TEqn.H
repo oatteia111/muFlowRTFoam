@@ -20,7 +20,7 @@ if (cellsHwel.size()>0)
 			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
 			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
 			}
-		for (int i=0; i<cellsTwel.size(); i++) 
+		for (size_t i=0; i<cellsTwel.size(); i++) 
 			{ 
 			i1=cellsTwel[i];v=mesh.V()[i1];
 			if (qHwel[i]<0) {TSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
@@ -36,7 +36,7 @@ if (cellsHwel.size()>0)
 			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
 			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
 			}
-		for (int i=0; i<cellsTfix.size(); i++) {b[i] = cellsTfixData[i*4+2];} // discharge must be in s-1
+		for (size_t i=0; i<cellsTfix.size(); i++) {b[i] = cellsTfixData[i*4+2];} // discharge must be in s-1
 	}
 
 	
@@ -63,7 +63,7 @@ fvScalarMatrix TEqn
 	);
 
 //fvOptions.constrain(TEqn);
-for (int i=0; i<cellsTfix.size(); i++) {TEqn.setReference(cellsTfix[i],b[i]);}
+for (size_t i=0; i<cellsTfix.size(); i++) {TEqn.setReference(cellsTfix[i],b[i]);}
 TEqn.solve();
 
 //calculating dT

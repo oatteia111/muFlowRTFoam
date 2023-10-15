@@ -1,82 +1,185 @@
-char sep ='/';
-int nxyz0=2;ph_ncomp=8;ph_gcomp=0;ph_nsolu=2;
-std::vector<int> data={2,8,0,2,1, -1,0,1, 0,-1,0,-1,0,-1,0,-1,0,-1,0,1};
+char sep ='/';std::cout<<"start \n";
+std::ifstream inputInit{cur_dir+sep+"phqinit.txt"};
+std::vector<int> ph_init{std::istream_iterator<int>{inputInit}, {}}; 
+nxyz=ph_init[0];ph_ncomp=ph_init[1];ph_gcomp=ph_init[2];ph_nsolu=ph_init[3];
+//std::vector<int> data={nxyz,ph_ncomp,0,ph_nsolu,1, -1,0,1, 0,-1,0,-1,0,-1,0,-1,0,-1,0,1};
 
 freak.setDB(cur_dir+sep+"phreeqc.dat");
 //make a first init to calculate the inital solutions (poro required for the initial solutions)
 freak.setChemFile(cur_dir+sep+"initChem.pqi"); //Info << "initCh read " << endl;
-freak.setData(data);
+freak.setData(ph_init);
 std::vector<double> poro(ph_nsolu,0.25);
 std::vector<double> wsat(ph_nsolu,0.9999);
 freak.setPoro(poro);
 freak.setWsat(wsat);
 freak.init(); 
+int i,j,k;int nmix=100;
+std::vector<double> c(nmix*ph_ncomp,0.);
 
-//first step make 50 time steps for solution 1
-int icell,it,k;
-int nt=50;std::vector<double> c(nt*nvar,0.);
-for (it=1;it<nt;it++) { //50 time steps
-	freak.setTstep(it*86400.);
-	freak.run();icell=1;
-	for (i=0;i<nvar;i++) { 
-		c[it*nvar+i]=freak.c[(i+4)*ph_nsolu+icell];
-		Cmax[i] = std::max(Cmax[i],c[it*nvar+i]);
-		}
-}
-//std::vector<double> sbase0(4);
-//for (i=0;i<4;i++) {sbase0[i] = freak.c[i*nxyz0+0];}
-// then from these 50 solutions, mix them with solution zero by 1/10
-std::vector<double> c0(nvar,0.);int nk=26;float stpk=1./(nk-1);
-for (i=0;i<nvar;i++) {c0[i]=freak.c[(i+4)*nxyz0+0];} // intial solution
-std::vector<double> c1(nt*nvar*nk,0.);
-for (it=1;it<nt;it++) {
-	for (k=0;k<nk;k++) {
-		for (i=0;i<nvar;i++) {
-			c1[it*nk*nvar+k*nvar+i]=k*stpk*c0[i]+(nk-k-1)*stpk*c[it*nvar+i];
-			}
+for (k=0;k<ph_nsolu;k++) //k is the solution number, we keep the orignal solutions with no mix
+	{	
+	//std::cout<<" k "<<k<<" ";
+	for (i=0;i<ph_ncomp;i++) {c[k*ph_ncomp+i]= freak.c[i*ph_nsolu+k];} //std::cout<<c[k*ph_ncomp+i]<<" ";
+	//std::cout<<"\n";
 	}
-}
 
-// use these concentrations to make a run for a given time step and get dC/dt
-// make conc relative, here we keep c0 as cmin, and store in nndata
-nxyz0 = nt*nk;
-data={nxyz0,8,0,nxyz0,1, 0,0, 0,-1,0,-1,0,-1,0,-1,0,-1, 0,1};
+//create random 100 solutions mixed from the n initial solutions
+// the proportions should be around 1/nsolu where nsolu is the nb of solutions
+int icell,it;//int nsp=ph_ncomp-4;
+float prop,totprop;
+for (j=ph_nsolu;j<nmix;j++) // the first solution are already stored
+	{
+	totprop=0;
+	for (k=0;k<ph_nsolu;k++) //k is the solution number
+		{	
+		prop = std::rand()/2e9/(ph_nsolu-1); totprop += prop; //std::cout<<" j "<<j <<" k "<<k<<" prop "<<prop<<"\n";
+		if (totprop>1.) {prop -= totprop-1;}
+		if ((k==ph_nsolu-1)&&(totprop<=1.)) {prop += 1-totprop;}
+		for (i=0;i<ph_ncomp;i++) {c[j*ph_ncomp+i] += prop*freak.c[i*ph_nsolu+k];} // in c one line=one solu (!=phreeqc)
+		}
+	/*std::cout<<" j "<<j<<" ";
+	for (i=0;i<ph_ncomp;i++) {std::cout<<c[j*ph_ncomp+i]<<" ";}
+	std::cout<<"\n";*/
+	}
+std::cout<<"props done \n";
+// now create input with mixes in contact to combination of phase, exchange and surf
+int nphase=6;int nsurf=6;int nexch=6;int j1,ip,ie,is; // nb in example trip these phases... are all the same, but can be different
+int ntest=20; nxyz = nmix*ntest;double x,r; //for each mix we will have 5 different options of use of phase, exch, surf
+std::vector<int> data={nxyz,ph_ncomp,0,nxyz,1, 0, 0}; //up to now we set all to soutions to 0
+std::vector<int> phase(nxyz),exch(nxyz),surf(nxyz);
+// 
+for (j=0;j<nmix;j++)
+	{
+	for (k=0;k<ntest;k++)
+		{
+		ip = std::rand()%nphase; phase.push_back(ip);
+		ie = std::rand()%nexch; exch.push_back(ie);
+		is = std::rand()%nsurf; surf.push_back(is);
+		}
+	}
+data.push_back(-1); //phases
+for (j=0;j<nxyz;j++) {data.push_back(phase[j]);}
+data.push_back(-1); //exchanger
+for (j=0;j<nxyz;j++) {data.push_back(exch[j]);}
+data.push_back(-1); //surfaces
+for (j=0;j<nxyz;j++) {data.push_back(surf[j]);}
+std::vector<int> dend{0,-1,0,-1,0,-1}; // gases solid slution, kinetics
+data.insert(data.end(), dend.begin(), dend.end());std::cout<<"solids done \n";
+//init phreeqc
 freak.setData(data);
-poro.resize(nxyz0,0.25);
-wsat.resize(nxyz0,0.9999);
+poro.resize(nxyz,0.25);
+wsat.resize(nxyz,0.9999);
 freak.setPoro(poro);
 freak.setWsat(wsat);
-freak.init(); //std::cout << "freak H2O_0 " << freak.c[0] << "\n";
-double dt0 = 86400.;
-freak.setTstep(dt0);
-std::vector<double> c_ph(nxyz0*ph_ncomp,0);
-for (int j=0;j<nxyz0;j++) {
-	for (i=0;i<4;i++) {c_ph[i*nxyz0+j] = freak.c[i*nxyz0+j];}
-	for (i=0;i<nvar;i++) {c_ph[(i+4)*nxyz0+j] = c1[j*nvar+i];}
-	//if (i==0) {std::cout<<c_ph[0]<<"\n";}
-	}
+freak.init(); std::cout << "freak H2O_0 " << freak.c[0] << "\n";
+
+std::ofstream outNNdata(cur_dir+sep+"nnData.txt");
+std::ofstream outNNtarget(cur_dir+sep+"nnTarget.txt");
+std::ofstream outNNtmpC(cur_dir+sep+"nnTmpC.txt");
+std::ofstream outNNtmpdC(cur_dir+sep+"nnTmpdC.txt");
+std::vector<float>nndata,nntarget;
+//run phreeqc
+std::vector<double> temp(nxyz,25.);
+//freak.setTemp(temp);
+
+//first add concentrations and make a first run to equilibrate
+std::vector<double>c_ph(nxyz*ph_ncomp);
+for (j=0;j<nmix;j++)
+	{
+	for (k=0;k<ntest;k++)
+		{
+		j1 = j*ntest+k;r=0.9+std::rand()/4e10;
+		for (i=0;i<4;i++) {c_ph[i*nxyz+j1] = c[j*ph_ncomp+i];}
+		for (i=4;i<ph_ncomp;i++) {c_ph[i*nxyz+j1] = c[j*ph_ncomp+i]*r;}
+		}
+	} std::cout<<"c_ph filled \n";
 freak.setC(c_ph);
-freak.run();//std::cout<<"end run \n";
-//shuffle
-std::random_device rd;
-std::mt19937 shuf(rd());
-std::vector<int> idx(nt*nk);
-std::iota(idx.begin(), idx.end(), 0);		
-std::shuffle(idx.begin(), idx.end(), shuf);
-//std::ifstream inputIdx{cur_dir+sep+"idx"};
-//std::vector<int> idx{std::istream_iterator<int>{inputIdx}, {}}; 
-float grr;
-for (int j=1;j<nxyz0;j++) {
-	int j1=idx[j];
-	for (i=0;i<nvar;i++) {
-		grr=(c1[j1*nvar+i]-c0[i])/(Cmax[i]-c0[i]);nndata.push_back(grr);outNNdata<<grr<<" "; //crelative
-		grr=(freak.c[(i+4)*nxyz0+j1]-c1[j1*nvar+i])/dt0*5e9;nntarget.push_back(grr);outNNtarget<<grr<<" "; 
+freak.run();std::cout<<"end run 1\n";
+//reading selected output
+freak.getSelOutput();nsel=freak.nselect-1;
+std::cout<<" nsel "<<nsel<<" "; //base
+S_ph.resize(nxyz*nsel); // S_ph will store all data on surface
+for (j=0;j<nxyz;j++)
+	{
+	S_ph[j]=freak.spc[j];//pH, we remove pe
+	for (i=1;i<nsel;i++) {S_ph[i*nxyz+j]=freak.spc[(i+1)*nxyz+j];}
 	}
-	outNNdata<<"\n"; outNNtarget<<"\n";
-}
+// slightly modify the concentrations and calc Cmin and Cmax (no log here)
+nncols=ph_ncomp-4+nsel;
+cdff.resize(nncols);Cmin.resize(nncols,1.);Cmax.resize(nncols);
+llog.resize(nncols);int i1;
+for (j=0;j<nxyz;j++)
+	{
+	r=0.99+std::rand()/2e11;
+	for (i=4;i<ph_ncomp;i++) {
+		x = std::max(c_ph[i*nxyz+j]*r,1e-15);c_ph[i*nxyz+j] = x;outNNtmpC<<x<<" ";
+		Cmin[i-4]=std::min(Cmin[i-4],x);Cmax[i-4]=std::max(Cmax[i-4],x);
+		}
+	for (i=0;i<nsel;i++) {x=S_ph[i*nxyz+j];
+		i1 = ph_ncomp-4+i;Cmin[i1]=std::min(Cmin[i1],x);Cmax[i1]=std::max(Cmax[i1],x);outNNtmpC<<x<<" ";
+		} //selected out species
+	outNNtmpC<<"\n";
+	}
+//now transform the Cboundaries
+for (i=0;i<nncols;i++) 
+	{
+	if (Cmax[i]>Cmin[i]*100) {
+		llog[i]=1;cdff[i]=Cmax[i]-Cmin[i];
+		Cmin[i]=std::log10(Cmin[i]+cdff[i]/1e12);Cmax[i]=std::log10(Cmax[i]); //dff/1e4 to avoid 0
+		}
+	}
+std::cout<<"Cmin "; for (i=0;i<nncols;i++) {std::cout<<Cmin[i]<<" ";} ; std::cout<<"\n";
+std::cout<<"Cmax "; for (i=0;i<nncols;i++) {std::cout<<Cmax[i]<<" ";} ; std::cout<<"\n";
+//transform the variables to enter them in nndata
+//std::vector<float> data(nxyz*nncols);
+for (j=0;j<nxyz;j++)
+	{
+	for (i=0;i<nncols;i++) 
+		{
+		if (i<ph_ncomp-4) {x=c_ph[(i+4)*nxyz+j];}
+		else {x=S_ph[(i-ph_ncomp+4)*nxyz+j];}
+		//if (j==20) {std::cout<<x<<" ";}
+		if (llog[i]==1) {x=static_cast<float>((std::log10(x+cdff[i]/1e12)-Cmin[i])/(Cmax[i]-Cmin[i]));outNNdata<<x<<" ";nndata.push_back(x);}
+		else {x=static_cast<float>((x-Cmin[i])/(Cmax[i]-Cmin[i]));outNNdata<<x<<" ";nndata.push_back(x);}
+		//data[i*nxyz+j]=x;
+		}
+	outNNdata<<"\n";
+	}
+std::cout<<"end sel out \n";
+freak.setC(c_ph);
+//run phreeqc
+freak.run();
+std::cout<<"end run 2 \n";
+
+// get results from sel output and put all in nntarget
+Ymin.resize(nncols,1.);Ymax.resize(nncols); //limit sof target (they will be kept during all simulation
+freak.getSelOutput();std::vector<double>s_dff(nxyz*nncols); //base
+for (j=0;j<nxyz;j++)
+	{
+	for (i=0;i<ph_ncomp-4;i++) {s_dff[i*nxyz+j] = freak.c[(i+4)*nxyz+j]-c_ph[(i+4)*nxyz+j];}
+	i1=ph_ncomp-4;s_dff[i1*nxyz+j]=freak.spc[j]-S_ph[j];
+	for (i=1;i<nsel;i++) {i1=ph_ncomp-4+i;s_dff[i1*nxyz+j]=freak.spc[(i+1)*nxyz+j]-S_ph[i*nxyz+j];}
+	}
+for (j=0;j<nxyz;j++)
+	{
+	for (i=0;i<nncols;i++) {x = s_dff[i*nxyz+j];Ymin[i]=std::min(Ymin[i],x);Ymax[i]=std::max(Ymax[i],x);}
+	}
+for (i=0;i<nncols;i++) {cdff[i]=Ymax[i]-Ymin[i];}
+std::cout<<"Ymin "; for (i=0;i<nncols;i++) {std::cout<<Ymin[i]<<" ";} ; std::cout<<"\n";
+std::cout<<"Ymax "; for (i=0;i<nncols;i++) {std::cout<<Ymax[i]<<" ";} ; std::cout<<"\n";
+
+//now write the conc differences in target (for 1st phase)
+for (j=0;j<nxyz;j++)
+	{
+	for (i=0;i<nncols;i++) {outNNtmpdC<<s_dff[i*nxyz+j]<<" ";}
+	for (i=0;i<nncols;i++) {x=static_cast<float>((s_dff[i*nxyz+j]-Ymin[i])/(Ymax[i]-Ymin[i]+cdff[i]/1e12));outNNtarget<<x<<" ";nntarget.push_back(x);}
+	outNNtarget<<"\n";outNNtmpdC<<"\n";
+	}
+
+std::cout<<"stored in target \n";
 std::flush(outNNdata);std::flush(outNNtarget);outNNdata.close();outNNtarget.close();
 // train
-Cwgnn.setNd(nxyz0);Cwgnn.setData(nndata);Cwgnn.setRunParms({400.,32.,1e-3,.75});//(epoc,batch,learning rate,%train)
+Cwgnn.setNd(nxyz);Cwgnn.setNNParms({nncols,nncols,nncols});Cwgnn.setData(nndata);Cwgnn.setRunParms({400.,25.,8e-4,.75});Cwgnn.init();//(epoc,batch,learning rate,%train)
 Cwgnn.setTarget(nntarget);
 float rmse = Cwgnn.train(); std::cout << "rmse "<<rmse<<std::endl;
 outNNrmse <<" " << rmse << "\n";

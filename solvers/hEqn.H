@@ -46,7 +46,7 @@ forAll(stor(), celli)
 stor.dimensions().reset(dimless/dimLength);
 
 // -################# - conditions  ---####################---
-	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0; size_t i;//previous cells with values must be destroyed
 	float time = mesh.time().value()/day;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge/recharge
 	icount = 0;	//get the ghb conditions
@@ -60,7 +60,7 @@ stor.dimensions().reset(dimless/dimLength);
 			}
  //it is the step
 		//if (icount>0) {icount -= cellsHw.size();};
-		for (int i=0; i<cellsHwel.size(); i++)
+		for (i=0; i<cellsHwel.size(); i++)
 			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;}
 		//Info<<i<<" ic "<<cellsHw[i]<<" icdat "<<cellsHwData[2+(icount+i)*4+1]<<endl; }
 	} Info<<"Hfw read ";
@@ -73,7 +73,7 @@ stor.dimensions().reset(dimless/dimLength);
 			output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
 			tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
 			}
-		for (int i=0; i<cellsHghb.size(); i++) 
+		for (i=0; i<cellsHghb.size(); i++) 
 			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day;}
 	} Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
@@ -84,7 +84,7 @@ stor.dimensions().reset(dimless/dimLength);
 			output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
 			tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
 			}
-		for (int i=0; i<cellsHriv.size(); i++) 
+		for (i=0; i<cellsHriv.size(); i++) 
 			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day;}
 			//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 	} //Info<<"Hriv read "<<endl;
@@ -96,7 +96,7 @@ stor.dimensions().reset(dimless/dimLength);
 			output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
 			tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
 			}
-		for (int i=0; i<cellsHdrn.size(); i++) 
+		for (i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i]; v=mesh.V()[i1];
 			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1]=cellsHdrnData[i*4+3]/v/day;
@@ -110,7 +110,7 @@ stor.dimensions().reset(dimless/dimLength);
 			output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
 			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 			}
-		for (int i=0; i<cellsHrch.size(); i++) 
+		for (i=0; i<cellsHrch.size(); i++) 
 			{
 			i1 = cellsHrch[i];//Info<<" i "<<i<<" i1 "<<i1<<" nla "<<nlay<<" ncl "<<ncell_lay;
 			for (ilay=0;ilay<nlay;ilay++) { nc=i1-ilay*ncell_lay; if (sw[nc]>=sw_max) {break;} ;} //search for the first confined layer from the top
@@ -134,7 +134,8 @@ if (cellsHfix.size()>0)
 		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
 		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
 		}
-	for (int i=0; i<cellsHfix.size(); i++) {hEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}
+	//std::cout<<"hfix ";
+	for (i=0; i<cellsHfix.size(); i++) {hEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}//std::cout<<cellsHfix[i]<<" "<<cellsHfixData[i*4+2]<<" ";}
 }
 
 hEqn.solve(); 
@@ -151,8 +152,8 @@ for (ilay=0;ilay<nlay;ilay++) {
 	}
 // get the the water discharge/recharge at fixed heads cells
 int i1;
-for (int i=0; i<cellsHdrn.size(); i++) {i1=cellsHdrn[i];qHdrn[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];} //Info<<"qhfx "<<i<<" "<<i1<<" "<<qHfx[i]<<endl;}
-for (int i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];qGerr[i]=qHghb[i]-(q1[i1]+d1[i1]);}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<endl;}
+for (i=0; i<cellsHdrn.size(); i++) {i1=cellsHdrn[i];qHdrn[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];} //Info<<"qhfx "<<i<<" "<<i1<<" "<<qHfx[i]<<endl;}
+for (i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];qGerr[i]=qHghb[i]-(q1[i1]+d1[i1]);}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<endl;}
 //for (int i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=q1[i1]*mesh.V()[i1];}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<" qdH "<< (hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1]<<endl;}
 //for (int i=0; i<cellsHrch.size(); i++) {i1=clayRch[i];qHrch[i]=hSu[i1]*mesh.V()[i1];}// Info<<"qrch "<<i<<" "<<i1<<" "<<qHrch[i]<<endl;}
 //for (int i=0; i<cellsHrch.size(); i++) {i1=clayRch[i];qHrch[i]=(q1[i1]-d1[i1])*mesh.V()[i1];}// Info<<"qrch "<<i<<" "<<i1<<" "<<qHrch[i]<<endl;}

@@ -61,12 +61,12 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	// -------------- conditions  ---------------------- (can be simplified only the 1st time is needed)
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
-	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0;size_t i; //previous cells with values must be destroyed
 	//Info << "Hwdata "<<cellsHwData[0]<<" "<<cellsHwData[1]<<" "<<cellsHwData[2]<<" "<<cellsHwData[3]<<endl;
 	if (cellsHwel.size()>0)
 	{
 		std::cout<<" hsuw ";
-		for (int i=0; i<cellsHwel.size(); i++) 
+		for (i=0; i<cellsHwel.size(); i++) 
 			{i1=cellsHwel[i]; v=mesh.V()[i1];hSu[i1] = cellsHwelData[i*4+2]/v/day;} // discharge must be in s-1
 	} Info<<"\nHw read ";
 	// set the values in the matrix
@@ -74,20 +74,20 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	if (cellsHghb.size()>0)
 	{
 		std::cout<<" hsughb ";
-		for (int i=0; i<cellsHghb.size(); i++) 
+		for (i=0; i<cellsHghb.size(); i++) 
 			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day; }
 	} Info<<"Hghb read ";
 	//get the riv conditions
 	if (cellsHriv.size()>0)
 	{
-		for (int i=0; i<cellsHriv.size(); i++) 
+		for (i=0; i<cellsHriv.size(); i++) 
 			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day; }
 	} Info<<"Hriv read ";
 	//get the drn conditions
 	if (cellsHdrn.size()>0)
 	{
 		std::cout<<" hdrn ";
-		for (int i=0; i<cellsHdrn.size(); i++) 
+		for (i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i];v=mesh.V()[i1];//Info<<"i1 "<<i1<<" h "<<h()[i1]<<endl;
 			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1] = cellsHdrnData[i*4+3]/v/day; 
@@ -101,7 +101,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	float dv =0;	
 	if (cellsHrch.size()>0)
 	{
-		for (int i=0; i<cellsHrch.size(); i++) 
+		for (i=0; i<cellsHrch.size(); i++) 
 			{
 			i1 = cellsHrch[i];
 			for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
@@ -129,8 +129,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	//get the fixed head conditions
 	if (cellsHfix.size()>0)
 	{
-		std::cout<<" hfix ";
-		for (int i=0; i<cellsHfix.size(); i++) {hEqnStd.setReference(cellsHfix[i],cellsHfixData[i*4+2]) ; std::cout<<cellsHfixData[i*4+2]<<" ";}//Info<<"setRef "<<cellsHfx[i]<<endl;}
+		for (i=0; i<cellsHfix.size(); i++) {hEqnStd.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}//Info<<"setRef "<<cellsHfx[i]<<endl;}
 	}
 	//Info << hEqnStd.solver().solve() <<endl; //typeid().name()//hEqnStd.lower() works
 	hEqnStd.solve(); //Info << "h 5 " << h[5] << endl;

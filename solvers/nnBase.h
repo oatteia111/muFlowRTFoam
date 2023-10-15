@@ -22,8 +22,8 @@ struct Net : torch::nn::Module {
 
   torch::Tensor forward(torch::Tensor x) {
     x = torch::tanh(fc1->forward(x));
-    x = torch::tanh(fc2->forward(x));
-    x = torch::tanh(fc3->forward(x)); // NB : relu produces only positive values
+    x = torch::sigmoid(fc2->forward(x));
+    x = torch::sigmoid(fc3->forward(x)); // NB : relu produces only positive values
     //x = torch::tanh(fc4->forward(x));
     //x = torch::tanh(fc5->forward(x));
     return x;
@@ -98,7 +98,7 @@ class my_NN {
 		torch::Tensor tdata = torch::from_blob(data1.data(), {nd1,n_in}, torch::TensorOptions(torch::kFloat));//.to(torch::kFloat64);
 		torch::Tensor ttarget = torch::from_blob(target1.data(), {nd1,n_out},torch::TensorOptions(torch::kFloat));//.to(torch::kDouble);
 		auto dataset = CustomDataset(tdata, ttarget).map(torch::data::transforms::Stack<>()); // map is needed even if nothing in
-		auto dataloader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(dataset),torch::data::DataLoaderOptions().batch_size(batch_size));
+		auto dataloader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(std::move(dataset),torch::data::DataLoaderOptions().batch_size(batch_size));
 		this->nn->train(); 
 		//std::cout<<"parms "<<this->nn->parameters()<<std::endl;
 		namespace F = torch::nn::functional;

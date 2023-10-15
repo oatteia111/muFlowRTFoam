@@ -53,21 +53,28 @@ volScalarField::Internal pSu
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
 );
 // -------------- conditions for pressure -------------
-labelList cellsPfix0; std::vector<float> qPfix;
-labelList cellsPwel0; std::vector<float> qPwel;
+labelList cellsPfix0; std::vector<float> qPfix;std::vector<float> condPfix;std::vector<float> cellsPfixData;
+labelList cellsPwel0; std::vector<float> qPwel;std::vector<float> condPwel;std::vector<float> cellsPwelData;
+int itPfix=0;int itPwel=0;float tPwel,tPfix;
 
-if (fexists(cur_dir+"/constant/options/pfix")) { cellSet selectedPfix(mesh, "pfix");cellsPfix0 = selectedPfix.toc();}
-if (fexists(cur_dir+"/constant/options/pwel")) { cellSet selectedPwel(mesh, "pwel");cellsPwel0 = selectedPwel.toc();}
-
-int itPfix=0;output = getCbuffer("pfix",itPfix,cellsPfix0.size()); 
-float tPfix = output.t; std::vector<float> cellsPfixData=output.d;
-
-int itPwel=0;output = getCbuffer("pwel",itPwel,cellsPwel0.size()); 
-float tPwel = output.t; std::vector<float> cellsPwelData=output.d;
+if (fexists(cur_dir+"/constant/options/pfix")) 
+{ 
+cellSet selectedPfix(mesh, "pfix");cellsPfix0 = selectedPfix.toc();
+output = getCbuffer("pfix",itPfix,cellsPfix0.size()); 
+tPfix = output.t; cellsPfixData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/pwel")) 
+{ 
+cellSet selectedPwel(mesh, "pwel");cellsPwel0 = selectedPwel.toc();
+output = getCbuffer("pwel",itPwel,cellsPwel0.size()); 
+tPwel = output.t; cellsPwelData=output.d;
+}
 
 qPfix.resize(cellsPfix0.size());
 qPwel.resize(cellsPwel0.size());
+condPfix.resize(cellsPfix0.size());
+condPwel.resize(cellsPwel0.size());
+
 std::vector<int> cellsPfix = indexC(cellsPfix0,cellsPfixData) ;
 std::vector<int> cellsPwel = indexC(cellsPwel0,cellsPwelData) ;
-//for (i=0;i<cellsPw.size();i++) {Info<<"i "<<cellsPw[i]<<" center "<<mesh.C()[cellsPw[i]]<<endl;}
 

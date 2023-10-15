@@ -68,31 +68,54 @@ std::string cur_dir = get_current_dir();
 #include "phreeqc/initPhreeqc.H"
 
 std::vector<double> a(12,0.);
-std::vector<double> c_ph,gm_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+std::vector<double> c_ph,gm_ph,p_ph,S_ph,gvol,ractive,solu_conc,gas_conc;
 float atmPa=101325.;float vmw,Cgtot,Gmtot;
-int i,j,iw;
+int i,j,iw;double x;
 my_phq freak; //need to be here to be availabel for every chem condition
 #include "myFunc.H"
-// read the myfunc file
 dicFunc fDe_T;
+//create NN
 my_NN Cwgnn;	   		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-using namespace Foam;
-
-std::vector<int> indexC(labelList &cells, std::vector<double> &data)
+std::vector<int> indexC(labelList &cells, std::vector<float> &data)
 {
     std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
-	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
+	for (i=0; i<cells.size();i++)  // reads the first ncells lines
 		{
-		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[2+i*4+1]));
+		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[i*4+1]));
 		int i1 = {std::distance(cells.begin(), iter)};  //Info << i << " icd "<< icd << " cll " << cells_[i] << " indx " << a << endl; // cell number in cellsData //index of cellsData in cells_
 		c1[i] = cells[i1];
 		}
     return c1;
 }
 
+inline bool fexists(const std::string& name) {
+    ifstream f(name.c_str());
+    return f.good();
+}
+
+struct outData {float t; std::vector<float> d;};
+// a function to get data from binary file
+
+outData getCbuffer(string fname, int itime, int ncell) {
+    std::vector<float> data(ncell*4);
+	std::ifstream inputData{cur_dir+"/constant/options/"+fname, std::ios::binary}; //
+	inputData.seekg(ncell*itime*4*sizeof(float)); //each line is composed of 4 numbers and there are two values at the beginning
+
+    inputData.read(reinterpret_cast<char*>(&data[0]), ncell*4*sizeof(float));
+	float time;	
+	inputData.read(reinterpret_cast<char*>(&time), sizeof(float));
+	outData output;
+	output.t = time;std::cout<<"readbin "<<fname <<" "<<itime<<" "<<ncell;
+	output.d = data;
+    return output;
+}
+
+//----------------------------- MAIN ------------------------------
+
+using namespace Foam;
 int main(int argc, char *argv[])
 {
 	namespace chr = std::chrono;
@@ -108,17 +131,20 @@ int main(int argc, char *argv[])
 	#include "createThetaFields.H"
 	#include "create2phaseFields.H"
 	//parms of the De=f(T) function
-	std::vector<double> parm0(1,1e-3); // the parameters for the modification of DEffg with temperature
 	#include "readFunc.H"
-	Info << "fDe parms "<< fDe_T.parms[1] << endl;		
-	std::vector<double> Cmin, Cmax;
+	Info << "fDe parms "<< fDe_T.fparms[0] << " "<<fDe_T.fparms[1] << endl;
+	//for NN	
+	std::random_device rd;
+	std::mt19937 shuf(rd()); // will be used later
+	std::vector<double> Cmin,Cmax,cdff,Ymin,Ymax; // Cmin,max for conc, Y for selected species
+	std::vector<int> llog; //to store the variable that are log transformed (for nn)
+	int nncols,nsel;
 	char sep ='/'; //don't understand why here sep is needed as char while in muFlow just work directly
 	std::ofstream outTime(cur_dir+sep+"time.txt");
 
 	if (activateReaction==1)
 	{
 	//##############  phreeqc intiialisation for solutions and gases
-	float rv=1.; // dont change it, it does not work
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
 	std::ifstream inputInit{cur_dir/"phqinit.txt"};
@@ -163,8 +189,7 @@ int main(int argc, char *argv[])
 	outFile1.close();
 
 	//#################  NN init ################### (must be before full domain as it also initialize cells in phreeqc)
-	int nvar = ph_ncomp-4;Cmin.resize(nvar,0.);Cmax.resize(nvar,0.);
-	Cwgnn.setNNParms({nvar,nvar,nvar});Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});Cwgnn.init(); //+1 for time step
+	//Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});Cwgnn.init(); //+1 for time step
 	std::ofstream outNNrmse(cur_dir/"NNrmse.txt");
 	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
 	std::vector<float> nntarget;
@@ -192,24 +217,48 @@ int main(int argc, char *argv[])
 	//freak.setP(p_ph);
 	freak.init();
 	gvol.resize(nxyz,0.01);
-	//p_ph.resize(nxyz,1.);
 	//freak.run();
+
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
 	c_ph.resize(nxyz*ph_ncomp,0);
 	for (i=0; i<ph_ncomp;i++)
-		for (int j=0;j<nxyz;j++) 
+		for (j=0;j<nxyz;j++) 
 			{c_ph[i*nxyz+j] = freak.c[i*nxyz+j];}
 	// gases are in atm (freak.g) we start with ideal gas
 	gm_ph.resize(nxyz*ph_gcomp,0); // moles of gas
 	Info<<"gcomp "<<ph_gcomp<<" g size "<<freak.g.size()<<" frk.c size "<<freak.c.size()<<endl;
 	for (i=0; i<ph_gcomp;i++)
-		for (int j=0;j<nxyz;j++) 
+		for (j=0;j<nxyz;j++) 
 			{
 			phreeqcVm[j] = 24.5/(p[j]/atmPa);
 			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
 			}
 	iw = freak.iGwater;
+	// also store results of selectedoutput (for nn) and recalc Cmin Cmax (only to extend them if needed)
+	if (activateNNchemistry==1) 
+		{
+		S_ph.resize(nxyz*nsel);freak.getSelOutput();nsel=freak.nselect-1; // S_ph will store all data on surface
+		for (j=0;j<nxyz;j++)
+			{
+			S_ph[j]=freak.spc[j];//pH, we remove pe
+			for (i=1;i<nsel;i++) {S_ph[i*nxyz+j]=freak.spc[(i+1)*nxyz+j];}
+			}
+		for (j=0;j<nxyz;j++)
+			{
+			for (i=0;i<nncols;i++)
+				{
+				if (i<ph_ncomp-4) {x = c_ph[i*nxyz+j]; }
+				else {x=S_ph[i*nxyz+j]; }
+				x = std::max(x,1e-12);
+				if (llog[i]==1) {Cmin[i]=std::min(Cmin[i],std::log10(x));Cmax[i]=std::max(Cmax[i],std::log10(x));}
+				else {Cmin[i]=std::min(Cmin[i],x);Cmax[i]=std::max(Cmax[i],x);}
+				}
+			}
+
+		std::cout<<"Cmin "; for (i=0;i<nncols;i++) {std::cout<<Cmin[i]<<" ";} ; std::cout<<"\n";
+		std::cout<<"Cmax "; for (i=0;i<nncols;i++) {std::cout<<Cmax[i]<<" ";} ; std::cout<<"\n";
+		}
 	
 	} //end of activateReation
 	else  //only flow or flow+transport
@@ -241,7 +290,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
-	int nvar=ph_ncomp-4;
 
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();

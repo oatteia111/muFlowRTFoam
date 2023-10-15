@@ -22,83 +22,73 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 // --------------------- internal conditions ------------------------
 	float time = mesh.time().value(); //const Time&
 	CSu=CSu*0; CSp=CSp*0; a1=1; double conc;//previous cells with values must be destroyed
-				
-	icount = 0;
+	size_t i;
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-		float tnow = cellsHwelData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsCwel.size(); tnow = cellsCwelData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsCwel.size();};
-		for (int i=0; i<cellsCwel.size(); i++) 
+	if (time>=tCwel) {
+		output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
+		tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
+		}
+		for (i=0; i<cellsCwel.size(); i++) 
 			{ 
 			i1=cellsCwel[i];v=mesh.V()[i1];
 			if (qHwel[i]<0) {CSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
-			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[2+(icount+i)*4+2];} //the injected mass is the water flow x the conc
-			//Info<<"cellw "<<cellsCw[i]<<" q "<<qHw[i]<<" cloc "<<cloc<<" Su "<<CSu[cellsCw[i]]<<" Sp "<<CSp[cellsCw[i]]<<endl;
+			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[i*4+2];} //the injected mass is the water flow x the conc
 			}
 	}
 	// for fixed head cells only for the outflow of conc (1st step) -> Hfx because Cghb may not be set here
-	icount = 0;
-	if (cellsHfix.size()>0)
+	/*if (cellsHfix.size()>0)
 	{
 		float tnow = cellsHfixData[2]*day; //time in files is in days
 		while (time>=tnow) {icount += cellsHfix.size(); tnow = cellsHfixData[2+icount*4]*day; }
 		if (icount>0) {icount -= cellsHfix.size();};
-		for (int i=0; i<cellsHfix.size(); i++) 
+		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
 			i1=cellsHfix[i];v=mesh.V()[i1];//
 			if (qHfix[i]<0) {CSp[i1] = -qHfix[i]/v;} // outflow qHfx<0 discharge prop to local concentration
 			else {CSu[i1] = -qHfix[i]/v*cellsCfixData[2+(icount+i)*4+2];}
 			}
-	}
+	}*/
 	// for ghb cells only for the outflow of conc (1st step) -> Hghb because Cghb may not be set here
 	icount = 0;
 	if (cellsHghb.size()>0)
 	{
-		float tnow = cellsHghbData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsHghb.size(); tnow = cellsHghbData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHghb.size();};
-		for (int i=0; i<cellsHghb.size(); i++) 
+		if (time>=tCghb) {
+			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
+			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
+			}
+		for (size_t i=0; i<cellsHghb.size(); i++) 
 			{ 
 			i1=cellsHghb[i];v=mesh.V()[i1];//
 			if (qHghb[i]<0) {CSp[i1] = -qHghb[i]/v;} // outflow discharge prop to local concentration
-			else {CSu[i1] = -qHghb[i]/v*cellsCghbData[2+(icount+i)*4+2];}
+			else {CSu[i1] = -qHghb[i]/v*cellsCghbData[i*4+2];}
 			//Info<<"ghb "<< i<<" i1 " <<i1<<" q "<<qHghb[i]<<" conc "<<cellsCghbData[2+(icount+i)*4+2]<<endl;
 			}
 	}
 	// for drain cells (only out), same as above, except that drains are constant in time
-	icount = 0;
 	if (cellsHdrn.size()>0)
 	{
-		for (int i=0; i<cellsHdrn.size(); i++) 
+		for (size_t i=0; i<cellsHdrn.size(); i++) 
 			{ 
 			i1=cellsHdrn[i];v=mesh.V()[i1];//
 			if (qHdrn[i]<0) {CSp[i1] = -qHdrn[i]/v;} // outflow qHdrn<0 discharge prop to local concentration
 			}
-	}
-	// for cfx conc (if no hfix)
-	icount = 0;
-	if (cellsCfix.size()>0)
-	{
-		float tnow = cellsCfixData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsCfix.size(); tnow = cellsCfixData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsCfix.size();};
-		for (int i=0; i<cellsCfix.size(); i++) {i1=cellsCfix[i]; condCfix[i] = cellsCfixData[2+(icount+i)*4+2];}
 	}
 
 	//recharge
 	icount=0;int nc;
 	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
-		float tnow = cellsCrchData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsCrch.size(); tnow = cellsCrchData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsCrch.size();};
-		for (int i=0; i<cellsCrch.size(); i++) 
+		if (time>=tCrch) {
+		output = getCbuffer("crch",itCrch,cellsCrch.size()); 
+		tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
+		}
+		for (size_t i=0; i<cellsCrch.size(); i++) 
 			{ 
 			v=mesh.V()[clayRch[i]];
 			if (CSu[clayRch[i]]==0) { //recharge occurs only where no ghb, riv or drains
-				CSu[clayRch[i]] += -qHrch[i]/v*cellsCrchData[2+(icount+i)*4+2];
+				CSu[clayRch[i]] += -qHrch[i]/v*cellsCrchData[i*4+2];
 				}
 			//else {Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[2+(icount+i)*4+2]<<endl;}
 			} 
@@ -115,7 +105,16 @@ fvScalarMatrix CEqn
 		+ CSu + fvm::SuSp(CSp, C)
 	); 
 
-for (int i=0; i<cellsCfix.size(); i++) {CEqn.setReference(cellsCfix[i],condCfix[i]);}
+for (i=0; i<cellsCfix.size(); i++) 	
+	{
+	if (time>=tCfix) {
+		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
+		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
+		}
+
+	CEqn.setReference(cellsCfix[i],static_cast<int>(cellsCfixData[i*4+2]));
+	}
+	
 CEqn.solve();
 
 //Info<<"c 10740 apr "<<C()[10740]<<endl;

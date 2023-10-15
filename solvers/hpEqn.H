@@ -1,7 +1,7 @@
 hp.storePrevIter();
 
 // -------------- conditions  ----------------------
-	hSu=hSu*0; hSp=hSp*0; //previous cells with values must be destroyed
+	hSu=hSu*0; hSp=hSp*0;size_t i; //previous cells with values must be destroyed
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
 	if (cellsHwel.size()>0)
@@ -10,8 +10,8 @@ hp.storePrevIter();
 			output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
 			float tHwel = output.t; std::vector<float> cellsHwelData=output.d; itHwel+=1;
 			}
-		for (int i=0; i<cellsHwel.size(); i++) {
-			v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[2+i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;
+		for (i=0; i<cellsHwel.size(); i++) {
+			v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;
 			//{hSu[cellsHw[i]] = cellsHwData[2+(icount+i)*4+2]/day;} // discharge must be in s-1
 			Info<<i<<" ic "<<cellsHwel[i]<<" q "<<qHwel[i]<<endl;
 			}
@@ -27,13 +27,13 @@ if (cellsHfix.size()>0)
 		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
 		float tHfix = output.t; std::vector<float> cellsHfixData=output.d; itHfix +=1;
 		}
-	for (int i=0; i<cellsHfix.size(); i++) {hpEqn.setReference(cellsHfix[i],cellsHfixData[2+i*4+2]);}
+	for (i=0; i<cellsHfix.size(); i++) {hpEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}
 }
 
 hpEqn.solve(); //Info << "h 500 " << h[500] << " iter "<<runTime.solverInfo()<<endl;//nIterations() //hEaqn.solver() ok //SolverPerformance() not ok
 //Info<<"end solve"<<endl;
 //phiw =  hpEqn.flux() ;
-Info<<"phiGr ";for (int i=0;i<4;i++) {Info<<phiGr[i]<<" ";}
+//Info<<"phiGr ";for (int i=0;i<4;i++) {Info<<phiGr[i]<<" ";}
 Info<<endl;
 phiw =  (phiGr - ((Mf * fvc::interpolate(fvc::grad(hp)) ) & mesh.Sf() ) ) ;//fvc::interpolate(sw) *
 //phiw ==  phiGr - (Mf * fvc::snGrad(hp)) * mesh.magSf() ;//same as hpeqn

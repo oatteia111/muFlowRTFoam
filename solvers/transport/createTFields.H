@@ -41,20 +41,46 @@ volScalarField::Internal TSp
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false
 );
 
-labelList cellsTfix0; std::vector<float> condTfix;
-labelList cellsTwel0; std::vector<float> condTwel;
+//////////////////////// read conditions //////////////////////////
+labelList cellsTfix0; std::vector<float> condTfix;std::vector<float> cellsTfixData;
+labelList cellsTwel0; std::vector<float> condTwel;std::vector<float> cellsTwelData;
+labelList cellsTghb0; std::vector<float> condTghb;std::vector<float> cellsTghbData;
+labelList cellsTrch0; std::vector<float> condTrch;std::vector<float> cellsTrchData;
+int itTfix=0;int itTwel=0;int itTghb=0;int itTrch=0;
+float tTwel,tTfix,tTghb,tTrch;
 
-if (fexists(cur_dir+"/constant/options/tfix")) {cellSet selectedTfix(mesh, "tfix");cellsTfix0 = selectedTfix.toc();}
-if (fexists(cur_dir+"/constant/options/twel")) {cellSet selectedTwel(mesh, "twel");cellsTwel0 = selectedTwel.toc();}
-
-int itTfix=0;output = getCbuffer("tfix",itTfix,cellsTfix0.size()); 
-float tTfix = output.t; std::vector<float> cellsTfixData=output.d;
-
-int itTwel=0;output = getCbuffer("twel",itTwel,cellsTwel0.size()); 
-float tTwel = output.t; std::vector<float> cellsTwelData=output.d;
+if (fexists(cur_dir+"/constant/options/tfix")) 
+{ 
+cellSet selectedTfix(mesh, "tfix");cellsTfix0 = selectedTfix.toc();
+output = getCbuffer("tfix",itTfix,cellsTfix0.size()); 
+tTfix = output.t; cellsTfixData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/twel")) 
+{ 
+cellSet selectedTwel(mesh, "twel");cellsTwel0 = selectedTwel.toc();
+output = getCbuffer("twel",itTwel,cellsTwel0.size()); 
+tTwel = output.t; cellsTwelData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/tghb")) 
+{ 
+cellSet selectedTghb(mesh, "tghb");cellsTghb0 = selectedTghb.toc();
+output = getCbuffer("tghb",itTghb,cellsTghb0.size()); 
+tTghb = output.t; cellsTghbData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/crch")) 
+{ 
+cellSet selectedTrch(mesh, "trch");cellsTrch0 = selectedTrch.toc();
+output = getCbuffer("trch",itTrch,cellsTrch0.size()); 
+tTrch = output.t; cellsTrchData=output.d;
+}
 
 condTfix.resize(cellsTfix0.size());
 condTwel.resize(cellsTwel0.size());
+condTghb.resize(cellsTghb0.size());
+condTrch.resize(cellsTrch0.size());
+
 std::vector<int> cellsTfix = indexC(cellsTfix0,cellsTfixData) ;
 std::vector<int> cellsTwel = indexC(cellsTwel0,cellsTwelData) ;
+std::vector<int> cellsTghb = indexC(cellsTghb0,cellsTghbData) ;
+std::vector<int> cellsTrch = indexC(cellsTrch0,cellsTrchData) ;
 Info<< "All T read\n" << endl;

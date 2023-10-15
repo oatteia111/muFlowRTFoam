@@ -47,37 +47,44 @@ volScalarField::Internal CSp
 );
 
 // -------------- conditions for concentration -------------
-labelList cellsCfix0; std::vector<float> cellsCfixData;std::vector<float> condCfix;
-labelList cellsCwel0; std::vector<float> cellsCwelData;std::vector<float> condCwel;
-labelList cellsCghb0; std::vector<float> cellsCghbData;std::vector<float> condCghb;
-labelList cellsCrch0; std::vector<float> cellsCrchData;std::vector<float> condCrch;
+labelList cellsCfix0; std::vector<float> condCfix;std::vector<float> cellsCfixData;
+labelList cellsCwel0; std::vector<float> condCwel;std::vector<float> cellsCwelData;
+labelList cellsCghb0; std::vector<float> condCghb;std::vector<float> cellsCghbData;
+labelList cellsCrch0; std::vector<float> condCrch;std::vector<float> cellsCrchData;
+int itCfix=0;int itCwel=0;int itCghb=0;int itCrch=0;
+float tCwel,tCfix,tCghb,tCrch;
 
-// reading the data for hfix
-std::ifstream inputCfixdata{cur_dir+"/constant/options/cfix"}; //
-cellsCfixData = {std::istream_iterator<float>{inputCfixdata}, {}};
-if (cellsCfixData.size()>0) { cellSet selectedCfix(mesh, "cfix"); cellsCfix0 = selectedCfix.toc();}
+if (fexists(cur_dir+"/constant/options/cfix")) 
+{ 
+cellSet selectedCfix(mesh, "cfix");cellsCfix0 = selectedCfix.toc();
+output = getCbuffer("cfix",itCfix,cellsCfix0.size()); 
+tCfix = output.t; cellsCfixData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/cwel")) 
+{ 
+cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();
+output = getCbuffer("cwel",itCwel,cellsCwel0.size()); 
+tCwel = output.t; cellsCwelData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/cghb")) 
+{ 
+cellSet selectedCghb(mesh, "cghb");cellsCghb0 = selectedCghb.toc();
+output = getCbuffer("cghb",itCghb,cellsCghb0.size()); 
+tCghb = output.t; cellsCghbData=output.d;
+}
+if (fexists(cur_dir+"/constant/options/crch")) 
+{ 
+cellSet selectedCrch(mesh, "crch");cellsCrch0 = selectedCrch.toc();
+output = getCbuffer("crch",itCrch,cellsCrch0.size()); 
+tCrch = output.t; cellsCrchData=output.d;
+}
+
 condCfix.resize(cellsCfix0.size());
-std::vector<int> cellsCfix = indexC(cellsCfix0,cellsCfixData) ;
-
-// reading the cwell data for wells
-std::ifstream inputCweldata{cur_dir+"/constant/options/cwel"}; //
-cellsCwelData = {std::istream_iterator<float>{inputCweldata}, {}};
-if (cellsCwelData.size()>0) {	cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();}
 condCwel.resize(cellsCwel0.size());
-std::vector<int> cellsCwel = indexC(cellsCwel0,cellsCwelData) ;
-//for (i=0;i<cellsCw.size();i++) {Info<<"i "<<cellsCw[i]<<" center "<<mesh.C()[cellsCw[i]]<<endl;}
-
-// reading the data for ghb
-std::ifstream inputCghbdata{cur_dir+"/constant/options/cghb"}; //
-cellsCghbData = {std::istream_iterator<float>{inputCghbdata}, {}};
-if (cellsCghbData.size()>0) { cellSet selectedCghb(mesh, "cghb"); cellsCghb0 = selectedCghb.toc();}
 condCghb.resize(cellsCghb0.size());
-std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;
-
-// reading the data for rch
-std::ifstream inputCrchdata{cur_dir+"/constant/options/crch"}; //
-cellsCrchData = {std::istream_iterator<float>{inputCrchdata}, {}};
-if (cellsCrchData.size()>0) { cellSet selectedCrch(mesh, "crch"); cellsCrch0 = selectedCrch.toc();}
 condCrch.resize(cellsCrch0.size());
-std::vector<int> cellsCrch = indexC(cellsCrch0,cellsCrchData) ;
 
+std::vector<int> cellsCfix = indexC(cellsCfix0,cellsCfixData) ;
+std::vector<int> cellsCwel = indexC(cellsCwel0,cellsCwelData) ;
+std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;
+std::vector<int> cellsCrch = indexC(cellsCrch0,cellsCrchData) ;

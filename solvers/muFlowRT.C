@@ -99,21 +99,14 @@ inline bool fexists(const std::string& name) {
 struct outData {float t; std::vector<float> d;};
  
 // a function to get data from binary file
-outData getCbuffer(char* fname, int itime, int ncell) {
+outData getCbuffer(string fname, int itime, int ncell) {
     std::vector<float> data(ncell*4);
 	std::ifstream inputData{cur_dir+"/constant/options/"+fname, std::ios::binary}; //
-	//while (inputHdrndata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHdrnData.push_back(f0);}
-	//for (int ic=0;ic<ncell;ic++) {inputData.read(reinterpret_cast<char*>(&f0), sizeof(float));data.push_back(f0);}
-	// position at the place
 	inputData.seekg(ncell*itime*4*sizeof(float)); //each line is composed of 4 numbers and there are two values at the beginning
 
     inputData.read(reinterpret_cast<char*>(&data[0]), ncell*4*sizeof(float));
 	float time;	
 	inputData.read(reinterpret_cast<char*>(&time), sizeof(float));
-	// other possiblity
-	/*char buffer[BUFFERSIZE];
-	FILE * filp = fopen("filename.bin", "rb"); 
-	int bytes_read = fread(buffer, sizeof(char), BUFFERSIZE, filp); */
 	outData output;
 	output.t = time;std::cout<<"readbin "<<fname <<" "<<itime<<" "<<ncell;
 	output.d = data;
@@ -134,14 +127,12 @@ int main(int argc, char *argv[])
 	#include "createThetaFields.H"
 	#include "create2phaseFields.H"
 	//parms of the De=f(T) function
-	std::vector<double> parm0(1,1e-3); // the parameters for the modification of DEffg with temperature
 	#include "readFunc.H"
-	Info << "fDe parms "<< fDe_T.parms[1] << endl;																																   
+	Info << "fDe parms "<< fDe_T.fparms[0] << " "<<fDe_T.fparms[1] << endl;
 	
 	if (activateReaction==1)
 	{
 	//##############  phreeqc intiialisation for solutions and gases
-	float rv=1.; // dont change it, it does not work
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
 	std::ifstream inputInit{cur_dir/"phqinit.txt"};

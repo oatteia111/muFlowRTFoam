@@ -1,50 +1,77 @@
-//std::vector<int> cell1; 
-std::vector<float> vnn(nvar,0.);
-std::vector<float> vnn1(nvar,0.);
-	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
-	std::vector<float> nntarget;
+double x;
+int nmax=750;int k;
+std::vector<int> idx(nxyz);
+std::vector<float> nndata;
+std::vector<float> nntarget;
 
-double crel;
-
-if ((activateNNchemistry==1)&&(istep>=20)) { //(Cwgnn.trained==1)&&
+//##################- case of trained network ###########################--
+if ((activateNNchemistry==1)&&(istep>=3)) { //(Cwgnn.trained==1)&&
 	//Cwgnn.trained=0;
 	// reads conc and transfer to vector for nn
 	std::ofstream outNNdata_eval(cur_dir/"NNdata_eval.txt");
-	std::cout<<"nxyz "<<nxyz<<"\n";
-	std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
-	std::vector<float> nntarget;float x;
-	for (j=0;j<nxyz;j++) //
-	{  
-		for (int i=0;i<ph_ncomp-4;i++) { 
-			//vnn[j]=static_cast<float>((std::log10(std::max(Cw[j+4]()[i],1e-20))+10)/5);
-			x= static_cast<float>((Cw[i+4]()[j] - Cmin[i])/(Cmax[i]-Cmin[i]));
-			nndata.push_back(x);outNNdata_eval << x << " "; //data is Crelative
+	nndata.resize(0); // TORCH only accepts floats ???? (to vbe validated)
+	double x;float x1;
+	//get selected species (only for 1st tstep)
+	std::cout<<"start eval ";
+	if (istep==2)
+		{
+		freak.getSelOutput();	
+		S_ph.resize(nxyz*nsel); // S_ph will store all data on surface
+		for (j=0;j<nxyz;j++)
+			{
+			S_ph[j]=freak.spc[j];for (i=1;i<nsel;i++) {S_ph[i*nxyz+j]=freak.spc[(i+1)*nxyz+j];}
+			}
+		}
+	std::cout<<"1st step \n";
+	std::cout<<"nxyz "<<nxyz<<" nncols "<<nncols<<" llog0 "<<llog[0]<<" S_ph sz 0 "<<S_ph.size()<<" "<<S_ph[0]<<" ncom "<<ph_ncomp<<"\n";
+	//for (i=0;i<ph_ncomp;i++) {std::cout<<Cw[i]().size()<<" ";}
+	//rescale data and send to nndata
+	for (j=0;j<nxyz;j++)
+		{  
+		//if (j==0) {std::cout<<"Cw "; for (i=0;i<ph_ncomp;i++) {std::cout<<Cw[i]()[j]<<" ";}}
+		//if (j==0) {std::cout<<"Cw ";}
+		for (i=0;i<nncols;i++) { 
+			if (i<ph_ncomp-4) {x=Cw[i+4]()[j];} //dissolved species
+			else {x=S_ph[(i-ph_ncomp+4)*nxyz+j];} //selected out species
+			x = std::max(x,1e-12);
+			if (llog[i]==1) 
+				{x1=static_cast<float>((std::log10(x)-Cmin[i])/(Cmax[i]-Cmin[i]));}
+			else 
+				{x1=static_cast<float>((x-Cmin[i])/(Cmax[i]-Cmin[i]));}
+			if ((j==10)&&(i<ph_ncomp-4)) {std::cout<<" i "<<i<<" cw "<<x<<" x1 "<<x1<<" mx,mn "<<Cmax[i]<<" "<<Cmin[i]<<"\n";}
+			outNNdata_eval<<x1<<" ";nndata.push_back(x1);
 			}
 		outNNdata_eval<<"\n";
-	}
+		}
+	outNNdata_eval.close();
 	std::cout<<"in eval \n";
 	Cwgnn.setNd(nxyz);Cwgnn.setData(nndata);Cwgnn.eval();
-	// transfer Cwgnn output to C
+	// transfer Cwgnn output to Cwi and S_ph (we don't need log here, output is dC)
 	std::ofstream outNNresu_eval(cur_dir/"NNresu_eval.txt");
-	float dt = static_cast<float>(runTime.value()-oldTime); Info<<"dt "<<dt<<endl; 
+	float dt = static_cast<float>(runTime.value()-oldTime); Info<<"dt "<<dt<<endl;
 	for (j=0;j<nxyz;j++) {
-		for (int i=0;i<ph_ncomp-4;i++) {
-			double x = static_cast<double>(Cwgnn.output[j][i].item<float>()); // the target was x=dC/dt*1e9
-			Cw[i+4]()[j] = max(Cw[i+4]()[j]+ x*dt/5e9,0.); //model produces a dC (not dCrelative)
-			outNNresu_eval << x <<" ";
+		for (int i=0;i<nncols;i++) {
+			x = static_cast<double>(Cwgnn.output[j][i].item<float>());outNNresu_eval << x <<" "; //trget is dC scaled
+			if (i<ph_ncomp-4) {Cw[i+4]()[j] = std::max(Cw[i+4]()[j]+Ymin[i]+ x*(Ymax[i]-Ymin[i]),0.);}
+			else {
+				S_ph[(i-ph_ncomp+4)*nxyz+j] = std::max(S_ph[(i-ph_ncomp+4)*nxyz+j]+Ymin[i]+ x*(Ymax[i]-Ymin[i]),0.);
+				}
+			if ((j==10)&&(i<ph_ncomp-4)) {std::cout<<" i "<<i<<" x "<<x<<" cw "<<Cw[i+4]()[j]<<" Y "<<Ymax[i]<<" "<<Ymin[i]<<"\n";}
+			//if ((j==10)&&(i>=ph_ncomp-4)) {std::cout<<" i "<<i<<" sph "<<S_ph[(i-ph_ncomp+4)*nxyz+j]<<" Y "<<Ymax[i]<<" "<<Ymin[i]<<"\n";}
 		}
 		outNNresu_eval <<"\n";//std::cout<<" "<<std::endl;
 	}
+	outNNresu_eval.close();
 }
 
-if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store values and use phreeqc to calculate chemistry
+//########################- NN not trained, PHREEQC ###########################
+else
+{ // case of nn not trained, we store values and use phreeqc to calculate chemistry
 	// find the cells where the chcemistry has changed to calculate there
 	//icnt = 0;
-	// first stores C values to train NN
 	
-	// -------------now start phreeqc ------------------------
+	//creates rchange where conc has changed since last time step	
 	deltaTchem = transportProperties.lookupOrDefault<scalar>("deltaTchem",86400);Info<<"dtchem in reac "<<deltaTchem<<endl;
-	//creates rchange where conc has changed since last time step
 	for (i=4; i<ph_ncomp; i++)
 		{
 		for (j=0; j<nxyz;j++)
@@ -83,17 +110,17 @@ if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store 
 	//auto start = std::chrono::high_resolution_clock::now();
 	//################# RUN PHREEQC   ################
 	// set saturations using rchange
-		for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];}//Info<<"rch "<<rchange[j]<<endl;}
-		freak.setGvol(gvol); // set gas volume in phreeqc
-		freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
-		freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
-		freak.setGm(gm_ph);//transfer gm_ph to freak
-		//freak.setP(p_ph);//transfer pressure to freak
-		freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
-		Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
-		freak.run();
-		freak.getSelOutput();
-		Info << "phreeqc done "<<endl;
+	for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];}//Info<<"rch "<<rchange[j]<<endl;}
+	freak.setGvol(gvol); // set gas volume in phreeqc
+	freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
+	freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
+	freak.setGm(gm_ph);//transfer gm_ph to freak
+	//freak.setP(p_ph);//transfer pressure to freak
+	freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
+	Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
+	freak.run();
+	freak.getSelOutput();
+	Info << "phreeqc done "<<endl;
 		
 	// write to intermediate file, input (for gases)
 	if (ph_gcomp>0) {
@@ -103,66 +130,95 @@ if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store 
 	
 	//auto finish = std::chrono::high_resolution_clock::now();
 	//std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();
-	//---------------- send data to NN  ----------------------------------------
-	/*
-	if ((activateNNchemistry==1)&&(istep>3))
-	{
-		std::cout<<"start cnn ";
-		//put data in the model
-		float x;
-		// makes an approximate vector to select vairable chemcial composition 
-		//create a random vecor of indices
-		std::vector<int> idx(nxyz);
-		std::iota(idx.begin(), idx.end(), 0);		
-		//std::random_device rd;
-		//std::mt19937 g(rd());
-		std::shuffle(idx.begin(), idx.end(), shuf);
-		
-		if (nstack==0) { //when nstack=0 we reset all files and vectors to 0
-			std::ofstream outNNdata(cur_dir/"NNdata.txt");
-			std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
-			std::vector<float> nndata; // TORCH only accepts floats ???? (to vbe validated)
-			std::vector<float> nntarget;
-			} //new files
-
-		float sC;int nC0=0;int nd0=0;  // I want 80% of conc at places where conc !=0
-		float dt = static_cast<float>(runTime.value()-oldTime);
-		for (int j=0;j<nxyz;j++) //
-		{  
-			int j1 = idx[j];sC =0;//std::cout<<" vnn "<<j;
-			for (int i=0;i<ph_ncomp-4;i++) { 
-				vnn[i] = static_cast<float>(Cw[i+4]()[j1]); // conc before (not modified)
-				sC += vnn[i];
-				vnn1[i] = static_cast<float>(freak.c[(i+4)*nxyz+j1]-vnn[i]); // dC diff conc
-				if (sC<1e-7) {nC0+=1;}
-			} 
-			if ((nC0<50)||(sC>1e-7)) { //50 values close to 0
-				for (int i=0;i<ph_ncomp-4;i++) { 
-					x = (vnn[i] - Cmin[i])/(Cmax[i]-Cmin[i]); // data is relative conc
-					nndata.push_back(x);outNNdata << x << " ";
-					x = vnn1[i]/dt*5e9; // target is dC/dt*5e9
-					nntarget.push_back(x);outNNtarget << x << " ";
-				}
-				outNNdata<<"\n";outNNtarget<<"\n";
-				nd +=1;nd0+=1;
-			}
-			if (nd0>500) {break;}
-		}
-		std::cout<<" nd "<<nd<<" nstack "<<nstack<<std::endl;
-		if (nstack>9) {
-			Cwgnn.setNd(nd);Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});
-			Cwgnn.setData(nndata);
-			Cwgnn.setTarget(nntarget);
-			float rmse = Cwgnn.train(); std::cout << "rmse "<<rmse<<std::endl;
-			outNNrmse <<" " << rmse << "\n";
-			if (rmse<nn_minr) {Cwgnn.trained = 1;}
-			nstack = 0;nd=0;
-		}
-	nstack += 1;
-	} // end of store for activateNN=1
-	*/
 	
-	//------------------ end of NN , store phreeqc results ------------------------------
+	//###############- get conc and send them to data and target  #######################################-
+	if ((activateNNchemistry==1)&&(istep<3))
+	{	
+		std::cout<<"start cnn ";
+		//create a random vecor of indices
+		//std::iota(idx.begin(), idx.end(), 0);		
+		//std::shuffle(idx.begin(), idx.end(), shuf);
+		
+		std::ofstream outNNdata(cur_dir/"NNdata.txt");
+		//recalculate Cmin and Cmax (considering lo)
+		for (j=0;j<nxyz;j++)
+			{
+			for (i=0;i<nncols;i++)
+				{
+				if (i<ph_ncomp-4) {x = c_ph[i*nxyz+j];}
+				else {x=S_ph[i*nxyz+j];}
+				x = std::max(x,1e-12);
+				if (llog[i]==1) {Cmin[i]=std::min(Cmin[i],std::log10(x));Cmax[i]=std::max(Cmax[i],std::log10(x));}
+				else {Cmin[i]=std::min(Cmin[i],x);Cmax[i]=std::max(Cmax[i],x);}
+				}
+			}
+		std::cout<<"Cmin "; for (i=0;i<nncols;i++) {std::cout<<Cmin[i]<<" ";} ; std::cout<<"\n";
+		std::cout<<"Cmax "; for (i=0;i<nncols;i++) {std::cout<<Cmax[i]<<" ";} ; std::cout<<"\n";
+		//transform the variables
+		std::vector<float> data(nxyz*nncols);
+		for (j=0;j<nxyz;j++)
+			{
+			for (i=0;i<nncols;i++) 
+				{
+				if (i<ph_ncomp-4) {x=c_ph[(i+4)*nxyz+j];}
+				else {x=S_ph[(i-ph_ncomp+4)*nxyz+j];}
+				x = std::max(x,1e-12);
+				if (llog[i]==1) {x=static_cast<float>((std::log10(x+cdff[i]/1e12)-Cmin[i])/(Cmax[i]-Cmin[i]));}
+				else {x=static_cast<float>((x-Cmin[i])/(Cmax[i]-Cmin[i]));}
+				data[i*nxyz+j]=x;
+				}
+			}
+		std::ofstream outNNtarget(cur_dir/"NNtarget.txt");
+		freak.getSelOutput();std::vector<double>s_dff(nxyz*nncols); //base
+		for (j=0;j<nxyz;j++)
+			{
+			for (i=0;i<ph_ncomp-4;i++) {s_dff[i*nxyz+j] = freak.c[(i+4)*nxyz+j]-c_ph[(i+4)*nxyz+j];}
+			i1=ph_ncomp-4;s_dff[i1*nxyz+j]=freak.spc[j]-S_ph[j];
+			for (i=1;i<nsel;i++) {i1=ph_ncomp-4+i;s_dff[i1*nxyz+j]=freak.spc[(i+1)*nxyz+j]-S_ph[i*nxyz+j];}
+			}
+		for (j=0;j<nxyz;j++)
+			{
+			for (i=0;i<nncols;i++) {x = s_dff[i*nxyz+j];Ymin[i]=std::min(Ymin[i],x);Ymax[i]=std::max(Ymax[i],x);}
+			}
+		//we need to find the indices where the concentrations change linked to reaction are important
+		//test reorder
+		std::vector<int> id0={0,1,2,3,4,5};
+		std::vector<double> y0={44.1,12.,3.,28.5,52.1,0.78};
+		sort( id0.begin(),id0.end(), [&](int i,int j){return y0[i]>y0[j];} );
+		std::cout<<"test ";for (i=0;i<6;i++) {std::cout<<id0[i]<<" ";}std::cout<<"\n";
+		std::vector<double> Ysum(nxyz);
+		for (j=0;j<nxyz;j++) {for (i=0;i<nncols;i++) {Ysum[j] += s_dff[i*nxyz+j];} }
+		std::iota(idx.begin(), idx.end(), 0);	
+		sort( idx.begin(),idx.end(), [&](int i,int j){return Ysum[i]>Ysum[j];} ); //sorted from higher to lower_bound
+
+		//then write these data in nndata
+		for (k=0;k<nmax;k++)
+			{
+			j = idx[k];
+			for (i=0;i<nncols;i++) {x=data[i*nxyz+j];outNNdata<<x<<" ";nndata.push_back(x);}
+			outNNdata<<"\n";
+			}
+			
+		for (i=0;i<nncols;i++) {cdff[i]=Ymax[i]-Ymin[i];}
+		std::cout<<"Ymin "; for (i=0;i<nncols;i++) {std::cout<<Ymin[i]<<" ";} ; std::cout<<"\n";
+		std::cout<<"Ymax "; for (i=0;i<nncols;i++) {std::cout<<Ymax[i]<<" ";} ; std::cout<<"\n";
+		//now write the conc differences in target (for 1st phase)
+		for (k=0;k<nmax;k++)
+			{
+			j=  idx[k];
+			//for (i=0;i<nncols;i++) {outNNtmpdC<<s_dff[i*nxyz+j]<<" ";}
+			for (i=0;i<nncols;i++) {x=static_cast<float>((s_dff[i*nxyz+j]-Ymin[i])/(Ymax[i]-Ymin[i]+cdff[i]/1e12));outNNtarget<<x<<" ";nntarget.push_back(x);}
+			outNNtarget<<"\n";//outNNtmpdC<<"\n";
+			}
+
+		Cwgnn.setNd(nmax);//Cwgnn.setRunParms({nn_epoc,nn_batch,nn_lr,0.75});
+		Cwgnn.setData(nndata);
+		Cwgnn.setTarget(nntarget);
+		float rmse = Cwgnn.train();std::cout << "rmse "<<rmse<<std::endl;
+	} // end of store for activateNN=1
+	
+	
+	//################## end of NN , store phreeqc results ##############################
 	// transfer back to C but before keep the previous values for outside domain of calculation
 	forAll(Cw,i) {Cw[i]() = Cw[i]().prevIter();}
 	if (ph_gcomp>0) {forAll(Cg,i) {Cg[i]() = Cg[i]().prevIter();} }
@@ -171,7 +227,7 @@ if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store 
 			for (j=0; j<nxyz;j++)
 				{
 				Cw[i]()[ractive[j]] = freak.c[i*nxyz+j];
-				if (j==imin) {Info<<"ic "<<i<<" imin "<<imin<<" c "<<Cw[i]()[imin]<<endl;}
+				//if (j==imin) {Info<<"ic "<<i<<" imin "<<imin<<" c "<<Cw[i]()[imin]<<endl;}
 				}
 		} 
 	
@@ -199,7 +255,7 @@ if ((activateNNchemistry==0)||(istep<20)) { // case of nn not trained, we store 
 			forAll(Cg,i) {Cg[i]()[j] = freak.g[i*nxyz+j]/Cgtot;} // /Cgtot or Cgtot/phreeqcVm;}
 			}
 		}
-//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
+	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
 	// write to phq output file			
 	if (ph_gcomp>0) {
 		std::ofstream outPhq(cur_dir/"phq_output.txt");

@@ -52,32 +52,17 @@ labelList cellsCwel0; std::vector<float> condCwel;std::vector<float> cellsCwelDa
 labelList cellsCghb0; std::vector<float> condCghb;std::vector<float> cellsCghbData;
 labelList cellsCrch0; std::vector<float> condCrch;std::vector<float> cellsCrchData;
 int itCfix=0;int itCwel=0;int itCghb=0;int itCrch=0;
-float tCwel,tCfix,tCghb,tCrch;
+float tCwel=0;float tCfix=0;float tCghb=0; float tCrch=0;
 
-if (fexists(cur_dir+"/constant/options/cfix")) 
-{ 
-cellSet selectedCfix(mesh, "cfix");cellsCfix0 = selectedCfix.toc();
-output = getCbuffer("cfix",itCfix,cellsCfix0.size()); 
-tCfix = output.t; cellsCfixData=output.d;
-}
-if (fexists(cur_dir+"/constant/options/cwel")) 
-{ 
-cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();
-output = getCbuffer("cwel",itCwel,cellsCwel0.size()); 
-tCwel = output.t; cellsCwelData=output.d;
-}
-if (fexists(cur_dir+"/constant/options/cghb")) 
-{ 
-cellSet selectedCghb(mesh, "cghb");cellsCghb0 = selectedCghb.toc();
-output = getCbuffer("cghb",itCghb,cellsCghb0.size()); 
-tCghb = output.t; cellsCghbData=output.d;
-}
-if (fexists(cur_dir+"/constant/options/crch")) 
-{ 
-cellSet selectedCrch(mesh, "crch");cellsCrch0 = selectedCrch.toc();
-output = getCbuffer("crch",itCrch,cellsCrch0.size()); 
-tCrch = output.t; cellsCrchData=output.d;
-}
+if (fexists(cur_dir+"/constant/options/cfix")) {cellSet selectedCfix(mesh, "cfix");cellsCfix0 = selectedCfix.toc();}
+if (fexists(cur_dir+"/constant/options/cwel")) {cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();}
+if (fexists(cur_dir+"/constant/options/cghb")) {cellSet selectedCghb(mesh, "cghb");cellsCghb0 = selectedCghb.toc();}
+if (fexists(cur_dir+"/constant/options/crch")) {cellSet selectedCrch(mesh, "crch");cellsCrch0 = selectedCrch.toc();}
+
+while (time>=tCfix) {output = getCbuffer("cfix",itCfix,cellsCfix0.size());itCfix+=1;tCfix = output.t;cellsCfixData=output.d;}
+while (time>=tCwel) {output = getCbuffer("cwel",itCwel,cellsCwel0.size());itCwel+=1;tCwel = output.t;cellsCwelData=output.d;}
+while (time>=tCghb) {output = getCbuffer("cghb",itCghb,cellsCghb0.size());itCghb+=1;tCghb = output.t;cellsCghbData=output.d;}
+while (time>=tCrch) {output = getCbuffer("crch",itCrch,cellsCrch0.size());itCrch+=1;tCrch = output.t;cellsCrchData=output.d;}
 
 condCfix.resize(cellsCfix0.size());
 condCwel.resize(cellsCwel0.size());

@@ -165,12 +165,12 @@ volScalarField::Internal hSp
 
 
 // -------------- conditions for head -------------
-labelList cellsHfix0; std::vector<float> qHfix;
-labelList cellsHwel0; std::vector<float> qHwel;
-labelList cellsHdrn0; std::vector<float> qHdrn;
-labelList cellsHriv0; std::vector<float> qHriv;
-labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> qGerr;
-labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> clayRch;
+labelList cellsHfix0; std::vector<float> qHfix;std::vector<float> cellsHfixData;float tHfix=0;int itHfix=0;
+labelList cellsHwel0; std::vector<float> qHwel;std::vector<float> cellsHwelData;float tHwel=0;int itHwel=0;
+labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;float tHdrn=0;int itHdrn=0;
+labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
+labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
+labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
 
 // reading the data for hfix
 //std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
@@ -182,24 +182,13 @@ if (fexists(cur_dir+"/constant/options/hriv")) { cellSet selectedHriv(mesh, "hri
 if (fexists(cur_dir+"/constant/options/hghb")) { cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
 if (fexists(cur_dir+"/constant/options/hrch")) { cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
 //get the data
-outData output;
-int itHfix=0;output = getCbuffer("hfix",itHfix,cellsHfix0.size()); 
-float tHfix = output.t; std::vector<float> cellsHfixData=output.d;
-
-int itHwel=0;output = getCbuffer("hwel",itHwel,cellsHwel0.size()); 
-float tHwel = output.t; std::vector<float> cellsHwelData=output.d;
-
-int itHdrn=0;output = getCbuffer("hdrn",itHdrn,cellsHdrn0.size()); 
-float tHdrn = output.t; std::vector<float> cellsHdrnData=output.d;
-
-int itHriv=0; output = getCbuffer("hriv",itHriv,cellsHriv0.size()); 
-float tHriv = output.t; std::vector<float> cellsHrivData=output.d;
-
-int itHghb=0; output = getCbuffer("hghb",itHriv,cellsHghb0.size()); 
-float tHghb = output.t; std::vector<float> cellsHghbData=output.d;
-
-int itHrch=0; output = getCbuffer("hrch",itHrch,cellsHrch0.size()); 
-float tHrch = output.t; std::vector<float> cellsHrchData=output.d;
+outData output;float time = mesh.time().value()/day;
+while (time>=tHfix) {output = getCbuffer("hfix",itHfix,cellsHfix0.size());itHfix +=1;tHfix = output.t;cellsHfixData=output.d; }
+while (time>=tHwel) {output = getCbuffer("hwel",itHwel,cellsHwel0.size());itHwel +=1;tHwel = output.t;cellsHwelData=output.d; }
+while (time>=tHdrn) {output = getCbuffer("hdrn",itHdrn,cellsHdrn0.size());itHdrn +=1;tHdrn = output.t;cellsHdrnData=output.d; }
+while (time>=tHriv) {output = getCbuffer("hriv",itHriv,cellsHriv0.size());itHriv +=1;tHriv = output.t;cellsHrivData=output.d; }
+while (time>=tHghb) {output = getCbuffer("hghb",itHriv,cellsHghb0.size());itHghb +=1;tHghb = output.t;cellsHghbData=output.d; }
+while (time>=tHrch) {output = getCbuffer("hrch",itHrch,cellsHrch0.size());itHrch +=1;tHrch = output.t;cellsHrchData=output.d; }
 
 qHfix.resize(cellsHfix0.size());
 qHwel.resize(cellsHwel0.size());

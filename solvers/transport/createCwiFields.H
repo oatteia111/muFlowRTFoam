@@ -67,27 +67,20 @@ volScalarField::Internal CiSp
 );
 
 // -------------- conditions for solutions -------------
-labelList cellsSfix0; std::vector<float> condSfix;
-labelList cellsSwel0; std::vector<float> condSwel;
-labelList cellsSghb0; std::vector<float> condSghb;
-labelList cellsSrch0; std::vector<float> condSrch;
+labelList cellsSfix0; std::vector<float> condSfix;std::vector<float> cellsSfixData;int itSfix=0;float tSfix=0;
+labelList cellsSwel0; std::vector<float> condSwel;std::vector<float> cellsSwelData;int itSwel=0;float tSwel=0;
+labelList cellsSghb0; std::vector<float> condSghb;std::vector<float> cellsSghbData;int itSghb=0;float tSghb=0;
+labelList cellsSrch0; std::vector<float> condSrch;std::vector<float> cellsSrchData;int itSrch=0;float tSrch=0;
 
 if (fexists(cur_dir+"/constant/options/sfix")) {cellSet selectedSfix(mesh, "sfix");cellsSfix0 = selectedSfix.toc();}
 if (fexists(cur_dir+"/constant/options/swel")) {cellSet selectedSwel(mesh, "swel");cellsSwel0 = selectedSwel.toc();}
 if (fexists(cur_dir+"/constant/options/sghb")) {cellSet selectedSghb(mesh, "sghb");cellsSghb0 = selectedSghb.toc();}
 if (fexists(cur_dir+"/constant/options/srch")) {cellSet selectedSrch(mesh, "srch");cellsSrch0 = selectedSrch.toc();}
 
-int itSfix=0;output = getCbuffer("sfix",itSfix,cellsSfix0.size()); 
-float tSfix = output.t; std::vector<float> cellsSfixData=output.d;
-
-int itSwel=0;output = getCbuffer("swel",itSwel,cellsSwel0.size()); 
-float tSwel = output.t; std::vector<float> cellsSwelData=output.d;
-
-int itSghb=0;output = getCbuffer("sghb",itSghb,cellsSghb0.size()); 
-float tSghb = output.t; std::vector<float> cellsSghbData=output.d;
-
-int itSrch=0;output = getCbuffer("srch",itSrch,cellsSrch0.size()); 
-float tSrch = output.t; std::vector<float> cellsSrchData=output.d;
+if (time>=tSfix) {output = getCbuffer("sfix",itSfix,cellsSfix0.size());itSfix+=1;tSfix = output.t;cellsSfixData=output.d;}
+if (time>=tSwel) {output = getCbuffer("swel",itSwel,cellsSwel0.size());itSwel+=1;tSwel = output.t;cellsSwelData=output.d;}
+if (time>=tSghb) {output = getCbuffer("sghb",itSghb,cellsSghb0.size());itSghb+=1;tSghb = output.t;cellsSghbData=output.d;}
+if (time>=tSrch) {output = getCbuffer("srch",itSrch,cellsSrch0.size());itSrch+=1;tSrch = output.t;cellsSrchData=output.d;}
 
 condSfix.resize(cellsSfix0.size());
 condSwel.resize(cellsSwel0.size());
@@ -97,33 +90,5 @@ std::vector<int> cellsSfix = indexC(cellsSfix0,cellsSfixData) ;
 std::vector<int> cellsSwel = indexC(cellsSwel0,cellsSwelData) ;
 std::vector<int> cellsSghb = indexC(cellsSghb0,cellsSghbData) ;
 std::vector<int> cellsSrch = indexC(cellsSrch0,cellsSrchData) ;
-/*
-std::vector<float> cellsSfxData;std::vector<float> condSfx;
-labelList cellsSwl0; std::vector<float> cellsSwlData;std::vector<float> condSwl;
-labelList cellsSghb0; std::vector<float> cellsSghbData;std::vector<float> condSghb;
-labelList cellsSrch0; std::vector<float> cellsSrchData;std::vector<float> condSrch;
-scalar imin=0;
-
-
-// reading the well data for wells
-std::ifstream inputSwldata{cur_dir+"/constant/options/swel", std::ios::binary}; //
-//cellsSwlData = {std::istream_iterator<float>{inputSwldata}, {}};
-while (inputSwldata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsSwlData.push_back(f0);}
-if (cellsSwlData.size()>0) {	cellSet selectedSwl(mesh, "swel");cellsSwl0 = selectedSwl.toc();}
-
-// reading the data for ghb
-std::ifstream inputSghbdata{cur_dir+"/constant/options/sghb", std::ios::binary}; //
-//cellsSghbData = {std::istream_iterator<float>{inputSghbdata}, {}};
-while (inputSghbdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsSghbData.push_back(f0);}
-if (cellsSghbData.size()>0) {	cellSet selectedSghb(mesh, "sghb");cellsSghb0 = selectedSghb.toc();}
-
-
-// reading for recharge
-std::ifstream inputSrchdata{cur_dir+"/constant/options/srch", std::ios::binary}; //
-//cellsSrchData = {std::istream_iterator<float>{inputSrchdata}, {}};
-while (inputSrchdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsSrchData.push_back(f0);}
-if (cellsSrchData.size()>0) {	cellSet selectedSrch(mesh, "srch");cellsSrch0 = selectedSrch.toc();}
-clayRch.resize(cellsSrch0.size());
-*/
 
 Info <<"end Cwifields " << endl;

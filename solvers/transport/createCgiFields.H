@@ -44,17 +44,15 @@ forAll (Cg, i)
 }
 
 // -------------- conditions for gas mixtures -------------
-labelList cellsGfix0; std::vector<float> qGfix;std::vector<float> condGfix;
-labelList cellsGwel0; std::vector<float> qGwel;std::vector<float> condGwel;
+labelList cellsGfix0; std::vector<float> qGfix;std::vector<float> cellsGfixData;std::vector<float> condGfix;
+labelList cellsGwel0; std::vector<float> qGwel;std::vector<float> cellsGwelData;std::vector<float> condGwel;
+int itGfix=0;int itGwel=0;float tGfix=0;float tGwel=0;
 
 if (fexists(cur_dir+"/constant/options/gfix")) { cellSet selectedGfix(mesh, "gfix");cellsGfix0 = selectedGfix.toc();}
 if (fexists(cur_dir+"/constant/options/gwel")) { cellSet selectedGwel(mesh, "gwel");cellsGwel0 = selectedGwel.toc();}
 
-int itGfix=0;output = getCbuffer("gfix",itGfix,cellsGfix0.size()); 
-float tGfix = output.t; std::vector<float> cellsGfixData=output.d;
-
-int itGwel=0;output = getCbuffer("gwel",itGwel,cellsGwel0.size()); 
-float tGwel = output.t; std::vector<float> cellsGwelData=output.d;
+while (time>=tGfix) {output = getCbuffer("gfix",itGfix,cellsGfix0.size());itGfix+=1;tGfix = output.t;cellsGfixData=output.d;}
+while (time>=tGwel) {output = getCbuffer("gwel",itGwel,cellsGwel0.size());itGwel+=1;tGwel = output.t;cellsGwelData=output.d;}
 
 qGfix.resize(cellsGfix0.size());
 qGwel.resize(cellsGwel0.size());

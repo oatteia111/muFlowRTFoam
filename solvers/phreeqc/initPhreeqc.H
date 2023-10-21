@@ -18,21 +18,12 @@ if (f0) {
 f0.close(); */
 
 int nxyz,ph_ncomp,ph_gcomp,ph_nsolu,sunits;
-
-
 ////////////////////// start phreeqc
 class my_phq
 {
 public:
 	PhreeqcRM *PhreeqcRM_ptr;
 	int nxyz=3;
-	#ifdef USE_MPI
-		MPI_Comm rm_commxx;
-/*	#else
-		// OpenMP
-		int nthreads = 3;
-		PhreeqcRM phreeqc_rm; */
-	#endif
 	std::string DB;
 	void setDB(std::string db){this->DB = db;}
 	std::vector<int> data;
@@ -78,7 +69,7 @@ public:
 		int i,j;
 		if (ph_ncomp<0) {bool EK = true;this->EK = EK;}
 		else {std::vector<double> c(nxyz*ph_ncomp,0.);this->c = c;}
-	#ifdef USE_MPI
+	/*#ifdef USE_MPI
 		// MPI
 		PhreeqcRM *phreeqc_rm = new PhreeqcRM(nxyz, MPI_COMM_WORLD);
 		MP_TYPE comm = MPI_COMM_WORLD;
@@ -90,13 +81,14 @@ public:
 		if (mpi_myself > 0)
 		{
 			phreeqc_rm.SetMpiWorkerCallbackC(worker_tasks_cc);
-			phreeqc_rm.SetMpiWorkerCallbackCookie(&this);
+			phreeqc_rm.SetMpiWorkerCallbackCookie(&some_data);
 			phreeqc_rm.MpiWorker();
 			return EXIT_SUCCESS;
 		}
 	#else
 		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
-	#endif
+	#endif */
+		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
 		this->PhreeqcRM_ptr = phreeqc_rm;
 		IRM_RESULT status;
 		status = phreeqc_rm->SetErrorHandlerMode(1);
@@ -188,6 +180,7 @@ public:
 		//status = phreeqc_rm->SetGasCompMoles(this->gm);
 		//status = phreeqc_rm->SetPressure(this->p);
 		//phreeqc_rm->SetPrintChemistryOn(true,false,false);
+		status = phreeqc_rm->SetTemperature(this->temp);
 		
 		status = phreeqc_rm->RunCells();
 		
@@ -238,90 +231,6 @@ public:
 
 	}
 	
-	//------------------- def for parallel --------------------
-	#ifdef USE_MPI
-	int worker_tasks_cc(int *task_number, void * cookie)
-	{
-		if (*task_number == 1000)
-		{
-			do_something(cookie);
-		}
-		/*else if (*task_number == 1001)
-		{
-			register_basic_callback(cookie);
-		}*/
-		return 0;
-	}
-	int do_something(void *cookie)
-	{
-		int method_number = 1000;
-		//my_data *data = (my_data *) cookie;
-		int mpi_tasks, mpi_myself, worker_number;
-		MPI_Comm_size(MPI_COMM_WORLD, &mpi_tasks);
-		MPI_Comm_rank(MPI_COMM_WORLD, &mpi_myself);
-		std::stringstream msg;
-		if (mpi_myself == 0)
-		{
-			MPI_Bcast(&method_number, 1, MPI_INT, 0, MPI_COMM_WORLD);
-			fprintf(stderr, "I am root.\n");
-			for (int i = 1; i < mpi_tasks; i++)
-			{
-				MPI_Status status;
-				MPI_Recv(&worker_number, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-				fprintf(stderr, "Recieved data from worker number %d.\n", worker_number);
-			}
-		}
-		else
-		{
-			MPI_Send(&mpi_myself, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-		}
-		return 0;
-	}
-	#endif
-	/*
-	void register_basic_callback(void *cookie)
-	{
-		my_data *data;
-	#ifdef USE_MPI
-		int mpi_tasks, mpi_myself;
-	#endif
-		int	method_number = 1001;
-		data = (my_data *) cookie;
-
-	#ifdef USE_MPI
-		MPI_Comm_size(MPI_COMM_WORLD, &mpi_tasks);
-		MPI_Comm_rank(MPI_COMM_WORLD, &mpi_myself);
-		if (mpi_myself == 0)
-		{
-			MPI_Bcast(&method_number, 1, MPI_INT, 0, MPI_COMM_WORLD);
-		}
-	#endif
-
-		const std::vector<IPhreeqcPhast *> w = data->PhreeqcRM_ptr->GetWorkers();
-		for (int i = 0; i < (int) w.size(); i++)
-		{
-			w[i]->SetBasicCallback(my_basic_callback, cookie);
-		}
-	}
-	double my_basic_callback(double x1, double x2, const char *str, void *cookie)
-	{
-		my_data * data_ptr = (my_data *) cookie;
-		PhreeqcRM *phreeqcrm_ptr = data_ptr->PhreeqcRM_ptr;
-		std::string option(str);
-
-		int rm_cell_number = (int) x1;
-		if (rm_cell_number >= 0 && rm_cell_number < phreeqcrm_ptr->GetChemistryCellCount())
-		{
-			const std::vector < std::vector <int> > & back = phreeqcrm_ptr->GetBackwardMapping();
-			if (option == "HYDRAULIC_K")
-			{
-				return (*data_ptr->hydraulic_K)[back[rm_cell_number][0]];
-			}
-		}
-		return -999.9;
-	}
-	*/
-	
 	//--------------------------- RUN ------------------------------
 	
 	void run()
@@ -341,7 +250,7 @@ public:
 		nxyz = this->data[0];
 		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
 		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
-		//status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
+		status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
 		if (gcompn.size()>0) {
 			std::cout<<"nb gcomp before "<<gcompn.size();//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
@@ -364,7 +273,7 @@ public:
 		status = phreeqc_rm->RunCells();
 		
 		//status = phreeqc_rm->GetSaturation(this->wsat);
-		//status = phreeqc_rm->GetTemperature(this->temp);
+		//this->temp = phreeqc_rm->GetTemperature();
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
 	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";

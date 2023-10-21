@@ -127,6 +127,9 @@ int main(int argc, char *argv[])
 	#include "createThetaFields.H"
 	#include "create2phaseFields.H"
 	//parms of the De=f(T) function
+	#include "transport/createCFields.H"
+	#include "transport/createTFields.H"
+
 	#include "readFunc.H"
 	Info << "fDe parms "<< fDe_T.fparms[0] << " "<<fDe_T.fparms[1] << endl;
 	
@@ -142,13 +145,13 @@ int main(int argc, char *argv[])
 	//make a first init to calculate the inital solutions (poro required for the initial solutions)
 	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
 	freak.setData(ph_init);
-	std::vector<double> poro(ph_nsolu,0.25);
-	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];}
+	std::vector<double> poro(ph_nsolu,0.25);std::vector<double> t_ph(ph_nsolu,0.);
+	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];t_ph[i]=T[i];}
 	//gvol.resize(ph_nsolu,1.); 
 	//for (i=0;i<ph_nsolu;i++) {gvol[i] = eps[i]*0.1;}
 	//p_ph.resize(ph_nsolu,1.);
 	//std::vector<double> wsat(ph_nsolu,0.9); // at teh beginning we set high gaz volume so the solution does not modify the gaz composition
-	freak.setPoro(poro);
+	freak.setPoro(poro);freak.setTemp(t_ph);
 	freak.init(); //Info << "nxyz " << nxyz << endl;
 	
 	//################ writes the initial solutions and gases to files
@@ -182,16 +185,15 @@ int main(int argc, char *argv[])
 	nxyz=ph_data[0];ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
 	freak.setData(ph_data); Info << "nxyz " << nxyz << endl;
 	//initiate poro and gas volume
-	poro.resize(nxyz,0);
-	for (i=0;i<nxyz;i++) {poro[i]=eps[i];}
+	poro.resize(nxyz,0);t_ph.resize(nxyz,0.);
+	for (i=0;i<nxyz;i++) {poro[i]=eps[i];t_ph[i]=T[i];}
 	//wsat.resize(nxyz,0.994);
-	freak.setPoro(poro);
+	freak.setPoro(poro);freak.setTemp(t_ph);
 	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
 	//for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
 	//freak.setP(p_ph);
 	freak.init();
 	gvol.resize(nxyz,0.01);
-	t_ph.resize(nxyz,20.);
 	//freak.run();
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
@@ -205,7 +207,7 @@ int main(int argc, char *argv[])
 	for (i=0; i<ph_gcomp;i++)
 		for (int j=0;j<nxyz;j++) 
 			{
-			phreeqcVm[j] = 24.5/(p[j]/atmPa);
+			phreeqcVm[j] = 24.5*(273.5+T[j])/293.5/(p[j]/atmPa);
 			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
 			}
 	iw = freak.iGwater;
@@ -216,8 +218,6 @@ int main(int argc, char *argv[])
 		ph_ncomp=0;
 	}
 	// #include "createFvOptions.H"
-	#include "transport/createCFields.H"
-	#include "transport/createTFields.H"
 	#include "transport/createCwiFields.H"
 	#include "transport/createCgiFields.H"
 	
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
     // Affichage des index des cellules réordonnées
     //Info << "Index des cellules réordonnées : " << level << endl;
 	
-	int istep = 0;int tcnt = 0;
+	int istep = 0;int tcnt = 0;t_ph.resize(nxyz,0.); //strange seem that t_ph is destroyed??
 	while (runTime.run())
     {
 		runTime.read();
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
 			
-			Info<<"temp ";
+			Info<<"temp sz "<<t_ph.size()<<endl;
 			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
 			freak.setGvol(gvol); // set gas volume in phreeqc
 			freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
@@ -421,13 +421,14 @@ int main(int argc, char *argv[])
 				{
 				for (j=0; j<nxyz;j++) //should consider ractive
 					{
-					Cgtot = 0;
-					//phreeqcVm[j] = freak.g[j]*gvol[j]/freak.gm[j];
-					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j];}
+					Cgtot = 0; Gmtot = 0;
+					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j];Gmtot += freak.gm[i*nxyz+j];}
 					forAll(Cg,i) {Cg[i]()[j] = freak.g[i*nxyz+j]/Cgtot;} // /Cgtot or Cgtot/phreeqcVm;}
+					phreeqcVm[j] = gvol[j]/Gmtot;
 					}
 				}
-	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
+			Info<<" phqVm (0,1) "<<phreeqcVm[0]<<" "<<phreeqcVm[1]<<endl;
+			//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
 			// write to phq output file			
 			if (ph_gcomp>0) {
 				std::ofstream outPhq(cur_dir/"phq_output.txt");

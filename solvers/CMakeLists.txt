@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(muFlowRT)
-set(CMAKE_CXX_STANDARD 17)
+project(muFlowRT_mpi)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package( MPI REQUIRED )
+message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")
+# add this line only when you are using openmpi which has a different c++ bindings
 
 #list(APPEND CMAKE_PREFIX_PATH "/home/oatteia/muFlowRT/pytorch1/libtorch")
 #find_package(Torch REQUIRED)
@@ -36,12 +40,13 @@ find_package( Threads REQUIRED )
 find_package( CGAL REQUIRED )
 
 
-set(PATH_LIB_OPENMPI "openmpi-system")  # Foundation version #to put below in case -D_GLIBCXX_USE_CXX17_ABI=0
+#set(PATH_LIB_OPENMPI "openmpi-system")  # Foundation version #to put below in case -D_GLIBCXX_USE_CXX17_ABI=0
 #for torch lpthread sugges tot add -DDEAL_II_LINKER_FLAGS=-lpthread, does not work
-set(DEFINITIONS_COMPILE "-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wno-unused-parameter -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedef -Wno-invalid-offsetof -Wno-deprecated-register -Wno-undefined-var-template -O0 -g -DFULLDEBUG -DNoRepository -ftemplate-depth-100 -fPIC")
+set(DEFINITIONS_COMPILE "-std=c++11 -DWM_ARCH_OPTION=64 -DWM_DP -DWM_LABEL_SIZE=32 -Wall -Wextra -Wno-unused-parameter -Wno-overloaded-virtual -Wno-unused-variable -Wno-unused-local-typedef -Wno-invalid-offsetof -Wno-deprecated-register -Wno-undefined-var-template -O0 -g -DFULLDEBUG -DNoRepository -ftemplate-depth-100 -fPIC")
 # =====================================================================================================
 # Compiling configure
 add_definitions("${DEFINITIONS_COMPILE}")
+add_definitions(-DUSE_MPI)
 add_definitions("-Dlinux64")
 # ==========================================
 include_directories(. 
@@ -56,12 +61,15 @@ include_directories(.
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libraries/phaseModels/lnInclude)
 include_directories(/usr/local/include) # for phreeqc
+include_directories(/usr/local/lib) # for phreeqc
 include_directories(/usr/lib) # for torch libs
-#include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+include_directories(${MPI_CXX_INCLUDE_PATH})
 
+set(LINK_LIBS ${LINK_LIBS} ${MPI_CXX_LIBRARIES})
 link_directories(${FOAM_LIB_DIR} ${FOAM_USER_LIBBIN} ${FOAM_LIB_DIR} ${PATH_LIB_OPENMPI})
 
-add_executable(${PROJECT_NAME} muFlowRT.C)
-target_link_libraries(${PROJECT_NAME} "${MPI_C_LIBRARIES}")
+add_executable(${PROJECT_NAME} muFlowRT_mpi.C)
+target_link_libraries(${PROJECT_NAME} phreeqcrm ${MPI_CXX_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}")
-target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase PhreeqcRM)
+target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase)

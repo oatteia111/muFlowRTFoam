@@ -8,7 +8,7 @@ Info<<"start 2phasefields"<<endl;
 	//Ug = Uw*0;//phig = phiw*0; //Ug is still needed to be read
 	surfaceScalarField phig ("phig",phiw*0);
 //Info<<"sw "<<sw<<endl;
-Se = max(1e-6,min((sw-sw_min)/(sw_max-sw_min),1-1e-6));//Info<<"Se min"<<min(Se)<<" Se max "<<max(Se)<<endl;
+Se = max(1e-4,min((sw-sw_min)/(sw_max-sw_min),1-1e-6));//Info<<"Se min"<<min(Se)<<" Se max "<<max(Se)<<endl;
 volScalarField krg ("krg", pow(1-Se,0.5) * pow(1-pow(Se,1/m_vg),2*m_vg) );//Info<<"krg "<<krg<<endl;
 surfaceScalarField krgf ("krgf",fvc::interpolate(krg,"krg"));//Info<<"krgf "<<krgf<<endl;
 //dimensionedScalar pc0 ("pc0",dimensionSet(1,-1,-2,0,0,0,0));

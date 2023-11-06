@@ -37,19 +37,6 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[i*4+2];} //the injected mass is the water flow x the conc
 			}
 	}
-	// for fixed head cells only for the outflow of conc (1st step) -> Hfx because Cghb may not be set here
-	/*if (cellsHfix.size()>0)
-	{
-		float tnow = cellsHfixData[2]*day; //time in files is in days
-		while (time>=tnow) {icount += cellsHfix.size(); tnow = cellsHfixData[2+icount*4]*day; }
-		if (icount>0) {icount -= cellsHfix.size();};
-		for (size_t i=0; i<cellsHfix.size(); i++) 
-			{ 
-			i1=cellsHfix[i];v=mesh.V()[i1];//
-			if (qHfix[i]<0) {CSp[i1] = -qHfix[i]/v;} // outflow qHfx<0 discharge prop to local concentration
-			else {CSu[i1] = -qHfix[i]/v*cellsCfixData[2+(icount+i)*4+2];}
-			}
-	}*/
 	// for ghb cells only for the outflow of conc (1st step) -> Hghb because Cghb may not be set here
 	icount = 0;
 	if (cellsHghb.size()>0)
@@ -117,15 +104,8 @@ for (i=0; i<cellsCfix.size(); i++)
 	
 CEqn.solve();
 
-//Info<<"c 10740 apr "<<C()[10740]<<endl;
-//Info <<"resid "<<CwEqn.residual()()[67171]<<endl;//.value()<<endl;
-//Info << "Ceqn solve, alphaL "<<alphaL<<" theta 5 "<<thetaw[5]<<" Deffw 5"<<Deffw[5]<<endl;
-//scalar dCdTmax = max(mag(fvc::ddt(Cw))).value();Info<<"dCdTmax "<<dCdTmax<<endl;
-//scalar dC = dCdTmax*runTime.deltaTValue()*1;
-//Info<<"max dCw " <<max(mag(Cw-Cw.prevIter()))<<endl;
-
 //calculating dC, removing negative C and compensating mass
-a =a* 0;dC=0;mxC=0;double dff=0;int i1=0;
+a=a* 0;dC=0;mxC=0;double dff=0;int i1=0;
 for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}
 C=max(C,a); // removing negative
 for (i=0;i<ncell;i++) {
@@ -136,3 +116,16 @@ for (i=0;i<ncell;i++) {
 	Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
+
+//- C-variation control
+scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
+scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
+scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
+
+//Info<<" dC "<<dC<<endl;
+dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
+//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
+
+Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
+scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+runTime.setDeltaT (min (newDeltaT,maxDeltaT) );

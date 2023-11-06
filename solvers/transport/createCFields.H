@@ -73,3 +73,6 @@ std::vector<int> cellsCfix = indexC(cellsCfix0,cellsCfixData) ;
 std::vector<int> cellsCwel = indexC(cellsCwel0,cellsCwelData) ;
 std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;
 std::vector<int> cellsCrch = indexC(cellsCrch0,cellsCrchData) ;
+
+//for (i=0;i<20;i++) {Info<<"rch "<< i<<" conc "<<cellsCrchData[i*4+2]<<endl;}
+

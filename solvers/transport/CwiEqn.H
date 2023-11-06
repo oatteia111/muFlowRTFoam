@@ -51,18 +51,15 @@ if (cellsSrch.size()>0)
 		}
 	}
 
-//for (ilay=0;ilay<nlay;ilay++) {ic=ilay*ncell_lay+823;Info<<"cell 823 "<<ic<<" cwat "<<Cw[0]()[ic]<<endl;}
+double dC=0;double sdC=0;
 
 for (j=0;j<nxyz;j++) {Cw[0]()[j]=solu_conc[0];}  // water is alwas set to 55.34 from solution 0
-dC=0;
-for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
+for (ic=1; ic<ph_ncomp;ic++)
     {
 		volScalarField& Cwi = Cw[ic]();
 		word nameCi ("Cw" + name(ic));
 		Cwi.storePrevIter();
 		//Info<<"start Cwi "<<endl;
-		//set the solution to background for dry cells
-		//forAll(Cwi(), celli) { if (sw[celli]<sw_min[i]*1.5) {Cwi[celli] = solu_conc[ic];} }
 		icnt=0;
 		CiSu*=0; CiSp*=0; //previous cells with values must be destroyed
 		// --------------------- internal conditions ------------------------
@@ -75,18 +72,6 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 				else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
 				}
 		} //Info<<"Cweli set"<<endl;
-		// solu at fixed head places (Sfix) need to be the same zones as Hfix (as we use Hfix[i])
-		//Sfix are done with set reference below
-		/*
-		if (cellsSfix.size()>0)
-		{
-			for (i=0; i<cellsHfix.size(); i++) 
-				{ //Info<<"i "<<i<<" condSfx "<<condSfx[i]<<endl;
-				i1=cellsHfix[i];v=mesh.V()[i1];
-				if (qHfix[i]<0) {CiSp[i1] = -qHfix[i]/v;} //in Sp term as discharge prop to local concentration
-				else { CiSu[i1] = -qHfix[i]/v*solu_conc[condSfix[i]*ph_ncomp+ic]; } 
-				} 
-		} //Info<<"Cfxi set"<<endl;*/
 		// conc at ghb places
 		if (cellsHghb.size()>0)
 		{
@@ -118,27 +103,6 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 
 		// for fixed solution cells with a search of the presence of fixed head or ghb cells
 		icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;
-		//int ic0=2657;
-		
-		/*
-		if (cellsSfx.size()>0)
-		{
-			for (int i=0; i<cellsSfx.size(); i++) 
-				{ 
-				conc = solu_conc[condSfx[i]*ph_ncomp+ic]; //if ((i<10)&&(ic==0)) {Info<<"i "<<i<<" cSfx "<<condSfx[i]<<" conc "<<conc<<endl;}//conc = cellsCfxData[2+(icount+i)*4+2];
-				i1=cellsSfx[i];v=mesh.V()[i1];ccnd = ccnd0*v/thk[i1];
-				auto iter = std::find(cellsHfx.begin(), cellsHfx.end(), i1); // search in hFx cells
-				iH = {std::distance(cellsHfx.begin(), iter)};
-				auto iter1 = std::find(cellsHghb.begin(), cellsHghb.end(), i1); // search in ghb cells
-				iG = {std::distance(cellsHghb.begin(), iter1)};
-				if ((iH<cellsHfx.size()) && (qHfx[iH]>=0)) {CiSu[i1] = -qHfx[iH]/v*conc; }
-				else if ((iG<cellsHghb.size()) && (qHghb[iG]>=0)) {CiSu[i1] = -qHghb[iG]/v*conc; }
-				else if ((iH>=cellsHfx.size()) && (iG>=cellsHghb.size())) {CiSu[i1] = -ccnd*conc;CiSp[i1]=ccnd; }
-				//Info<<"cfxG "<<i1<<" iG "<<iG<<" q "<<qHghb[iG]<<" conc "<<conc<<" Su "<<CiSu[i1]<<" Sp " <<CiSp[i1]<<endl;
-				//if (i1 % ncell_lay == ic0) {Info<<"cfxH "<<i1<<" iH "<<iH<<" q "<<qHfx[iH]<<" conc "<<conc<<" Su "<<CiSu[i1]<<" Sp "<<CiSp[i1]<<endl;}
-				//Info<<"cfx "<<i1<<" conc "<<conc<<" Su "<<CiSu[i1]<<" Sp "<<CiSp[i1]<<endl;}
-				}
-		}*/
 		
 		fvScalarMatrix CwiEqn
 		(		  
@@ -149,30 +113,33 @@ for (ic=1; ic<ph_ncomp;ic++) //!!!!!!!!! no transport of water
 		);
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
-		/*int nc;
-		for (i=0;i<ncell_lay;i++) //set dry cells to solution 0
-			{
-			for (ilay=1;ilay<nlay;ilay++) 
-				{ 
-				nc = i+ilay*ncell_lay;//if (i==823) {Info<<"set ref 823 "<<nc<<" up "<<h()[nc]<<" down "<<h()[nc-ncell_lay]<<endl;}
-				if (sw[nc]<sw_min[nc]*1.1) 
-					{CwiEqn.setReference(nc,solu_conc[ic]);} 
-				}
-			}
-		*/
 
 		CwiEqn.solve();
+	}
+		
+/*
+		//calculating dC, (only for true species)
+		if (ic>3) 
+			{
+			a=a*0;mxC=0;double dff=0;int i1=0;double sC = 0;double dC0;
+			for (int i=0;i<ncell;i++) {mxC=max(mxC,Cwi[i]);sC+=Cwi[i];}
+			//Cwi=max(Cwi,a); // removing negative
+			for (int i=0;i<ncell;i++) {
+				dff = mag(Cwi[i]-Cwi.prevIter()[i])/(mxC+SMALL);
+				dC0= max(dC0,dff);sC1+=Cwi[i]; //local max
+				} 
+				//Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
+			//Cwi *= sC/(sC1+SMALL); // removing negative value increase artifially the total
+			sdC += dC0;
+			}
+		
+	} // end of species loop
+dC=sdC/(ph_ncomp-4);
+dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
+//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
-		//dC calculation (not sure that it is good)
-		/*if (ic>3) //not used for water, O, H,
-		{
-			dC0=0;sC=0;sC1=0;mxC=0;
-			for (j=0;j<ncell;j++) {mxC=max(mxC,Cwi()[j]);}
-			//Cwi=max(Cwi,Cwi*0); // removing negative
-			for (j=0;j<ncell;j++) {dC0= max(dC0,Cwi()[j]-Cwi.prevIter()[j]);}
-			dC0 = dC0/(mxC+SMALL); // dC is relative
-			Info <<"comp "<<ic<<" dC0 "<<dC0<<" dC "<<dC<<endl;
-		}
-		dC = max(dC,dC0); // we consider the species that leads to the max dC*/
-	} // of species loop
+Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
+scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+runTime.setDeltaT (min (newDeltaT,maxDeltaT) );
 	
+*/

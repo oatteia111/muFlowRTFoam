@@ -60,7 +60,7 @@ include_directories(.
 					) #
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libraries/phaseModels/lnInclude)
-include_directories(/usr/local/include) # for phreeqc
+include_directories(usr/local/lib/include) # for phreeqc
 include_directories(/usr/local/lib) # for phreeqc
 include_directories(/usr/lib) # for torch libs
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
@@ -70,6 +70,6 @@ set(LINK_LIBS ${LINK_LIBS} ${MPI_CXX_LIBRARIES})
 link_directories(${FOAM_LIB_DIR} ${FOAM_USER_LIBBIN} ${FOAM_LIB_DIR} ${PATH_LIB_OPENMPI})
 
 add_executable(${PROJECT_NAME} muFlowRT_mpi.C)
-target_link_libraries(${PROJECT_NAME} phreeqcrm ${MPI_CXX_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PhreeqcRM ${MPI_CXX_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}")
 target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase)

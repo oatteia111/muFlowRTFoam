@@ -6,7 +6,7 @@ Info << "Reading unsat properties\n" << endl;
 //dimensionedScalar alpha_vg(transportProperties.lookupOrDefault("alpha_vg",dimensionedScalar("alpha_vg",dimless/dimLength,10.0)));
 volScalarField sw_min
 (
-    IOobject("sw_min",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw_min",dimless,1e-6)
+    IOobject("sw_min",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw_min",dimless,1e-4)
 );
 volScalarField n_vg
 (

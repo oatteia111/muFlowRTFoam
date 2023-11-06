@@ -30,6 +30,8 @@ Description
 Developers
     Pierre Horgue then Olivier Atteia to integrate phreeqc
 
+THIS MPI file is done to work with phreeqc present and compiled with mpi
+
 \*---------------------------------------------------------------------------*/
 //#include <cmath.h>
 //#include <iomanip> //NB when in < > don't add the .h
@@ -65,6 +67,7 @@ std::string cur_dir = get_current_dir();
 
 std::vector<double> a(12,0.);
 std::vector<double> rv,poro,c_ph,gm_ph,t_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+std::vector<int> writetimes;
 float atmPa=101325.;float vmw,Cgtot,Gmtot;
 int i,j,iw;
 #include "myFunc.H"
@@ -136,6 +139,8 @@ int main(int argc, char *argv[])
 	int mpi_tasks,mpi_myself;
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
+	std::ifstream inputWriteTimes{cur_dir+"/writetimes" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	writetimes = {std::istream_iterator<int>{inputWriteTimes}, {}};
 
 	//##################### make the initialization for the full domain in phreeqc : data,poro, gvol
 	std::ifstream inputData{cur_dir/"phqfoam.txt"};
@@ -167,18 +172,18 @@ int main(int argc, char *argv[])
 		}
 	#endif
 	ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
-	Info << "nxyz " << nxyz << endl;
+	//Info << "nxyz " << nxyz << endl;
 	//initiate poro and gas volume
 	freak.EK = false;
 	poro.resize(nxyz,0.25);t_ph.resize(nxyz,20.);p_ph.resize(nxyz,1.);rv.resize(nxyz,1.);
 	for (i=0;i<nxyz;i++) {poro[i]=eps[i];t_ph[i]=T[i];}
 	freak.setRV(rv);freak.setPoro(poro);freak.setTemp(t_ph);freak.setP(p_ph);
-	int a0 = phqInit(freak);std::cout << "phq init done, c0 size "<<freak.c0.size()<<"\n";
+	int a0 = phqInit(freak);ph_ncomp=freak.data[1];std::cout << "phq init done, c0 size "<<freak.c0.size()<<"\n";
 	
 	//################ writes the initial solutions and gases to files
 	std::ofstream outFile(cur_dir/"constant/options/solutions");
 	solu_conc.resize(ph_nsolu*ph_ncomp,0.);Info << "nsolu "<<ph_nsolu << " ncomp "<< ph_ncomp <<" gcomp "<< ph_gcomp <<endl;
-	std::cout<<"fkc size "<<freak.c.size()<<" \n";
+	std::cout<<"fkc0 size "<<freak.c0.size()<<" \n";
 	for (j=0;j<ph_nsolu;j++) // solu number
 		{ for (i=0;i<ph_ncomp;i++) // component number
 			{
@@ -207,27 +212,27 @@ int main(int argc, char *argv[])
 	std::cout<<"end gas write \n";
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
-	c_ph.resize(nxyz*ph_ncomp,0);
+	c_ph.resize(nxyz*ph_ncomp,0);std::cout<<"fkc size "<<freak.c.size()<<" nxyz "<<nxyz<<" ph_ncomp "<<ph_ncomp<<"\n";
 	for (i=0; i<ph_ncomp;i++)
-		for (int j=0;j<nxyz;j++) 
+		for (j=0;j<nxyz;j++) 
 			{c_ph[i*nxyz+j] = freak.c[i*nxyz+j];}
-	// gases are in atm (freak.g) we start with ideal gas
-	gm_ph.resize(nxyz*ph_gcomp,0); // moles of gas
-	Info<<"gcomp "<<ph_gcomp<<" g size "<<freak.g.size()<<" frk.c size "<<freak.c.size()<<endl;
-	for (i=0; i<ph_gcomp;i++)
-		for (int j=0;j<nxyz;j++) 
-			{
-			phreeqcVm[j] = 24.5*(273.5+T[j])/293.5/(p[j]/atmPa);
-			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
-			}
-	iw = freak.iGwater;
+	std::cout<<"end copy c_ph \n";// gases are in atm (freak.g) we start with ideal gas
 	if (ph_gcomp>0) {
+		gm_ph.resize(nxyz*ph_gcomp,0); // moles of gas
+	//Info<<"gcomp "<<ph_gcomp<<" g size "<<freak.g.size()<<" frk.c size "<<freak.c.size()<<endl;
+		for (i=0; i<ph_gcomp;i++)
+			for (int j=0;j<nxyz;j++) 
+				{
+				phreeqcVm[j] = 24.5*(273.5+T[j])/293.5/(p[j]/atmPa);
+				gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
+				}
 		std::cout<<"gm_0 "<<freak.gm[0]<<" "<<freak.gm[1]<<"\n";
 		gvol.resize(nxyz,0.05);freak.setGvol(gvol);
 		p_ph.resize(nxyz,1.);freak.setP(p_ph);
 	}
+	iw = freak.iGwater;
 	t_ph.resize(nxyz,10.);freak.setTemp(t_ph);
-	a0=phqRun(freak);
+	//a0=phqRun(freak);
 
 	// #include "createFvOptions.H"
 	#include "transport/createCwiFields.H"
@@ -272,29 +277,39 @@ int main(int argc, char *argv[])
 	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
 	//runTime.read();
-	Info <<"dt time "<<dt<<endl;
+	//Info <<"dt time "<<dt<<endl;
 	runTime.setDeltaT(dt);
 	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
+	//- C-variation control
+	scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
+	scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
 	
-	//const IOobject meshObj("constant/polyMesh", runTime.constant(),"volScalarField", "h", IOobject::MUST_READ);
-    //const fvMesh mesh(meshObj);
+	int istep = 0;int tcnt = 0;int itWrite=0;bool flgWrite=0;double oldDeltaT;
+	Info<<"nb of tsteps "<<writetimes.size()<<endl;
 
-    // Récupération des cellules réordonnées
-    //const labelList& cellLevel = mesh.cellLevels();
-
-// Obtention des niveaux de raffinement pour la cellule 42
-//const labelList& localIndices = mesh.cells().local();
-    // Affichage des index des cellules réordonnées
-    //Info << "Index des cellules réordonnées : " << level << endl;
-	
-	int istep = 0;int tcnt = 0;
 	while (runTime.run())
     {
+		if (istep==0) {runTime++;}  // needed to find the values below
 		runTime.read();
-		// #include "transport/setDeltaTtrsp.H"
+		//verify if delatT too long for next write time
+		//Info << "time = " << runTime.timeName() << "  deltaT = " <<  runTime.deltaTValue() << endl;
+		if (itWrite<writetimes.size()) {
+			if (flgWrite==1) {
+				runTime.setDeltaT((oldDeltaT+runTime.deltaTValue())/2.);flgWrite=0;
+				}//1st time step after writing, need th emean if not too fast change?
+			else if (runTime.value()+runTime.deltaTValue() > writetimes[itWrite]-0.4) 
+				{
+				double ttt=writetimes[itWrite]-runTime.value();
+				runTime.setDeltaTNoAdjust(ttt);
+				itWrite +=1;flgWrite=1; //no adjust because if not openfoam adjusts adn we don't get correct val
+				}
+			else {oldDeltaT = runTime.deltaTValue();flgWrite=0;} //normal tstep, keep track of dt to avoid too short tstep after printing
+			}
+		Info << "time = " << runTime.timeName() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
 		runTime++;
-		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << runTime.timeName() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
+		
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
@@ -302,7 +317,7 @@ int main(int argc, char *argv[])
 		if (flowType>0) {
 			#include "flow.H"
 			}
-		deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
+		//deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
 		
 		//***************  solve Transport  *************************
@@ -311,7 +326,7 @@ int main(int argc, char *argv[])
 			}
 		if (activateTransport==1) {
 			if (activateReaction==0) {
-				#include "transport/setDeltaTtrsp.H"
+				//#include "transport/setDeltaTtrsp.H"
 				#include "transport/CEqn.H"
 				}
 			else {
@@ -337,15 +352,26 @@ int main(int argc, char *argv[])
 		{
 			// find the cells where the chcemistry has changed to calculate there
 			//icnt = 0;
-			deltaTchem = transportProperties.lookupOrDefault<scalar>("deltaTchem",86400);Info<<"dtchem in reac "<<deltaTchem<<endl;
-			std::vector<double> rchange(nxyz,0.);
+			//deltaTchem = transportProperties.lookupOrDefault<scalar>("deltaTchem",86400);Info<<"dtchem in reac "<<deltaTchem<<endl;
+			std::vector<double> rchange(nxyz,0.);double dff,mxC,dC0,dCc;
 			for (i=4; i<ph_ncomp; i++)
 				{
+				mxC = 0;dCc=0;
+				for (j=0; j<nxyz;j++) {mxC=max(mxC,Cw[i]()[i]);}
 				for (j=0; j<nxyz;j++)
 					{
-					if (abs(c_ph[i*nxyz+j]-Cw[i]()[ractive[j]])/(c_ph[i*nxyz+j]+1e-20)>1e-4 && sw[ractive[j]]>sw_min[j]*1.5) {icnt++;rchange[j] = 1.;}
+					dff = mag(c_ph[i*nxyz+j]-Cw[i]()[ractive[j]]);
+					if (abs(dff/(mxC+SMALL))>1e-4 && sw[ractive[j]]>sw_min[j]*1.5) {icnt++;rchange[j] = 1.;}
+					if (dff>mxC/50) {dC0= max(dC0,dff);} //find the highest dC for this component
 					}
+				dCc = max(dCc, dC0); Info<<"dCc "<<dCc<<endl; //keeep the min dC for all components
 				} 
+			dtForC = dCmax/(max(dCc,0)+SMALL)*runTime.deltaTValue(); 
+			//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
+
+			//Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dCc<<" dtForChem " << dtForC << endl; 
+			//scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+			//runTime.setDeltaT (min (newDeltaT,maxDeltaT) );
 			for (i=0; i<ph_gcomp; i++)
 				{
 				for (j=0; j<nxyz;j++)
@@ -467,14 +493,18 @@ int main(int argc, char *argv[])
 				//nb of moles of H2O(g) transformed in water volume (1 mol 18.01 mL at 25°C)
 			for (j=0;j<3;j++) {Info <<" new sw "<<sw[j]<< endl;}
 				
-			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
 		bool ts;
 		ts = runTime.write();//oldTime=runTime.value();
+		if (flgWrite) {
+			for (int ic=1; ic<ph_ncomp;ic++) { Cw[ic]().write();}
+			}
+			else {if (runTime.deltaTValue()>0) {oldTime = runTime.value()*1;} }
 		//write species
 		if (ts && flowType==4) {phiGr.write();}
-		if (ts && activateReaction==1) {
+		if ((activateReaction==1)&&(ts || flgWrite))
+			{
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
@@ -488,7 +518,6 @@ int main(int argc, char *argv[])
 					}
 				outFile<<"\n";
 			} //end write species file*/
-			
 			}
 		
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
@@ -496,8 +525,8 @@ int main(int argc, char *argv[])
 			<< nl << endl;
 
 		Info<< "End\n" << endl;
-		double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
-		Info <<" time" << mesh.time().time().value() <<" w intv " <<rt<<endl;
+		//double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
+		//Info <<" time" << mesh.time().time().value() <<" w intv " <<rt<<endl;
 		//if (mesh.time().time().value()>rt/10) {
 		//int inpt = cin.get();//}
 		istep ++;

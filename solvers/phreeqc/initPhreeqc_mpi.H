@@ -86,7 +86,7 @@ int phqInit(my_phq & freak)
 		std::cerr << "before  SetFilePrefix " << std::endl;
 		// Open files
 		status = phreeqc_rm->SetFilePrefix("phq1_cpp");
-		phreeqc_rm->OpenFiles();
+		//phreeqc_rm->OpenFiles();
 		// Set concentration units
 		status = phreeqc_rm->SetUnitsSolution(2);           // 1, mg/L; 2, mol/L; 3, kg/kgs
 		status = phreeqc_rm->SetUnitsPPassemblage(sunits);       // 0, mol/L cell; 1, mol/L water; 2 mol/L rock
@@ -104,10 +104,10 @@ int phqInit(my_phq & freak)
 		std::cout << "end status \n";
 		// Open for writing file
 		status = phreeqc_rm->SetFilePrefix("phq1");
-		phreeqc_rm->OpenFiles();
+		//phreeqc_rm->OpenFiles();
 		
 		//load database and chemistry files and make the first run of the chem file
-		status = phreeqc_rm->SetPrintChemistryOn(true, true, true); // workers, initial_phreeqc, utility
+		status = phreeqc_rm->SetPrintChemistryOn(false, false, false); // workers, initial_phreeqc, utility
 		status = phreeqc_rm->LoadDatabase(freak.DB);
 		std::cout << "dbase opened " << "\n";
 		bool workers = true;             // Worker instances do the reaction calculations for transport
@@ -116,7 +116,7 @@ int phqInit(my_phq & freak)
 		status = phreeqc_rm->RunFile(workers, initial_phreeqc, utility, freak.ChemFile);
 		std::cerr << "After RunFile." << std::endl;
 
-		int ph_ncomp = phreeqc_rm->FindComponents(); // NECESSARY don't remove
+		int ph_ncomp = phreeqc_rm->FindComponents();freak.data[1]=ph_ncomp; // NECESSARY don't remove
 		const std::vector<std::string>& gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
 		const std::vector<std::string>& compn = phreeqc_rm->GetComponents();
 		std::cout << "phq comp "; for (i = 0;i < ph_ncomp;i++) { std::cout << compn[i] << " "; } std::cout << "\n";
@@ -218,8 +218,9 @@ int phqRun(my_phq & freak)
 	{
 		IRM_RESULT status;
 		int nxyz = freak.PhreeqcRM_ptr->GetGridCellCount();
-		int ph_ncomp = freak.PhreeqcRM_ptr->FindComponents();
-		freak.PhreeqcRM_ptr->OpenFiles();
+		//int ph_ncomp = freak.PhreeqcRM_ptr->FindComponents();
+		int ph_ncomp = freak.data[1];
+		//freak.PhreeqcRM_ptr->OpenFiles();
 		const std::vector<std::string>& compn = freak.PhreeqcRM_ptr->GetComponents();
 		const std::vector<std::string>& gcompn = freak.PhreeqcRM_ptr->GetGasComponents();
 		int ph_gcomp = (int)gcompn.size();

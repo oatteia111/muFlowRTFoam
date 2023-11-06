@@ -63,7 +63,7 @@ stor.dimensions().reset(dimless/dimLength);
 		for (i=0; i<cellsHwel.size(); i++)
 			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;}
 		//Info<<i<<" ic "<<cellsHw[i]<<" icdat "<<cellsHwData[2+(icount+i)*4+1]<<endl; }
-	} Info<<"Hfw read ";
+	} //Info<<"Hfw read ";
 	//----- get the ghb conditions
 	icount = 0;	//get the ghb conditions
 	int ic0=10;
@@ -75,7 +75,7 @@ stor.dimensions().reset(dimless/dimLength);
 			}
 		for (i=0; i<cellsHghb.size(); i++) 
 			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day;}
-	} Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
+	} //Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
 	icount = 0; 
 	if (cellsHriv.size()>0)
@@ -101,7 +101,7 @@ stor.dimensions().reset(dimless/dimLength);
 			i1 = cellsHdrn[i]; v=mesh.V()[i1];
 			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1]=cellsHdrnData[i*4+3]/v/day;
 			}
-	}  Info<<"Hdrn read ";
+	}  //Info<<"Hdrn read ";
 	//---- recharge conditions		
 	icount = 0; //float dv=0;
 	if (cellsHrch.size()>0)
@@ -121,7 +121,7 @@ stor.dimensions().reset(dimless/dimLength);
 				hSu[nc] = qHrch[i]/mesh.V()[nc]; 
 				} // injeciton of recharge in the lowest unconfined layer only if no fix cond here
 			} 	
-	} Info<<"Hrch read ";//<<" Hghb "<<hSu[ncell_lay*3+ic0]<<" "<<endl;
+	} //Info<<"Hrch read ";//<<" Hghb "<<hSu[ncell_lay*3+ic0]<<" "<<endl;
 
 // ***************** solving
 
@@ -148,79 +148,10 @@ volScalarField q1 = fvc::div(phiw);
 volScalarField d1 = stor*fvc::ddt(h);
 for (ilay=0;ilay<nlay;ilay++) {
 	i1=ilay*ncell_lay+ic0;
-	Info<<"h "<<h()[i1]<<" v "<<mesh.V()[i1]<<" sw "<<sw[i1]<<" q1 "<<q1[i1]<<" d1 "<<d1[i1]<<" SuSp "<<hSu[i1]-h()[i1]*hSp[i1]<<endl;
+	//Info<<"h "<<h()[i1]<<" v "<<mesh.V()[i1]<<" sw "<<sw[i1]<<" q1 "<<q1[i1]<<" d1 "<<d1[i1]<<" SuSp "<<hSu[i1]-h()[i1]*hSp[i1]<<endl;
 	}
 // get the the water discharge/recharge at fixed heads cells
 int i1;
 for (i=0; i<cellsHdrn.size(); i++) {i1=cellsHdrn[i];qHdrn[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];} //Info<<"qhfx "<<i<<" "<<i1<<" "<<qHfx[i]<<endl;}
 for (i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];qGerr[i]=qHghb[i]-(q1[i1]+d1[i1]);}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<endl;}
-//for (int i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=q1[i1]*mesh.V()[i1];}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<" qdH "<< (hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1]<<endl;}
-//for (int i=0; i<cellsHrch.size(); i++) {i1=clayRch[i];qHrch[i]=hSu[i1]*mesh.V()[i1];}// Info<<"qrch "<<i<<" "<<i1<<" "<<qHrch[i]<<endl;}
-//for (int i=0; i<cellsHrch.size(); i++) {i1=clayRch[i];qHrch[i]=(q1[i1]-d1[i1])*mesh.V()[i1];}// Info<<"qrch "<<i<<" "<<i1<<" "<<qHrch[i]<<endl;}
-//surfaceVectorField gradHf =fvc::interpolate(fvc::grad(h));
-
-int ic;float q2;int iface;
-
-/*for (ilay=1;ilay<nlay-1;ilay++) {
-	ic=ilay*ncell_lay+ic0;q2=0;
-	forAll(mesh.cells()[ic],i) {
-		iface=mesh.cells()[ic][i]; oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface]; 
-		Info<<"o "<<oCell<<" n "<<nCell<<" ifc "<<iface<<" phi "<<phiw[iface]<<endl;
-		if (oCell==nc) {q2 += phiw[iface];}
-		else {q2 -= phiw[iface];}
-		}
-	Info<<"h cell "<<ic<<" h "<<h()[ic]<<" sw "<<sw[ic]<<" q1 "<<q1[ic]<<" q2 "<<q2<<" q2/v "<<q2/mesh.V()[ic]<<endl;
-	}*/
-
-/* nc = (nlay-2)*ncell_lay + ic0;double sPhi=0;
-forAll( mesh.owner() , iface ) {
-	oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface];
-	if ((oCell==nc)||(nCell==nc)){ 
-		if (oCell==nc) {sPhi+=phiw[iface];}
-		else {sPhi-=phiw[iface];}
-		Info<<" o "<<oCell<<" n "<<nCell<<" Mf "<<Mf[iface]<<" phi "<<phiw[iface]<<" ho "<<h()[oCell]<<" hn "<<h()[nCell]<<" S "<<mesh.magSf()[iface]<<endl;  
-		}
-	}
-Info<<"sphi "<<sPhi<<endl; */
-
-/*
-nc = (nlay-1)*ncell_lay + ic0;
-forAll( mesh.owner() , iface ) {
-	oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface];
-	if ((oCell==nc)||(nCell==nc)){ Info<<" o "<<oCell<<" n "<<nCell<<" Mf "<<Mf[iface]<<" phi "<<phiw[iface]<<" ho "<<h()[oCell]<<" hn "<<h()[nCell]<<" S "<<mesh.magSf()[iface]<<endl;  }
-	}
-nc = (nlay-2)*ncell_lay + ic0;
-forAll( mesh.owner() , iface ) {
-	oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface];
-	if ((oCell==nc)||(nCell==nc)){ Info<<" o "<<oCell<<" n "<<nCell<<" Mf "<<Mf[iface]<<" phi "<<phiw[iface]<<" ho "<<h()[oCell]<<" hn "<<h()[nCell]<<" S "<<mesh.magSf()[iface]<<endl;  }
-	}
-nc = (nlay-3)*ncell_lay + ic0;
-forAll( mesh.owner() , iface ) {
-	oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface];
-	if ((oCell==nc)||(nCell==nc)){ Info<<" o "<<oCell<<" n "<<nCell<<" Mf "<<Mf[iface]<<" phi "<<phiw[iface]<<" ho "<<h()[oCell]<<" hn "<<h()[nCell]<<" S "<<mesh.magSf()[iface]<<endl;  }
-	}
-*/
-
-for (i=0;i<cellsHfix.size();i++) {
-	i1=cellsHfix[i];qHfix[i] = (q1[i1]-d1[i1])*mesh.V()[i1];//Info<<"qhfx "<<i<<" "<<qHfx[i]<<endl;//scalar q1 = fvc::surfaceIntegrate(Uw(), mesh.Sf(),0)[i1];
-	}
-	/*qHfx[i]=0; //ci-dessous, donne la mm chose que div
-	forAll(mesh.cells()[i1],j) {
-		iface=mesh.cells()[i1][j]; oCell=mesh.owner()[iface];nCell=mesh.neighbour()[iface]; 
-		//Info<<"o "<<oCell<<" n "<<nCell<<" ifc "<<iface<<" phi "<<phiw[iface]<<endl;
-		if (oCell==i1) {qHfx[i] -= phiw[iface];}
-		else {qHfx[i] += phiw[iface];}
-		}
-	//qHfx[i] *= day; 
-	Info<<"i "<<i<<" i1 "<<i1<<" q1 "<<q1[i1]*mesh.V()[i1]<<" qHfx "<<qHfx[i]<<endl;
-	}//find the flux at hfix cells */
-/*for (int ic=0; ic<cellsHfx.size(); ic++) 
-	{
-	const cell& faces = mesh.cells()[cellsHfx[ic]];
-    forAll( faces, i ) {
-		Info<<"cell "<<cellsHfx[ic]<<" face "<<faces[i]<<" phi "<<phiw[faces[i]]<<endl;
-		if (mesh.owner()[faces[i]] == cellsHfx[ic]) {Info<<"its owner "<<endl;}
-		if (mesh.neighbour()[faces[i]] == cellsHfx[ic]) {Info<<"its nghb "<<endl;}
-		}
-	}*/
-
+for (i=0;i<cellsHfix.size();i++) { i1=cellsHfix[i];qHfix[i] = (q1[i1]-d1[i1])*mesh.V()[i1];}

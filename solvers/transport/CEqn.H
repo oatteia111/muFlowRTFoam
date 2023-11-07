@@ -118,14 +118,14 @@ C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
 
 //- C-variation control
-scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
-scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
-scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
+maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
+dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
+dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
 
 //Info<<" dC "<<dC<<endl;
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
 //if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
-scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
 runTime.setDeltaT (min (newDeltaT,maxDeltaT) );

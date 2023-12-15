@@ -54,6 +54,7 @@ if (fexists(cur_dir+"/constant/options/twel")) {cellSet selectedTwel(mesh, "twel
 if (fexists(cur_dir+"/constant/options/tghb")) {cellSet selectedTghb(mesh, "tghb");cellsTghb0 = selectedTghb.toc();}
 if (fexists(cur_dir+"/constant/options/trch")) {cellSet selectedTrch(mesh, "trch");cellsTrch0 = selectedTrch.toc();}
 
+time = mesh.time().value()/day;
 while (time>=tTfix) {output = getCbuffer("tfix",itTfix,cellsTfix0.size());itTfix+=1;tTfix = output.t;cellsTfixData=output.d;}
 while (time>=tTwel) {output = getCbuffer("twel",itTwel,cellsTwel0.size());itTwel+=1;tTwel = output.t;cellsTwelData=output.d;}
 while (time>=tTghb) {output = getCbuffer("tghb",itTghb,cellsTghb0.size());itTghb+=1;tTghb = output.t;cellsTghbData=output.d;}

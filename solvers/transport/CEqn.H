@@ -20,16 +20,16 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 // Normally, if the conditions don't change and the model is trained we use NN, if not we use the eqs
 
 // --------------------- internal conditions ------------------------
-	float time = mesh.time().value(); //const Time&
+	float time = mesh.time().value()/day; //const Time&
 	CSu=CSu*0; CSp=CSp*0; a1=1; double conc;//previous cells with values must be destroyed
 	size_t i;
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-	if (time>=tCwel) {
-		output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
-		tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
-		}
+		if (time>=tCwel) {
+			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
+			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
+			}
 		for (i=0; i<cellsCwel.size(); i++) 
 			{ 
 			i1=cellsCwel[i];v=mesh.V()[i1];
@@ -38,7 +38,6 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			}
 	}
 	// for ghb cells only for the outflow of conc (1st step) -> Hghb because Cghb may not be set here
-	icount = 0;
 	if (cellsHghb.size()>0)
 	{
 		if (time>=tCghb) {
@@ -64,13 +63,12 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	}
 
 	//recharge
-	icount=0;int nc;
 	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
 		if (time>=tCrch) {
-		output = getCbuffer("crch",itCrch,cellsCrch.size()); 
-		tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
-		}
+			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
+			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
+			}
 		for (size_t i=0; i<cellsCrch.size(); i++) 
 			{ 
 			v=mesh.V()[clayRch[i]];
@@ -92,14 +90,14 @@ fvScalarMatrix CEqn
 		+ CSu + fvm::SuSp(CSp, C)
 	); 
 
-for (i=0; i<cellsCfix.size(); i++) 	
+if (cellsCfix.size()>0)
 	{
 	if (time>=tCfix) {
 		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
 		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
 		}
-
-	CEqn.setReference(cellsCfix[i],static_cast<int>(cellsCfixData[i*4+2]));
+	for (i=0; i<cellsCfix.size(); i++) 	
+		{CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
 	}
 	
 CEqn.solve();
@@ -116,11 +114,6 @@ for (i=0;i<ncell;i++) {
 	Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
-
-//- C-variation control
-maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
-dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
-dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
 
 //Info<<" dC "<<dC<<endl;
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 

@@ -34,6 +34,7 @@ for (int i=0;i<bcNames.size();i++)
 	bcTypes[inletID] = fixedValueFvPatchScalarField::typeName;
 	}
 */
+std::vector<double> mxCv;
 
 List <autoPtr <volScalarField> > Cw(ph_ncomp);
 forAll (Cw, i)
@@ -67,20 +68,23 @@ volScalarField::Internal CiSp
 );
 
 // -------------- conditions for solutions -------------
-labelList cellsSfix0; std::vector<float> condSfix;std::vector<float> cellsSfixData;int itSfix=0;float tSfix=0;
-labelList cellsSwel0; std::vector<float> condSwel;std::vector<float> cellsSwelData;int itSwel=0;float tSwel=0;
-labelList cellsSghb0; std::vector<float> condSghb;std::vector<float> cellsSghbData;int itSghb=0;float tSghb=0;
-labelList cellsSrch0; std::vector<float> condSrch;std::vector<float> cellsSrchData;int itSrch=0;float tSrch=0;
+labelList cellsSfix0; std::vector<float> condSfix;std::vector<float> cellsSfixData;
+labelList cellsSwel0; std::vector<float> condSwel;std::vector<float> cellsSwelData;
+labelList cellsSghb0; std::vector<float> condSghb;std::vector<float> cellsSghbData;
+labelList cellsSrch0; std::vector<float> condSrch;std::vector<float> cellsSrchData;
+int itSfix, itSwel,itSghb,itSrch;
+float tSfix,tSwel,tSghb,tSrch;
 
 if (fexists(cur_dir+"/constant/options/sfix")) {cellSet selectedSfix(mesh, "sfix");cellsSfix0 = selectedSfix.toc();}
 if (fexists(cur_dir+"/constant/options/swel")) {cellSet selectedSwel(mesh, "swel");cellsSwel0 = selectedSwel.toc();}
 if (fexists(cur_dir+"/constant/options/sghb")) {cellSet selectedSghb(mesh, "sghb");cellsSghb0 = selectedSghb.toc();}
 if (fexists(cur_dir+"/constant/options/srch")) {cellSet selectedSrch(mesh, "srch");cellsSrch0 = selectedSrch.toc();}
 
-if (time>=tSfix) {output = getCbuffer("sfix",itSfix,cellsSfix0.size());itSfix+=1;tSfix = output.t;cellsSfixData=output.d;}
-if (time>=tSwel) {output = getCbuffer("swel",itSwel,cellsSwel0.size());itSwel+=1;tSwel = output.t;cellsSwelData=output.d;}
-if (time>=tSghb) {output = getCbuffer("sghb",itSghb,cellsSghb0.size());itSghb+=1;tSghb = output.t;cellsSghbData=output.d;}
-if (time>=tSrch) {output = getCbuffer("srch",itSrch,cellsSrch0.size());itSrch+=1;tSrch = output.t;cellsSrchData=output.d;}
+time = mesh.time().value()/day;
+while (time>=tSfix) {output = getCbuffer("sfix",itSfix,cellsSfix0.size());itSfix+=1;tSfix = output.t;cellsSfixData=output.d;}
+while (time>=tSwel) {output = getCbuffer("swel",itSwel,cellsSwel0.size());itSwel+=1;tSwel = output.t;cellsSwelData=output.d;}
+while (time>=tSghb) {output = getCbuffer("sghb",itSghb,cellsSghb0.size());itSghb+=1;tSghb = output.t;cellsSghbData=output.d;}
+while (time>=tSrch) {output = getCbuffer("srch",itSrch,cellsSrch0.size());itSrch+=1;tSrch = output.t;cellsSrchData=output.d;}
 
 condSfix.resize(cellsSfix0.size());
 condSwel.resize(cellsSwel0.size());

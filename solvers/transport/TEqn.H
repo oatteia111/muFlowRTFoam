@@ -29,17 +29,6 @@ if (cellsHwel.size()>0)
 			}
 	}
 	
-//get the fixed temperature conditions
-	if (cellsTfix.size()>0)
-	{
-		if (time>=tTfix) {
-			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
-			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
-			}
-		for (size_t i=0; i<cellsTfix.size(); i++) {b[i] = cellsTfixData[i*4+2];} // discharge must be in s-1
-	}
-
-	
 /*forAll(mesh.cells(), celli)
     {
 		const labelList& cFaces = mesh.cells()[celli];
@@ -63,7 +52,19 @@ fvScalarMatrix TEqn
 	);
 
 //fvOptions.constrain(TEqn);
-for (size_t i=0; i<cellsTfix.size(); i++) {TEqn.setReference(cellsTfix[i],b[i]);}
+	
+//get the fixed temperature conditions
+if (cellsTfix.size()>0)
+{
+	if (time>=tTfix) {
+		output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
+		tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
+		}
+	for (size_t i=0; i<cellsTfix.size(); i++) 
+		{TEqn.setReference(cellsTfix[i],cellsTfixData[i*4+2]);} 
+	Info<<"tfix in Eqn "<<time<<" val "<<cellsTfixData[2]<<endl;
+}
+
 TEqn.solve();
 
 //calculating dT

@@ -6,7 +6,8 @@ Deffw = (alphaT * mag(Uw))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL
 //Deffw = Dw0 * pow(thetaw,3.33)/pow(eps,2.)*tensor::I;
 //forAll(Deffw(), i)  { if (sw[i]<sw_min[i]*1.5) {Deffw[i] *=1e2;} }; 
 
-double conc,dC0,mxC,sC,sC1;int ic;size_t i;
+double conc;int ic;size_t i;
+mxCv.resize(ph_ncomp-4,0.);
 
 float time = mesh.time().value()/day; //const Time&
 
@@ -58,7 +59,7 @@ for (ic=1; ic<ph_ncomp;ic++)
     {
 		volScalarField& Cwi = Cw[ic]();
 		word nameCi ("Cw" + name(ic));
-		Cwi.storePrevIter();
+		Cw[ic]().storePrevIter();
 		//Info<<"start Cwi "<<endl;
 		icnt=0;
 		CiSu*=0; CiSp*=0; //previous cells with values must be destroyed
@@ -68,7 +69,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 			for (i=0; i<cellsHwel.size(); i++) 
 				{ 
 				i1=cellsHwel[i];v=mesh.V()[i1];
-				if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration
+				if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 				else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
 				}
 		} //Info<<"Cweli set"<<endl;
@@ -102,7 +103,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 		} //Info<<"Crchi set"<<endl;
 
 		// for fixed solution cells with a search of the presence of fixed head or ghb cells
-		icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;
+		//icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;
 		
 		fvScalarMatrix CwiEqn
 		(		  
@@ -116,30 +117,28 @@ for (ic=1; ic<ph_ncomp;ic++)
 
 		CwiEqn.solve();
 	}
-		
-/*
-		//calculating dC, (only for true species)
+
+/*		//calculating dC, (only for true species)
 		if (ic>3) 
 			{
-			a=a*0;mxC=0;double dff=0;int i1=0;double sC = 0;double dC0;
-			for (int i=0;i<ncell;i++) {mxC=max(mxC,Cwi[i]);sC+=Cwi[i];}
-			//Cwi=max(Cwi,a); // removing negative
-			for (int i=0;i<ncell;i++) {
-				dff = mag(Cwi[i]-Cwi.prevIter()[i])/(mxC+SMALL);
-				dC0= max(dC0,dff);sC1+=Cwi[i]; //local max
-				} 
-				//Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
-			//Cwi *= sC/(sC1+SMALL); // removing negative value increase artifially the total
-			sdC += dC0;
+			double dff=0;int i1=0;double sC = 0;double dC0=0;double mxC0=0;
+			//for (int i=0;i<ncell;i++) {mxC0=max(mxC0,Cwi.prevIter()[i]);} //strange, ifwe remove that dC0 is wrong?
+			for (int i=0;i<ncell;i++) {mxCv[ic-4]=max(mxCv[ic-4],Cwi[i]);} //sC+=Cwi[i];
+			if (mxCv[ic-4]>0) {//Cwi=max(Cwi,a); // removing negative
+				for (int i=0;i<ncell;i++) {
+					dff = mag(Cwi[i]-Cw[ic]().prevIter()[i])/(mxCv[ic-4]+SMALL);
+					dC0= max(dC0,dff);//sC1+=Cwi[i]; //species max
+					} 
+				//Info<<"dC0 "<<dC0<<" mxC0 "<<mxC0<<" mxC "<<mxC<<endl;
+				dC=max(dC0,dC);
+				}
 			}
 		
 	} // end of species loop
-dC=sdC/(ph_ncomp-4);
+		
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
 //if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
-scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
-runTime.setDeltaT (min (newDeltaT,maxDeltaT) );
-	
-*/
+newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+runTime.setDeltaT (min (newDeltaT,maxDeltaT) ); */

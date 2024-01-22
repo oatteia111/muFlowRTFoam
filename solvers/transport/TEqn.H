@@ -19,6 +19,7 @@ if (cellsHwel.size()>0)
 		if (time>=tTwel) {
 			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
 			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
+			tnext = tTwel;
 			}
 		for (size_t i=0; i<cellsTwel.size(); i++) 
 			{ 
@@ -59,6 +60,7 @@ if (cellsTfix.size()>0)
 	if (time>=tTfix) {
 		output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
 		tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
+		tnext = tTfix;
 		}
 	for (size_t i=0; i<cellsTfix.size(); i++) 
 		{TEqn.setReference(cellsTfix[i],cellsTfixData[i*4+2]);} 

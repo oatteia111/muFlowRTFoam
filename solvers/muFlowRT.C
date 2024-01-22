@@ -35,7 +35,7 @@ Developers
 //#include <iomanip> //NB when in < > don't add the .h
 #include <stdlib.h>
 #include <vector>
-#include <iostream>
+//#include <iostream>
 #include <fstream>
 #include <iterator>
 #include <sstream>
@@ -43,7 +43,7 @@ Developers
 
 #include <chrono>  // for high_resolution_clock
 #include "fvCFD.H"
-#include "incompressiblePhase.H"
+//#include "incompressiblePhase.H"
 #include "inletOutletFvPatchField.H"
 #include "volFields.H"
 #include "fvPatchFieldMapper.H"
@@ -63,14 +63,14 @@ std::string get_current_dir() {
 }
 std::string cur_dir = get_current_dir();
 
-
-#include "phreeqc/initPhreeqc.H"
-
 std::vector<double> a(12,0.);
+#include "phreeqc/initPhreeqc.H"
 std::vector<double> c_ph,gm_ph,t_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+std::vector<int> immobile;
 float atmPa=101325.;float vmw,Cgtot,Gmtot;
 int i,j,iw;
 my_phq freak; //need to be here to be availabel for every chem condition
+
 #include "myFunc.H"
 // read the myfunc file
 dicFunc fDe_T;		   		  
@@ -78,40 +78,10 @@ dicFunc fDe_T;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 using namespace Foam;
+#include "utilities.h" // for reading binary reading tables..
+//#include "plugin_Cwi.H"
+//plugin_Cwi plugCwi;
 
-std::vector<int> indexC(labelList &cells, std::vector<float> &data)
-{
-    std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
-	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
-		{
-		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[i*4+1]));
-		int i1 = {std::distance(cells.begin(), iter)};  //Info << i << " icd "<< icd << " cll " << cells_[i] << " indx " << a << endl; // cell number in cellsData //index of cellsData in cells_
-		c1[i] = cells[i1];
-		}
-    return c1;
-}
-
-inline bool fexists(const std::string& name) {
-    ifstream f(name.c_str());
-    return f.good();
-}
-
-struct outData {float t; std::vector<float> d;};
- 
-// a function to get data from binary file
-outData getCbuffer(string fname, int itime, int ncell) {
-    std::vector<float> data(ncell*4);
-	std::ifstream inputData{cur_dir+"/constant/options/"+fname, std::ios::binary}; //
-	inputData.seekg(ncell*itime*4*sizeof(float)); //each line is composed of 4 numbers and there are two values at the beginning
-
-    inputData.read(reinterpret_cast<char*>(&data[0]), ncell*4*sizeof(float));
-	float time;	
-	inputData.read(reinterpret_cast<char*>(&time), sizeof(float));
-	outData output;
-	output.t = time;std::cout<<"readbin "<<fname <<" "<<itime<<" "<<ncell;
-	output.d = data;
-    return output;
-}
 
 int main(int argc, char *argv[])
 {
@@ -211,12 +181,26 @@ int main(int argc, char *argv[])
 			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
 			}
 	iw = freak.iGwater;
+	//###################"" loading immobile component is present  ###############""
+	std::vector<std::string> immobStr;
+	std::ifstream inputImmobile{cur_dir+"/constant/options/immobile" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	immobStr = {std::istream_iterator<std::string>{inputImmobile}, {}};
+	immobile.resize(ph_ncomp,0);
+	for (i=0;i<immobStr.size();i++) 
+		{
+		int ic = std::find(freak.compn.begin(),freak.compn.end(),immobStr[i])-freak.compn.begin(); //find the position of str in compn
+		immobile[ic]=1;std::cout<<"immob "<<immobStr[i]<<" "<<ic<<" "<<immobile[ic]<<"\n";
+		}
 	
 	} //end of activateReation
+	
 	else  //only flow or flow+transport
 	{
 		ph_ncomp=0;ph_gcomp=0;
 	}
+	
+	//plugCwi.init(cur_dir,transportProperties,mesh,freak); // initiate the plugin for transport
+
 	// #include "createFvOptions.H"
 	#include "transport/createCwiFields.H"
 	#include "transport/createCgiFields.H"
@@ -225,6 +209,7 @@ int main(int argc, char *argv[])
 	int icnt = 0;
 	//Info<<"ractive 2 "<<ractive[2]<<endl;
 	//Info<<" gmph 2 "<<  gm_ph[2]<<" frk.c size "<<freak.c.size()<<endl;
+	
 	if (activateReaction==1) 
 	{
 		forAll(Cw,i) {
@@ -240,11 +225,12 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
+		
 	
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();
 	dimensionedScalar et = runTime.endTime();
-	dimensionedScalar dt = mesh.time().deltaTValue();
+	dimensionedScalar dt0 = mesh.time().deltaTValue();
 	scalar dt1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dt1<<endl;
 	scalar resid;
 	if ((flowStartSteady==1)&&(flowType>0))
@@ -260,8 +246,8 @@ int main(int argc, char *argv[])
 	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
 	//runTime.read();
-	Info <<"dt time "<<dt<<endl;
-	runTime.setDeltaT(dt);
+	Info <<"dt time "<<dt0<<endl;
+	runTime.setDeltaT(dt0);
 	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	
@@ -302,6 +288,7 @@ int main(int argc, char *argv[])
 				#include "transport/setDeltaTtrsp.H"
 				#include "transport/CEqn.H"
 				}
+			
 			else {
 				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
 				#include "transport/CwiEqn.H"
@@ -310,6 +297,7 @@ int main(int argc, char *argv[])
 					#include "transport/CgiEqn.H"
 					}
 				}
+			
 			}
 		//dC1 = dC*.999;dT1 = dT*.999;Info<<"dC1  "<<dC1<<endl;
 		//Info<<" cg 0 0 "<<Cg[0]()[0]<<" cg 0 1 "<<Cg[0]()[1]<<endl;
@@ -321,6 +309,7 @@ int main(int argc, char *argv[])
 		tcnt++;
 		if (tcnt>reactionSteps-1) {tcnt=0;}
 		//if (activateReaction==1 && deltaTchem<=0)  //runTime.value()-oldTime>dT1
+		
 		if (activateReaction==1 && tcnt==reactionSteps-1)
 		{
 			// find the cells where the chcemistry has changed to calculate there
@@ -359,8 +348,7 @@ int main(int argc, char *argv[])
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
 			t_ph.resize(nxyz);
-			Info<<" sz temp "<<t_ph.size()<<endl;
-			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T()[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
+			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T()[j];} //Info<<" "<<rchange[j];
 			freak.setGvol(gvol); // set gas volume in phreeqc
 			freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
 			freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
@@ -373,35 +361,10 @@ int main(int argc, char *argv[])
 			freak.getSelOutput();
 			Info << "phreeqc done "<<endl;
 				
-			// write to intermediate file, input (for gases)
-			/*
-			if (ph_gcomp>0) {
-				std::ofstream inPhq(cur_dir/"phq_input.txt");
-				for (j=0; j<nxyz;j++) { inPhq<<j<<" "<<p[j]<<" "<<rchange[j]<<" "<<gvol[j]<<" "; for (i=0; i<ph_gcomp;i++) {inPhq<< gm_ph[i*nxyz+j] <<" ";} inPhq<<"\n"; }
-				}
-			*/
 			//auto finish = std::chrono::high_resolution_clock::now();
 			//std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();
 			
 			// transfer back to C but before calc tstep
-			/*
-			int ic;
-			for (ic=4;ic<ph_ncomp;ic++) 
-				{
-				dff=0;dC0=0;
-				if (mxCv[ic-4]>0) {//Cwi=max(Cwi,a); // removing negative
-					for (j=0;j<nxyz;j++) {
-						dff = mag(Cw[ic]()[ractive[j]] - freak.c[ic*nxyz+j])/(mxCv[ic-4]+SMALL);
-						dC0= max(dC0,dff);//sC1+=Cwi[i]; //species max
-						} 
-					Info<<"dC0 chem "<<dC0<<" mxC "<<mxCv[ic-4]<<endl;
-					dC=max(dC0,dC);
-					}
-				}
-			dtForChem = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
-			newDeltaT = min(dtForChem, 1.2*runTime.deltaTValue());Info<<"new dt chem "<<newDeltaT<<endl;
-			runTime.setDeltaT (min (newDeltaT,maxDeltaT) );	
-			*/
 			
 			// set to previous values (outisde rchange)
 			forAll(Cw,i) {Cw[i]() = Cw[i]().prevIter();}
@@ -432,7 +395,8 @@ int main(int argc, char *argv[])
 				}
 	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
 			// write to phq output file			
-			/*if (ph_gcomp>0) {
+			/*
+			if (ph_gcomp>0) {
 				std::ofstream outPhq(cur_dir/"phq_output.txt");
 				for (j=0; j<nxyz;j++) { outPhq<<j<<" "<<p[j]<<" "<<freak.gvol[j]<<" "<<phreeqcVm[j]<<" "<<freak.p[j]<<" "<<freak.wsat[j]<<" "; 
 					for (i=0; i<ph_gcomp;i++) {outPhq<< freak.g[i*nxyz+j] <<" ";} 
@@ -460,15 +424,16 @@ int main(int argc, char *argv[])
 			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
+		
 		bool ts;
-		ts = runTime.write();//oldTime=runTime.value();
+		ts = runTime.write();
 		//write species
 		if (ts && flowType==4) {phiGr.write();}
 		if (ts && activateReaction==1) {
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
-			for (const auto &x : freak.spc) outFile << x << "\n";
+			//for (const auto &x : freak.spc) outFile << x << "\n";
 			/*//start write species file in columns
 			j=0;
 			for (i=0;i<cells.size();i++) {

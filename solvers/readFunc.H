@@ -1,15 +1,13 @@
 // file reader of myfunc
 std::string fname;
 fname = cur_dir+"/myFunc.txt";
-//verify if the file exists
-std::ifstream f(fname.c_str());
-std::vector<double> fparms {1.,0.};//wsl
-//std::cout<<"fparms "<<fparms<<"\n";
+//std::ifstream f(fname.c_str());
+std::vector<double> fparms {1.,0.};//std::cout<<"fparms "<<fparms<<"\n";
 
 if (fexists(fname))
 	{
 	// open the file
-	std::ifstream if0(fname);std::cout<<"file exist \n";
+	std::ifstream if0(fname);//std::cout<<"file exist \n";
 	// read by keywords
 	std::string key;
 	std::string ftype;

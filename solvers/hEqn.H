@@ -39,71 +39,66 @@ if (flowType == 2)
 	}
 forAll(stor(), celli) 
 	{ 
-	if (sw[celli]<sw_max) {stor[celli] = eps[celli]/thk[celli];}// //Info << stor[celli]<<endl;}  
-	else {stor[celli] = stor0/thk[celli];} //   /thk[celli]
+	if (sw[celli]<sw_max) {stor[celli] = storU[celli]/thk[celli];}// //Info << stor[celli]<<endl;}  
+	else {stor[celli] = storC[celli]/thk[celli];} //   /thk[celli]
 	//stor[celli] = (stor0+eps[celli]*(0.49695+1.01/pi*std::atan((0.96-sw[celli])*1000)))/h[celli];// approx formula tomicmic a smoothed step
 	};  //Info << "stor0 " << stor0 <<" stor(4) " << stor[4] << " eps " << eps[4]<<" thk " <<thk[4]<<" vol "<<mesh.V()[4]<<endl;
 stor.dimensions().reset(dimless/dimLength);
 
 // -################# - conditions  ---####################---
 	hSu=hSu*0; hSp=hSp*0; size_t i;//previous cells with values must be destroyed
-	float time = mesh.time().value()/day;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
+	time = mesh.time().value()/day;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge/recharge
-	icount = 0;	//get the ghb conditions
 	if (cellsHwel.size()>0)
 	{
-		//float tnow = cellsHwData[2]*day;//time in files is in days
-		//while (time>=tnow) {icount += cellsHw.size(); tnow = cellsHwData[2+icount*4]*day; }
 		if (time>=tHwel) {
 			output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
 			tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
+			tnext = tHwel;
 			}
- //it is the step
-		//if (icount>0) {icount -= cellsHw.size();};
 		for (i=0; i<cellsHwel.size(); i++)
 			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;}
 		//Info<<i<<" ic "<<cellsHw[i]<<" icdat "<<cellsHwData[2+(icount+i)*4+1]<<endl; }
 	} //Info<<"Hfw read ";
 	//----- get the ghb conditions
-	icount = 0;	//get the ghb conditions
-	int ic0=10;
+	//int ic0=10;
 	if (cellsHghb.size()>0)
 	{
 		if (time>=tHghb) {
 			output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
 			tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
+			tnext = tHghb;
 			}
 		for (i=0; i<cellsHghb.size(); i++) 
 			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day;}
 	} //Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
-	icount = 0; 
 	if (cellsHriv.size()>0)
 	{
 		if (time>=tHriv) {
 			output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
 			tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
+			tnext= tHriv;
 			}
 		for (i=0; i<cellsHriv.size(); i++) 
 			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day;}
 			//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 	} //Info<<"Hriv read "<<endl;
 	//----- get the drn conditions
-	icount = 0; 
 	if (cellsHdrn.size()>0)
 	{
 		if (time>=tHdrn) {
 			output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
 			tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
+			tnext = tHdrn;
 			}
 		for (i=0; i<cellsHdrn.size(); i++) 
 			{
-			i1 = cellsHdrn[i]; v=mesh.V()[i1];
+			i1 = cellsHdrn[i]; v=mesh.V()[i1]; // missing condition!!!
 			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1]=cellsHdrnData[i*4+3]/v/day;
 			}
 	}  //Info<<"Hdrn read ";
 	//---- recharge conditions		
-	icount = 0; //float dv=0;
 	if (cellsHrch.size()>0)
 	{
 		if (time>=tHrch) {
@@ -133,23 +128,26 @@ if (cellsHfix.size()>0)
 	if (time>=tHfix) {
 		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
 		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
+		tnext = tHfix;
 		}
 	//std::cout<<"hfix ";
 	for (i=0; i<cellsHfix.size(); i++) {hEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}//std::cout<<cellsHfix[i]<<" "<<cellsHfixData[i*4+2]<<" ";}
 }
+//resid = average(hEqn.residual());
 
-hEqn.solve(); 
+resid=hEqn.solve().initialResidual(); 
 
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
 Uw = fvc::reconstruct(phiw);
-//phiw =  hEqn.flux() ;//Info<<"phi "<<phiw<<endl;
+//phiw =  hEqn.flux() ;
+//Info<<"phi "<<phiw<<endl;
 volScalarField q1 = fvc::div(phiw);
 volScalarField d1 = stor*fvc::ddt(h);
-for (ilay=0;ilay<nlay;ilay++) {
-	i1=ilay*ncell_lay+ic0;
+//for (ilay=0;ilay<nlay;ilay++) {
+	//i1=ilay*ncell_lay+ic0;
 	//Info<<"h "<<h()[i1]<<" v "<<mesh.V()[i1]<<" sw "<<sw[i1]<<" q1 "<<q1[i1]<<" d1 "<<d1[i1]<<" SuSp "<<hSu[i1]-h()[i1]*hSp[i1]<<endl;
-	}
+	//}
 // get the the water discharge/recharge at fixed heads cells
 int i1;
 for (i=0; i<cellsHdrn.size(); i++) {i1=cellsHdrn[i];qHdrn[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];} //Info<<"qhfx "<<i<<" "<<i1<<" "<<qHfx[i]<<endl;}

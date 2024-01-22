@@ -6,24 +6,18 @@
 #include "IPhreeqcPhast.h"
 int nthreads = 3;
 
-///////////////// get some important values
-/* ifstream f0(cur_dir/"phqfoam.txt");
-std::vector<int> ph_data;
-if (f0) {        
-    int value;
-    // read the elements in the file into a vector  
-    while ( f0 >> value ) {
-        ph_data.push_back(value);
-    }
-f0.close(); */
-
 int nxyz,ph_ncomp,ph_gcomp,ph_nsolu,sunits;
+double my_basic_callback(double x1, double x2, const char *str, void *cookie);
+void register_basic_callback(void *cookie);
+
 ////////////////////// start phreeqc
 class my_phq
 {
 public:
 	PhreeqcRM *PhreeqcRM_ptr;
-	int nxyz=3;
+#ifdef USE_MPI
+	MPI_Comm rm_commxx;
+#endif
 	std::string DB;
 	void setDB(std::string db){this->DB = db;}
 	std::vector<int> data;
@@ -52,6 +46,7 @@ public:
 	void setWsat(std::vector<double> wsat){this->wsat = wsat;}
 	std::vector<double> gvol;
 	void setGvol(std::vector<double> gvol){this->gvol = gvol;}
+	std::vector<std::string> compn;
 	int iGwater=-1;
 	void setNwat(int){this->iGwater = iGwater;}
 	bool EK;
@@ -69,25 +64,7 @@ public:
 		int i,j;
 		if (ph_ncomp<0) {bool EK = true;this->EK = EK;}
 		else {std::vector<double> c(nxyz*ph_ncomp,0.);this->c = c;}
-	/*#ifdef USE_MPI
-		// MPI
-		PhreeqcRM *phreeqc_rm = new PhreeqcRM(nxyz, MPI_COMM_WORLD);
-		MP_TYPE comm = MPI_COMM_WORLD;
-		int mpi_myself;
-		if (MPI_Comm_rank(MPI_COMM_WORLD, &mpi_myself) != MPI_SUCCESS)
-		{
-			exit(4);
-		}
-		if (mpi_myself > 0)
-		{
-			phreeqc_rm.SetMpiWorkerCallbackC(worker_tasks_cc);
-			phreeqc_rm.SetMpiWorkerCallbackCookie(&some_data);
-			phreeqc_rm.MpiWorker();
-			return EXIT_SUCCESS;
-		}
-	#else
-		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
-	#endif */
+
 		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
 		this->PhreeqcRM_ptr = phreeqc_rm;
 		IRM_RESULT status;
@@ -140,11 +117,12 @@ public:
 		int ph_ncomp = phreeqc_rm->FindComponents(); // NECESSARY don't remove
 		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
 		const std::vector<std::string> &compn = phreeqc_rm->GetComponents(); 
+		this->compn = compn;
 		std::cout<<"phq comp "; for (i=0;i<ph_ncomp;i++) {std::cout<<compn[i]<<" ";} std::cout <<"\n";
 
 		// Set array of initial conditions by reading the solution... numbers in data
 		std::vector<int> ic1, ic2;
-		ic1.resize(nxyz*7, -1);
+		ic1.resize(nxyz*7, -1);std::cout<<"ic1 size "<<ic1.size()<<"\n";
 		//std::vector<double> f1;
 		int icnt = 4; // to consider the first 5 numbers : nxyz,ncomp,gcomp,nsolu,units (++ in the first line of the for makes 5 numbers)
 		for (i = 0; i < 7; i++) // Solution,Equilibrium phases,Exchange,Surface,Gas phase,Solid solutions,Kinetics
@@ -167,10 +145,8 @@ public:
 
 		status = phreeqc_rm->InitialPhreeqc2Module(ic1);
 		
-		// Set solutions composition at fixed cells HERE only TWO solutions (shall be modified)
-		//std::vector<double> solu_conc;
-		//std::vector<int> cf1 ={0,-1};
-		//for (i= 0;i<2;i++) {cf1[this->cfix[2+i*4+2]] = this->cfix[2+i*4+3];std::cout<<" cfix "<<i<<" "<< this->cfix[2+i*4+2] << "\n";}
+		// Demonstrate add to Basic: Set a function for Basic CALLBACK after LoadDatabase
+		register_basic_callback(this);
 
 		// run initial conditions
 		int ncell = phreeqc_rm->GetChemistryCellCount();
@@ -180,7 +156,7 @@ public:
 		//status = phreeqc_rm->SetGasCompMoles(this->gm);
 		//status = phreeqc_rm->SetPressure(this->p);
 		//phreeqc_rm->SetPrintChemistryOn(true,false,false);
-		status = phreeqc_rm->SetTemperature(this->temp);
+		status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp "<<this->temp[0]<<"\n";
 		
 		status = phreeqc_rm->RunCells();
 		
@@ -205,10 +181,11 @@ public:
 			std::cout << "in phq poro "<<this->poro[1]<<"\n";
 			std::cout << "c 1-4 ";for (int i=0; i<4;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			std::cout << "c 5-9 ";for (int i=4; i<8;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
+			std::cout<<"Vm "<<this->poro[0]/this->gm[0]<<" "<<this->poro[0]/this->gm[1]<<"\n";
 			//std::cout<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+1]<<" ";} std::cout<<"\n";
-			for (size_t i=0;i<gcompn.size();i++) {
+			for (i=0;i<gcompn.size();i++) {
 				if (gcompn[i]=="H2O(g)") {this->iGwater = i;}
 			}
 		}
@@ -232,7 +209,7 @@ public:
 	}
 	
 	//--------------------------- RUN ------------------------------
-	
+
 	void run()
 	{
 		IRM_RESULT status;
@@ -246,16 +223,18 @@ public:
 		//status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcompn.size()<<"ph ws "<<this->wsat[0]<<"\n";
+		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcompn.size()<<" phq ws "<<this->wsat[0]<<"\n";
 		nxyz = this->data[0];
 		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
 		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
-		status = phreeqc_rm->SetTemperature(this->temp);std::cout<<"temp done ";
+		
+		status = phreeqc_rm->SetTemperature(this->temp);
+		std::cout<<"temp ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
 		if (gcompn.size()>0) {
-			std::cout<<"nb gcomp before "<<gcompn.size();//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+			std::cout<<"nb gcomp before "<<gcompn.size()<<"\n";//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
-			//status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
+			status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
 			//status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
@@ -273,7 +252,7 @@ public:
 		status = phreeqc_rm->RunCells();
 		
 		//status = phreeqc_rm->GetSaturation(this->wsat);
-		//this->temp = phreeqc_rm->GetTemperature();
+		//status = phreeqc_rm->GetTemperature(this->temp);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
 	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";
@@ -281,21 +260,20 @@ public:
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
-			this->p = phreeqc_rm->GetPressure();
+			//this->p = phreeqc_rm->GetPressure();
 			}
 		//writes to the dump file
 		//bool dump_on = true;
 		//bool append = false;
 		//status = phreeqc_rm->SetDumpFileName("phreeqc.dmp");
 		//status = phreeqc_rm->DumpModule(dump_on, append);
-	//phreeqc_rm->SetSelectedOutputOn(true);
 	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+0]<<" ";} std::cout<<"\n";
-	if (ph_gcomp>0) {
-	//std::cout<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+		/*if (ph_gcomp>0) {
+		//std::cout<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 		std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 		std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
 		std::cout<<"p ";for (int i=0;i<5;i++) {std::cout<<this->p[i]<<" ";} std::cout<<"\n";
-		}
+		}*/
 	}
 	
 	void getSelOutput()
@@ -304,23 +282,23 @@ public:
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
 		int n_user = phreeqc_rm->GetNthSelectedOutputUserNumber(0);
 		status = phreeqc_rm->SetCurrentSelectedOutputUserNumber(n_user);
-		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();std::cout<<"in selout ncol "<<ncol<<"\n";
+		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();std::cout<<"in phq ncol "<<ncol<<"\n";
 		std::string heading;int nphase=0;
 		for (int i = 0; i < ncol; i++)
 			{
 				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
 				if (heading.substr(0,2)=="d_")  {nphase +=1;}
 			}
-		nxyz = this->data[0];std::cout<<"in selout nphase "<<nphase<<"\n";
+		nxyz = this->data[0];std::cout<<"in phq nphase "<<nphase<<"\n";
 		this->nselect = ncol-6-nphase;
 		this->spc.resize((this->nselect)*nxyz,0);
 		std::vector<double> so(ncol*nxyz);
 		status = phreeqc_rm->GetSelectedOutput(so);
 		//std::vector<std::string> headings;
 		//headings.resize(ncol);
+		nphase = 0;/*
 		for (int j = 0; j < nxyz; j++)
 		{
-			nphase = 0;
 			for (int i = 6; i < ncol; i++)
 			{
 				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
@@ -331,6 +309,51 @@ public:
 					if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
 					}
 			}
-		}
+		}*/
 	}
 };
+
+void register_basic_callback(void *cookie)
+{
+	my_phq *data;
+#ifdef USE_MPI
+	int mpi_tasks, mpi_myself;
+#endif
+	int	method_number = 1001;
+	data = (my_phq *) cookie;
+
+#ifdef USE_MPI
+	MPI_Comm_size(MPI_COMM_WORLD, &mpi_tasks);
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_myself);
+	if (mpi_myself == 0)
+	{
+		MPI_Bcast(&method_number, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	}
+#endif
+
+	const std::vector<IPhreeqcPhast *> w = data->PhreeqcRM_ptr->GetWorkers();
+	for (int i = 0; i < (int) w.size(); i++)
+	{
+		w[i]->SetBasicCallback(my_basic_callback, cookie);
+	}
+}
+
+double my_basic_callback(double x1, double x2, const char *str, void *cookie)
+{
+	my_phq * data_ptr = (my_phq *) cookie;
+	PhreeqcRM *phreeqcrm_ptr = data_ptr->PhreeqcRM_ptr;
+	std::string option(str);
+
+	int cn = (int) x1;
+	if (cn >= 0 && cn < phreeqcrm_ptr->GetChemistryCellCount())
+	{
+		//const std::vector < std::vector <int> > & back = phreeqcrm_ptr->GetBackwardMapping();
+		if (option == "WSAT")
+		{
+			//int cn = back[rm_cell_number][0];std::cout<<cn<<" wsat "<<data_ptr->wsat[cn]<<"\n";
+			return data_ptr->wsat[cn];
+		}
+		if (option == "PORO") { return data_ptr->poro[cn]; }
+	}
+	return -999.9;
+}

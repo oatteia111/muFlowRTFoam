@@ -70,7 +70,8 @@ else if (flowType != 0) // flowType=0 no flow
    #include "hEqn.H"
    deltaTFact = 1.2;
 }
-//Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<endl;
+Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" tnext(s) "<<tnext*day<<endl;
+//maxDeltaT = min(maxDeltaT,(tnext-runTime.value())*day);
 runTime.setDeltaT (min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
 
 Uw = fvc::reconstruct(phiw); // This is a true darcy velocity (flux divided by surface even in unconfined)

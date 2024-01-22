@@ -29,6 +29,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 		if (time>=tCwel) {
 			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
 			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
+			tnext = tCwel;
 			}
 		for (i=0; i<cellsCwel.size(); i++) 
 			{ 
@@ -43,6 +44,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 		if (time>=tCghb) {
 			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
 			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
+			tnext = tCghb;
 			}
 		for (size_t i=0; i<cellsHghb.size(); i++) 
 			{ 
@@ -68,6 +70,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 		if (time>=tCrch) {
 			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
 			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
+			tnext = tCrch;
 			}
 		for (size_t i=0; i<cellsCrch.size(); i++) 
 			{ 
@@ -83,7 +86,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 C.storePrevIter();//Info<<"c 10740 avt "<<C()[10740]<<endl;
 fvScalarMatrix CEqn
 	(
-		R * thetaw * fvm::ddt(C) + R * C * fvc::ddt(thetaw) 
+		Rf * thetaw * fvm::ddt(C) + Rf * C * fvc::ddt(thetaw) 
 		+ fvm::div(phiw, C, "div(phiw,C)") 
 		- fvm::laplacian(Deffw, C, "laplacian(Deffw,C)")
 		+ thetaw * fvm::Sp(lbdaw,C)
@@ -121,4 +124,5 @@ dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue();
 
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+//newDeltaT = min(newDeltaT,(tnext-runTime.value())*day);
 runTime.setDeltaT (min (newDeltaT,maxDeltaT) );

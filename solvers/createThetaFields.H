@@ -4,9 +4,13 @@
 Info << "Reading unsat properties\n" << endl;
 //scalar n_vg(transportProperties.lookupOrDefault<scalar>("n_vg",1.5));
 //dimensionedScalar alpha_vg(transportProperties.lookupOrDefault("alpha_vg",dimensionedScalar("alpha_vg",dimless/dimLength,10.0)));
+volScalarField hp
+(
+    IOobject("hp",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("hp",dimLength,0)
+);
 volScalarField sw_min
 (
-    IOobject("sw_min",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw_min",dimless,1e-4)
+    IOobject("sw_min",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw_min",dimless,1e-6)
 );
 volScalarField n_vg
 (
@@ -29,7 +33,7 @@ surfaceScalarField phiGr ("phiGr",(Lf * g) & mesh.Sf() );
 //surfaceScalarField phiPcNull ("phiPc",0*phiGr);
 label iterPicard=0;
 scalar resPicard = 1000.;
-Info << "end general fields, flowType" << flowType<<endl;
+Info << "end general fields theta, flowType" << flowType<<endl;
 
 if (flowType == 3) // unsaturated
 {

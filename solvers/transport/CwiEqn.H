@@ -9,7 +9,7 @@ Deffw = (alphaT * mag(Uw))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL
 double conc;int ic;size_t i;
 mxCv.resize(ph_ncomp-4,0.);
 
-float time = mesh.time().value()/day; //const Time&
+time = mesh.time().value()/day; //nb tnext is the future time that a new condition will appear
 
 //get the solution well data
 if (cellsSwel.size()>0)
@@ -19,6 +19,7 @@ if (cellsSwel.size()>0)
 		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
 		}
 	for (i=0; i<cellsSwel.size(); i++) {condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);}
+	Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
 	}
 //no solutions for drains
 //get the solution ghb data
@@ -46,18 +47,19 @@ if (cellsSrch.size()>0)
 		output = getCbuffer("srch",itSrch,cellsSrch.size()); 
 		tSrch = output.t; cellsSrchData=output.d; itSrch +=1;
 		}
-	for (i=0; i<cellsSrch.size(); i++) 
-		{
-		condSrch[i] = static_cast<int>(cellsSrchData[i*4+2]);
-		}
+	for (i=0; i<cellsSrch.size(); i++) {condSrch[i] = static_cast<int>(cellsSrchData[i*4+2]);}
 	}
 
 double dC=0;double sdC=0;
 
+// main loop over species
 for (j=0;j<nxyz;j++) {Cw[0]()[j]=solu_conc[0];}  // water is alwas set to 55.34 from solution 0
 for (ic=1; ic<ph_ncomp;ic++)
     {
+		//Info<<"immob ic "<<immobile[ic]<<endl;
+		if (immobile[ic]==1) {continue;}
 		volScalarField& Cwi = Cw[ic]();
+		//Rf = plugCwi.run(mesh,ic,Cwi); // this is the plugin for sorption,needs to be here (compn specific)
 		word nameCi ("Cw" + name(ic));
 		Cw[ic]().storePrevIter();
 		//Info<<"start Cwi "<<endl;
@@ -71,6 +73,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 				i1=cellsHwel[i];v=mesh.V()[i1];
 				if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 				else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
+				//Info<< ic << " Csu wel "<<CiSu[i1]<<endl;
 				}
 		} //Info<<"Cweli set"<<endl;
 		// conc at ghb places
@@ -82,7 +85,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 				if (qHghb[i]<0) {CiSp[i1] = -(qHghb[i])/v;} //in Sp term as discharge prop to local concentration
 				else {CiSu[i1] = -qHghb[i]/v*solu_conc[condSghb[i]*ph_ncomp+ic];}
 				} 
-		} //Info<<"Cghbi set"<<endl;
+		} //Info<<"Sghbi set"<<endl;
 		//remove conc at drn places
 		if (cellsHdrn.size()>0)
 		{
@@ -90,9 +93,9 @@ for (ic=1; ic<ph_ncomp;ic++)
 				{ i1=cellsHdrn[i];v=mesh.V()[i1];CiSp[i1] = -qHdrn[i]/v; } 
 		} //Info<<"Cdrni set"<<endl;
 		//recharge, for recharge however there shall be a solution at all surface cells so Srch and Hrch correspond
-		if (cellsSrch.size()>0)
+		if (cellsHrch.size()>0)
 		{
-			for (i=0; i<cellsSrch.size(); i++) 
+			for (i=0; i<cellsHrch.size(); i++) 
 				{ 
 				v=mesh.V()[clayRch[i]];
 				if (CiSu[clayRch[i]]==0) {
@@ -100,20 +103,18 @@ for (ic=1; ic<ph_ncomp;ic++)
 					} // recharge does not occur at drains, ghb, fix...
 				//if (ic==0) {Info<<"rch "<< i<<" ilay " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<solu_conc[condSrch[i]*ph_ncomp+ic]<<endl;}
 				} 
-		} //Info<<"Crchi set"<<endl;
-
-		// for fixed solution cells with a search of the presence of fixed head or ghb cells
-		//icount = 0;float ccnd0=1e-6;float ccnd =0;int iH=1e5;int iG=1e5;
+		} //Info<<"Srchi set"<<endl;
 		
 		fvScalarMatrix CwiEqn
 		(		  
-            thetaw * fvm::ddt(Cwi) + Cwi * fvc::ddt(thetaw)
+            Rf * thetaw * fvm::ddt(Cwi) + Rf * Cwi * fvc::ddt(thetaw)
             + fvm::div(phiw, Cwi, "div(phiw,C)")
-            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") // ne pa smettre thetaw
+            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") // ne pas mettre thetaw
 			+ CiSu + fvm::SuSp(CiSp, Cwi)
 		);
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
+		//std::cout<<"Rf in Cwi(80) "<<Rf[80]<<" thetw "<<thetaw[80]<<"\n";
 
 		CwiEqn.solve();
 	}

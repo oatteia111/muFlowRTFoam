@@ -10,6 +10,7 @@
 		if (time>=tPwel) {
 			output = getCbuffer("pwel",itPwel,cellsPwel.size()); 
 			tPwel = output.t; cellsPwelData=output.d; itPwel +=1;
+			tnext = tPwel;
 			}
 		for (i=0; i<cellsPwel.size(); i++) {condPwel[i] = static_cast<int>(cellsPwelData[i*4+2]);}
 		}
@@ -27,6 +28,7 @@ if (cellsPfix.size()>0)
 	if (time>=tPfix) {
 		output = getCbuffer("pfix",itPfix,cellsPfix.size()); 
 		tPfix = output.t; cellsPfixData=output.d; itPfix +=1;
+		tnext= tPfix;
 		}
 	for (i=0; i<cellsPfix.size(); i++) {pEqn.setReference(cellsPfix[i],static_cast<int>(cellsPfixData[i*4+2]));}
 	}

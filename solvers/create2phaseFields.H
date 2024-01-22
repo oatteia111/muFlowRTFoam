@@ -1,12 +1,19 @@
 Info<<"start 2phasefields"<<endl;
-	autoPtr<incompressiblePhase> phaseg = incompressiblePhase::New(mesh,transportProperties,"g");
+/*
+autoPtr<incompressiblePhase> phaseg = incompressiblePhase::New(mesh,transportProperties,"g");
 	volVectorField& Ug = phaseg->U();
 	const dimensionedScalar& rhog = phaseg->rho();
 	const dimensionedScalar& mug = phaseg->mu();
 	phaseg->phi().writeOpt()=IOobject::NO_WRITE;
-	Ug.readOpt()=IOobject::READ_IF_PRESENT;
+	Ug.readOpt()=IOobject::READ_IF_PRESENT;*/
 	//Ug = Uw*0;//phig = phiw*0; //Ug is still needed to be read
-	surfaceScalarField phig ("phig",phiw*0);
+dimensionedScalar rhog(transportProperties.lookupOrDefault("rhog",dimensionedScalar("rhog",dimensionSet(1,-3,0,0,0,0,0),1.2)));
+dimensionedScalar mug(transportProperties.lookupOrDefault("mug",dimensionedScalar("mug",dimensionSet(1,-1,-1,0,0,0,0),1e-5)));
+volVectorField Ug
+(
+    IOobject("Ug",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Ug",dimLength/dimTime,vector::zero)
+);
+surfaceScalarField phig ("phig",phiw*0);
 //Info<<"sw "<<sw<<endl;
 Se = max(1e-4,min((sw-sw_min)/(sw_max-sw_min),1-1e-6));//Info<<"Se min"<<min(Se)<<" Se max "<<max(Se)<<endl;
 volScalarField krg ("krg", pow(1-Se,0.5) * pow(1-pow(Se,1/m_vg),2*m_vg) );//Info<<"krg "<<krg<<endl;
@@ -26,11 +33,11 @@ Info<<"end phase g"<<endl;
 //- mobility computation 
 surfaceScalarField Mwf ("Mwf",Kf*krwf/muw);
 surfaceScalarField Lwf ("Lwf",Mwf*rhow);
+volVectorField U = Ug + Uw;
+
 if (flowType == 4) // 2 phase
 	{
 	// phase
-	U = Ug + Uw;
-
 	b.dimensions().reset(dimensionSet(-1,1,2,0,0,0,0));
 	Mf.dimensions().reset(dimensionSet(-1,3,1,0,0,0,0)); // 
 	Mf = Mwf + Kf*krgf/mug;Info<<"Mf 0 1 "<<Mf[0]<<" "<<Mf[1]<<endl;

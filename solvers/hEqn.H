@@ -135,7 +135,7 @@ if (cellsHfix.size()>0)
 }
 //resid = average(hEqn.residual());
 
-resid=hEqn.solve().initialResidual(); 
+residu = hEqn.solve().initialResidual(); 
 
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one

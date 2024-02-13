@@ -65,14 +65,14 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	}
 
 	//recharge
-	if (cellsCrch.size()>0) // recharge is different, required only if C>0
+	if (cellsHrch.size()>0) // recharge is different, required only if C>0
 	{
 		if (time>=tCrch) {
 			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
 			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
 			tnext = tCrch;
 			}
-		for (size_t i=0; i<cellsCrch.size(); i++) 
+		for (size_t i=0; i<cellsHrch.size(); i++) 
 			{ 
 			v=mesh.V()[clayRch[i]];
 			if (CSu[clayRch[i]]==0) { //recharge occurs only where no ghb, riv or drains

@@ -2,7 +2,6 @@
 simpleControl simple(mesh);  // new 11/6/21
 double x;
 int ilay,nc,nc1;
-scalarField resid = h*0;
 //resid.dimensions().reset(dimensionSet(0,1,-1,0,0,0,0));
 
 //Time locTime = Foam::autoPtr<Foam::Time>::New() 	;//runTime.New();
@@ -134,7 +133,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	//Info << hEqnStd.solver().solve() <<endl; //typeid().name()//hEqnStd.lower() works
 	hEqnStd.solve(); //Info << "h 5 " << h[5] << endl;
 	//h.relax();
-	resid = hEqnStd.residual()()*1;
+	residu = average(hEqnStd.residual()());
 	phiw = hEqnStd.flux() ;
 	//phiw = - ((Mf * fvc::interpolate(fvc::grad(h)) ) & mesh.Sf() ); //phiG- 
 	Uw = fvc::reconstruct(phiw);

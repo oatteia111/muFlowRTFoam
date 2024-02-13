@@ -59,7 +59,6 @@ for (ic=1; ic<ph_ncomp;ic++)
 		//Info<<"immob ic "<<immobile[ic]<<endl;
 		if (immobile[ic]==1) {continue;}
 		volScalarField& Cwi = Cw[ic]();
-		//Rf = plugCwi.run(mesh,ic,Cwi); // this is the plugin for sorption,needs to be here (compn specific)
 		word nameCi ("Cw" + name(ic));
 		Cw[ic]().storePrevIter();
 		//Info<<"start Cwi "<<endl;
@@ -104,6 +103,8 @@ for (ic=1; ic<ph_ncomp;ic++)
 				//if (ic==0) {Info<<"rch "<< i<<" ilay " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<solu_conc[condSrch[i]*ph_ncomp+ic]<<endl;}
 				} 
 		} //Info<<"Srchi set"<<endl;
+		
+		//Rf = plugCwi.setRf(mesh,ic,Cwi); // this is the plugin for sorption,needs to be here (compn specific)
 		
 		fvScalarMatrix CwiEqn
 		(		  

@@ -66,9 +66,9 @@ std::string cur_dir = get_current_dir();
 std::vector<double> a(12,0.);
 #include "phreeqc/initPhreeqc.H"
 std::vector<double> c_ph,gm_ph,t_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
-std::vector<int> immobile;
+std::vector<int> immobile,wTimes;
 float atmPa=101325.;float vmw,Cgtot,Gmtot;
-int i,j,iw;
+int i,j,iw,oindex;
 my_phq freak; //need to be here to be availabel for every chem condition
 
 #include "myFunc.H"
@@ -79,8 +79,8 @@ dicFunc fDe_T;
 
 using namespace Foam;
 #include "utilities.h" // for reading binary reading tables..
-//#include "plugin_Cwi.H"
-//plugin_Cwi plugCwi;
+#include "plugin_Cgi.H"
+plugin_Cgi plugCgi;
 
 
 int main(int argc, char *argv[])
@@ -101,7 +101,20 @@ int main(int argc, char *argv[])
 	Info << "fDe parms "<< fDe_T.fparms[0] << " "<<fDe_T.fparms[1] << endl;
 	#include "transport/createCFields.H"
 	#include "transport/createTFields.H"
-
+	
+	// reading some general files (times, obs points)
+	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	wTimes = {std::istream_iterator<int>{inputwTimes}, {}};
+	std::ifstream inputObscoo{cur_dir+"/constant/options/obspts" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	std::vector<float> obs,obscoo; // obs for us ein observation.H file
+	obscoo = {std::istream_iterator<float>{inputObscoo}, {}};
+	int nobs=obscoo.size()/3;std::cout<<"nobs "<<nobs<<std::endl;
+	labelList icello(nobs);
+	for (int io=0;io<nobs;io++) {
+		vector coord(obscoo[io*3],obscoo[io*3+1],obscoo[io*3+2]);
+		icello[io]=mesh.findCell(coord);
+		std::cout<<"icell "<<icello[io]<<std::endl;
+		}
 	if (activateReaction==1)
 	{
 	//##############  phreeqc intiialisation for solutions and gases
@@ -181,6 +194,7 @@ int main(int argc, char *argv[])
 			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
 			}
 	iw = freak.iGwater;
+	Info<<"end c_ph and gm_ph "<<endl;
 	//###################"" loading immobile component is present  ###############""
 	std::vector<std::string> immobStr;
 	std::ifstream inputImmobile{cur_dir+"/constant/options/immobile" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
@@ -188,9 +202,10 @@ int main(int argc, char *argv[])
 	immobile.resize(ph_ncomp,0);
 	for (i=0;i<immobStr.size();i++) 
 		{
-		int ic = std::find(freak.compn.begin(),freak.compn.end(),immobStr[i])-freak.compn.begin(); //find the position of str in compn
+		int ic = std::find(freak.comp.begin(),freak.comp.end(),immobStr[i])-freak.comp.begin(); //find the position of str in comp
 		immobile[ic]=1;std::cout<<"immob "<<immobStr[i]<<" "<<ic<<" "<<immobile[ic]<<"\n";
 		}
+	Info<<"end immobile "<<endl;
 	
 	} //end of activateReation
 	
@@ -200,6 +215,7 @@ int main(int argc, char *argv[])
 	}
 	
 	//plugCwi.init(cur_dir,transportProperties,mesh,freak); // initiate the plugin for transport
+	plugCgi.init(cur_dir,transportProperties,mesh,freak); // initiate the plugin for transport
 
 	// #include "createFvOptions.H"
 	#include "transport/createCwiFields.H"
@@ -232,7 +248,7 @@ int main(int argc, char *argv[])
 	dimensionedScalar et = runTime.endTime();
 	dimensionedScalar dt0 = mesh.time().deltaTValue();
 	scalar dt1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dt1<<endl;
-	scalar resid;
+	scalar residu;
 	if ((flowStartSteady==1)&&(flowType>0))
 		{
 		runTime.setDeltaT(1);
@@ -262,12 +278,22 @@ int main(int argc, char *argv[])
     // Affichage des index des cellules réordonnées
     //Info << "Index des cellules réordonnées : " << level << endl;
 	
-	int istep = 0;int tcnt = 0;
+	int itstep = 1;int tcnt = 0;int wtime=wTimes[itstep];int flagW=1; // first tstep is 0
 	while (runTime.run())
     {
+		//double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
+		//set time step to stop at writeTimes
+		oldTime = mesh.time().value();
+		float dt=wtime - oldTime;
+		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<runTime.deltaTValue()<<" flg "<<flagW<<endl;
+		if (dt < runTime.deltaTValue()+0.01 && dt!=0) 
+			{runTime.setDeltaT(wtime - oldTime);itstep+=1;wtime=wTimes[itstep];flagW=1;}
+		if (dt==0) {itstep+=1;wtime=wTimes[itstep];flagW=1;}
+		Info<<"i time "<<itstep<<" "<<wtime<<" "<<flagW<<endl;
 		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
 		runTime++;
+		//if (mesh.time().value()==wtime) {flagW=1;}
 		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
@@ -276,7 +302,7 @@ int main(int argc, char *argv[])
 		if (flowType>0) {
 			#include "flow.H"
 			}
-		deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
+		//deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
 		
 		//***************  solve Transport  *************************
@@ -299,9 +325,6 @@ int main(int argc, char *argv[])
 				}
 			
 			}
-		//dC1 = dC*.999;dT1 = dT*.999;Info<<"dC1  "<<dC1<<endl;
-		//Info<<" cg 0 0 "<<Cg[0]()[0]<<" cg 0 1 "<<Cg[0]()[1]<<endl;
-		//if (ph_gcomp>1) {Info<<" cg 0 1 "<<Cg[0]()[1]<<endl;}
 		
 		//***************  solve reaction  *************************
 		// find where the transported conc have changed to calculate only there
@@ -393,18 +416,6 @@ int main(int argc, char *argv[])
 					}
 				for (i=0; i<ph_gcomp;i++){for (j=0;j<3;j++) {Info <<"g_spc "<< i <<" Cg "<< Cg[i]()[j] <<" sw "<<sw[j]<< endl;}}
 				}
-	//Info<<"gvol 20 "<<gvol[20]<<" cg 0 19 "<<Cg[0]()[19]<<" cg 0 20 "<<Cg[0]()[20]<<" cg 0 21 "<<Cg[0]()[21]<<endl;
-			// write to phq output file			
-			/*
-			if (ph_gcomp>0) {
-				std::ofstream outPhq(cur_dir/"phq_output.txt");
-				for (j=0; j<nxyz;j++) { outPhq<<j<<" "<<p[j]<<" "<<freak.gvol[j]<<" "<<phreeqcVm[j]<<" "<<freak.p[j]<<" "<<freak.wsat[j]<<" "; 
-					for (i=0; i<ph_gcomp;i++) {outPhq<< freak.g[i*nxyz+j] <<" ";} 
-					for (i=0; i<ph_gcomp;i++) {outPhq<< freak.gm[i*nxyz+j] << " ";} 
-					outPhq<<"\n"; 
-					}
-				}
-			*/
 			// find the variation of wsat from nb moles H2O in gas phase, phreeqc considers a volume of 1 dm3
 			if (freak.iGwater>-1) //should consider ractive
 				{
@@ -425,37 +436,25 @@ int main(int argc, char *argv[])
 		} //end activate reaction
 		
 		
-		bool ts;
-		ts = runTime.write();
-		//write species
-		if (ts && flowType==4) {phiGr.write();}
-		if (ts && activateReaction==1) {
+		//bool ts = runTime.write();
+		//write
+		#include "observation.H"
+		if (flagW==1) {runTime.writeNow();flagW=0;}
+		
+		//if (flowType==4) {phiGr.write();}
+		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
-			//for (const auto &x : freak.spc) outFile << x << "\n";
-			/*//start write species file in columns
-			j=0;
-			for (i=0;i<cells.size();i++) {
-				for (k=0;k<freak.nspc;k++) {
-					if (i==ractive[j]) {outFile << freak.spc[i*nxyz+j]<<" ";j+=1;}
-					else {outFile << 0.<<" "}
-					}
-				outFile<<"\n";
-			} //end write species file*/
-			
+			for (const auto &x : freak.spc) outFile << x << "\n";
 			}
 		
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"
 			<< nl << endl;
 
-		Info<< "End\n" << endl;
-		double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
-		Info <<" time" << mesh.time().time().value() <<" w intv " <<rt<<endl;
-		//if (mesh.time().time().value()>rt/10) {
-		//int inpt = cin.get();//}
-		istep ++;
+		Info<< "End tstep\n" << endl;
+
 	}
     return 0;
 }

@@ -51,11 +51,14 @@ for (ig=0; ig<ph_gcomp;ig++)
 				}
 		}
 
+		lbdag.value() = plugCgi.setLbdag(mesh,ig,Cgi); // this is the plugin for degradation,needs to be here (compg specific)
+		Info<<"lbdag "<<ig <<" "<<lbdag<<endl;
 		fvScalarMatrix CgiEqn
 		(		  
             thetag * fvm::ddt(Cgi) +  Cgi * fvc::ddt(thetag)
 			+ fvm::div(phig, Cgi, "div(phig,Cgi)") // used only in multiphase
             - fvm::laplacian(Deffg, Cgi, "laplacian(Deffg,Cgi)")
+			+ thetag * fvm::Sp(lbdag,Cgi)
 			+ CiSu + fvm::SuSp(CiSp, Cgi)
 		);  //			== fvOptions(sw,Cgi)
 

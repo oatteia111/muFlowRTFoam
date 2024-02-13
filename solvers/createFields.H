@@ -215,18 +215,6 @@ std::vector<int> cellsHghb = indexC(cellsHghb0,cellsHghbData) ;
 std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
-// reading the hwell data for wells
-//std::ifstream inputHwdata{cur_dir+"/constant/options/hwel", std::ios::binary}; //
-//cellsHwData = {std::istream_iterator<float>{inputHwdata}, {}};
-//while (inputHwdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHwData.push_back(f0);}
-	
-// reading the rch data for Recharge cells
-//std::ifstream inputHrchdata{cur_dir+"/constant/options/hrch", std::ios::binary}; //
-//cellsHrchData = {std::istream_iterator<float>{inputHrchdata}, {}};
-//while (inputHrchdata.read(reinterpret_cast<char*>(&f0), sizeof(float))) {cellsHrchData.push_back(f0);}
-//if (cellsHrchData.size()>0){cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
-
-
 //--------------------------- neural network ------------------------------------
 scalar activateNNtransport(transportProperties.lookupOrDefault<scalar>("activateNNtransport",0));
 scalar activateNNchemistry(transportProperties.lookupOrDefault<scalar>("activateNNchemistry",0));

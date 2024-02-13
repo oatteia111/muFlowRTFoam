@@ -46,7 +46,8 @@ public:
 	void setWsat(std::vector<double> wsat){this->wsat = wsat;}
 	std::vector<double> gvol;
 	void setGvol(std::vector<double> gvol){this->gvol = gvol;}
-	std::vector<std::string> compn;
+	std::vector<std::string> comp;
+	std::vector<std::string> gcomp;
 	int iGwater=-1;
 	void setNwat(int){this->iGwater = iGwater;}
 	bool EK;
@@ -115,10 +116,10 @@ public:
 		status = phreeqc_rm->RunString(workers, initial_phreeqc, utility, input.c_str());
 		
 		int ph_ncomp = phreeqc_rm->FindComponents(); // NECESSARY don't remove
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
-		const std::vector<std::string> &compn = phreeqc_rm->GetComponents(); 
-		this->compn = compn;
-		std::cout<<"phq comp "; for (i=0;i<ph_ncomp;i++) {std::cout<<compn[i]<<" ";} std::cout <<"\n";
+		const std::vector<std::string> &gcomp = phreeqc_rm->GetGasComponents(); //std::cout<<"phq gcomp0 "<<gcomp[0]<<"\n";
+		const std::vector<std::string> &comp = phreeqc_rm->GetComponents(); 
+		this->comp = comp;this->gcomp = gcomp;
+		std::cout<<"phq comp "; for (i=0;i<ph_ncomp;i++) {std::cout<<comp[i]<<" ";} std::cout <<"\n";
 
 		// Set array of initial conditions by reading the solution... numbers in data
 		std::vector<int> ic1, ic2;
@@ -185,8 +186,8 @@ public:
 			//std::cout<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+1]<<" ";} std::cout<<"\n";
-			for (i=0;i<gcompn.size();i++) {
-				if (gcompn[i]=="H2O(g)") {this->iGwater = i;}
+			for (i=0;i<gcomp.size();i++) {
+				if (gcomp[i]=="H2O(g)") {this->iGwater = i;}
 			}
 		}
 	std::cout << "c ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+0]<<" ";} std::cout<<"\n";
@@ -223,15 +224,15 @@ public:
 		//status = phreeqc_rm->SetPrintChemistryMask(print_chemistry_mask); 
 		//status = phreeqc_rm->SetPrintChemistryOn(true, false, false); // workers, initial_phreeqc, utility
 		const std::vector<std::string> &components = phreeqc_rm->GetComponents();
-		const std::vector<std::string> &gcompn = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcompn.size()<<" phq ws "<<this->wsat[0]<<"\n";
+		const std::vector<std::string> &gcomp = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcomp.size()<<" phq ws "<<this->wsat[0]<<"\n";
 		nxyz = this->data[0];
 		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
 		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
 		
 		status = phreeqc_rm->SetTemperature(this->temp);
 		std::cout<<"temp ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
-		if (gcompn.size()>0) {
-			std::cout<<"nb gcomp before "<<gcompn.size()<<"\n";//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
+		if (gcomp.size()>0) {
+			std::cout<<"nb gcomp before "<<gcomp.size()<<"\n";//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->gm[i*nxyz+0]<<" ";} std::cout<<"\n";
 			status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
@@ -256,7 +257,7 @@ public:
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
 	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";
-		if (gcompn.size()>0) {
+		if (gcomp.size()>0) {
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);

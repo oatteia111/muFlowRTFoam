@@ -1,4 +1,4 @@
-//general transport class
+//This plugin will modify some elements of the Cwi equation
 class plugin_Cwi
 {
 public:
@@ -28,7 +28,7 @@ public:
 				}
 			}
 	}
-	volScalarField run(fvMesh & mesh,int & ic, volScalarField & Cwi)
+	volScalarField setRf(fvMesh & mesh,int & ic, volScalarField & Cwi)
 	{
 		//calculate the value of Rf depending on Aw and thus sw
 		double R=8.31; //R thermo constant in J.mol-1.K-1

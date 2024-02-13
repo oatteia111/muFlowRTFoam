@@ -1,3 +1,4 @@
+dimensionedScalar lbdag(transportProperties.lookupOrDefault("lbdag",dimensionedScalar("lbdag",dimless/dimTime,0.0)));
 dimensionedScalar Dg0(transportProperties.lookupOrDefault("Dg0",dimensionedScalar("Dg0",dimArea/dimTime,1e-6)));
 scalar diffusionEqn(transportProperties.lookupOrDefault<scalar>("diffusionEqn",0));
 

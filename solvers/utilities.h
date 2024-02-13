@@ -42,13 +42,13 @@ outTable readTable(string fname)
 	std::string h;
 	std::ifstream if0(fname);
 	int nrow, ncol;float d;
-	if0 >> nrow; if0 >> ncol;//std::cout<<"in readtable "<<nrow<<" "<<ncol<<"\n";
+	if0 >> nrow; if0 >> ncol;std::cout<<"in readtable "<<nrow<<" "<<ncol<<"\n";
 	headers.resize(nrow);
 	std::vector<float> data;
 	data.resize(nrow*ncol);
 	for (int i=0;i<nrow;i++) {
 		if0 >> h;headers[i]=h;//std::cout<<" "<<headers[i];
-		for (int j=0;j<ncol;j++) {if0 >> d;data[i*ncol+j]=d;}
+		for (int j=0;j<ncol;j++) {if0 >> d;data[i*ncol+j]=d;}//std::cout<<" "<<d;}
 		}
 	outTable output;
 	output.headers = headers;

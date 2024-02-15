@@ -105,16 +105,19 @@ int main(int argc, char *argv[])
 	// reading some general files (times, obs points)
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	wTimes = {std::istream_iterator<int>{inputwTimes}, {}};
-	std::ifstream inputObscoo{cur_dir+"/constant/options/obspts" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
-	std::vector<float> obs,obscoo; // obs for us ein observation.H file
-	obscoo = {std::istream_iterator<float>{inputObscoo}, {}};
-	int nobs=obscoo.size()/3;std::cout<<"nobs "<<nobs<<std::endl;
-	labelList icello(nobs);
-	for (int io=0;io<nobs;io++) {
-		vector coord(obscoo[io*3],obscoo[io*3+1],obscoo[io*3+2]);
-		icello[io]=mesh.findCell(coord);
-		std::cout<<"icell "<<icello[io]<<std::endl;
-		}
+	
+	//Observations : a file with the name of each pooint and its x,y,z, coordinates
+	fname = cur_dir+"/constant/options/obspts";std::vector<float> obs;int nobs;std::vector<int> icello;outTable observ;
+	if (fexists(fname))
+		{
+		observ = readTable(fname);nobs = observ.nrow;int ncol = observ.ncol;icello.resize(nobs);std::cout<<"nobs "<<nobs<<" "<<ncol<<"\n";
+		for (int io=0;io<nobs;io++) {
+			//vector coord(observ.data[io*ncol],observ.data[io*ncol+1],observ.data[io*ncol+2]);
+			int ix=observ.data[io*ncol];int iz=observ.data[io*ncol+1];
+			icello[io]=iz*ncell_lay+ix;std::cout<<"obs i "<<ix<<" "<<iz<<" "<<icello[io]<<"\n";
+			}
+		}		
+		
 	if (activateReaction==1)
 	{
 	//##############  phreeqc intiialisation for solutions and gases
@@ -439,7 +442,7 @@ int main(int argc, char *argv[])
 		//bool ts = runTime.write();
 		//write
 		#include "observation.H"
-		if (flagW==1) {runTime.writeNow();flagW=0;}
+		if (flagW==1) {runTime.writeNow();}
 		
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
@@ -448,7 +451,8 @@ int main(int argc, char *argv[])
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (const auto &x : freak.spc) outFile << x << "\n";
 			}
-		
+			
+		if (flagW==1) {flagW=0;}
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"
 			<< nl << endl;

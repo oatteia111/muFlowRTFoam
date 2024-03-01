@@ -281,16 +281,21 @@ int main(int argc, char *argv[])
     // Affichage des index des cellules réordonnées
     //Info << "Index des cellules réordonnées : " << level << endl;
 	
-	int itstep = 1;int tcnt = 0;int wtime=wTimes[itstep];int flagW=1; // first tstep is 0
+	int itstep = 0;int tcnt = 0;int wtime=wTimes[itstep];int flagW=0; // first tstep is 0
 	while (runTime.run())
     {
 		//double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
 		//set time step to stop at writeTimes
 		oldTime = mesh.time().value();
 		float dt=wtime - oldTime;
-		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<runTime.deltaTValue()<<" flg "<<flagW<<endl;
-		if (dt < runTime.deltaTValue()+0.01 && dt!=0) 
-			{runTime.setDeltaT(wtime - oldTime);itstep+=1;wtime=wTimes[itstep];flagW=1;}
+		float a1 = runTime.deltaTValue()+1;
+		float a2= mesh.time().deltaTValue()+1;
+		if (dt <= float(runTime.deltaTValue())*(1+5e-5)) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
+			{
+			Info<<"dt "<<dt<<" deltaT "<<runTime.deltaTValue();
+			runTime.setDeltaT(wtime - oldTime);itstep+=1;wtime=wTimes[itstep];flagW=1;
+			Info<<" flg "<<flagW<<endl;}
+		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(runTime.deltaTValue())+0.01<<" flg "<<flagW<<endl;
 		if (dt==0) {itstep+=1;wtime=wTimes[itstep];flagW=1;}
 		Info<<"i time "<<itstep<<" "<<wtime<<" "<<flagW<<endl;
 		runTime.read();

@@ -408,7 +408,7 @@ int main(int argc, char *argv[])
 					for (j=0; j<nxyz;j++)
 						{
 						Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];
-						//if (j==imin) {Info<<"ic "<<i<<" imin "<<imin<<" c "<<Cw[i]()[imin]<<endl;}
+						if (j==4) {Info<<"ic "<<i<<" c "<<Cw[ic]()[4]<<endl;}
 						}
 				} 
 			// gas, read partial pressures (freak.g in atm) set Cg to fraction (freak.g/Cgtot) and set p to sum of Cg

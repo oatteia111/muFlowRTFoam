@@ -227,7 +227,7 @@ public:
 		const std::vector<std::string> &gcomp = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcomp.size()<<" phq ws "<<this->wsat[0]<<"\n";
 		nxyz = this->data[0];
 		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
-		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+2]<<" ";} std::cout<<"\n";
+		std::cout << "c 4 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+4]<<" ";} std::cout<<"\n";
 		
 		status = phreeqc_rm->SetTemperature(this->temp);
 		std::cout<<"temp ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
@@ -256,7 +256,7 @@ public:
 		//status = phreeqc_rm->GetTemperature(this->temp);
 		if (this->EK) {status = phreeqc_rm->GetSpeciesConcentrations(this->c);}
 		else {status = phreeqc_rm->GetConcentrations(this->c);}
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz]<<" ";} std::cout<<"\n";
+		std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+4]<<" ";} std::cout<<"\n";
 		if (gcomp.size()>0) {
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
@@ -268,7 +268,6 @@ public:
 		//bool append = false;
 		//status = phreeqc_rm->SetDumpFileName("phreeqc.dmp");
 		//status = phreeqc_rm->DumpModule(dump_on, append);
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+0]<<" ";} std::cout<<"\n";
 		/*if (ph_gcomp>0) {
 		//std::cout<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 		std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
@@ -284,33 +283,31 @@ public:
 		int n_user = phreeqc_rm->GetNthSelectedOutputUserNumber(0);
 		status = phreeqc_rm->SetCurrentSelectedOutputUserNumber(n_user);
 		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();std::cout<<"in phq ncol "<<ncol<<"\n";
-		std::string heading;int nphase=0;
+		std::vector<std::string> headings(ncol);
+		int nphase=0;
 		for (int i = 0; i < ncol; i++)
 			{
-				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
-				if (heading.substr(0,2)=="d_")  {nphase +=1;}
+				status = phreeqc_rm->GetSelectedOutputHeading(i,headings[i]);
+				if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
 			}
 		nxyz = this->data[0];std::cout<<"in phq nphase "<<nphase<<"\n";
 		this->nselect = ncol-6-nphase;
 		this->spc.resize((this->nselect)*nxyz,0);
 		std::vector<double> so(ncol*nxyz);
 		status = phreeqc_rm->GetSelectedOutput(so);
-		//std::vector<std::string> headings;
-		//headings.resize(ncol);
-		nphase = 0;/*
 		for (int j = 0; j < nxyz; j++)
 		{
+			nphase = 0; //reset nphase to 0 for reading below
 			for (int i = 6; i < ncol; i++)
 			{
-				status = phreeqc_rm->GetSelectedOutputHeading(i,heading);
-				if (heading.substr(0,2)=="d_") {nphase +=1;}
+				if (headings[i].substr(0,2)=="d_") {nphase +=1;}
 				else 
 					{
 					this->spc[(i-6-nphase)*nxyz + j] = so[i*nxyz + j];
 					if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
 					}
 			}
-		}*/
+		}
 	}
 };
 

@@ -29,6 +29,21 @@ if (cellsHwel.size()>0)
 			//Info<<"cellw "<<cellsCw[i]<<" q "<<qHw[i]<<" cloc "<<cloc<<" Su "<<CSu[cellsCw[i]]<<" Sp "<<CSp[cellsCw[i]]<<endl;
 			}
 	}
+
+	// for fixed head cells
+	if (cellsHfix.size()>0)
+	{
+		if (time>=tTfix) {
+			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
+			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;tnext = tTfix;
+			}
+		for (size_t i=0; i<cellsHfix.size(); i++) 
+			{ 
+			i1=cellsHfix[i];v=mesh.V()[i1];//
+			if (qHfix[i]<0) {TSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
+			else {TSu[i1] = -qHfix[i]/v*cellsTfixData[i*4+2];}
+			}
+	}
 	
 /*forAll(mesh.cells(), celli)
     {

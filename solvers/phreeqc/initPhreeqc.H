@@ -238,11 +238,12 @@ public:
 			status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
-			//status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
+			status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
 			}
 		else 
 			{std::cout<<"phq wsat "<<this->wsat[0];
 			//status = phreeqc_rm->SetSaturation(this->wsat);
+			status = phreeqc_rm->SetPressure(this->p);
 			}
 		std::cout<<"wsat done ";
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
@@ -283,29 +284,29 @@ public:
 		int n_user = phreeqc_rm->GetNthSelectedOutputUserNumber(0);
 		status = phreeqc_rm->SetCurrentSelectedOutputUserNumber(n_user);
 		int ncol = phreeqc_rm->GetSelectedOutputColumnCount();std::cout<<"in phq ncol "<<ncol<<"\n";
-		std::vector<std::string> headings(ncol);
+		/*std::vector<std::string> headings(ncol);
 		int nphase=0;
 		for (int i = 0; i < ncol; i++)
 			{
 				status = phreeqc_rm->GetSelectedOutputHeading(i,headings[i]);
 				if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
-			}
-		nxyz = this->data[0];std::cout<<"in phq nphase "<<nphase<<"\n";
-		this->nselect = ncol-6-nphase;
+			}*/
+		nxyz = this->data[0];//std::cout<<"in phq nphase "<<nphase<<"\n";
+		this->nselect = ncol-6;//-nphase;
 		this->spc.resize((this->nselect)*nxyz,0);
 		std::vector<double> so(ncol*nxyz);
 		status = phreeqc_rm->GetSelectedOutput(so);
 		for (int j = 0; j < nxyz; j++)
 		{
-			nphase = 0; //reset nphase to 0 for reading below
+			//nphase = 0; //reset nphase to 0 for reading below
 			for (int i = 6; i < ncol; i++)
 			{
-				if (headings[i].substr(0,2)=="d_") {nphase +=1;}
-				else 
-					{
-					this->spc[(i-6-nphase)*nxyz + j] = so[i*nxyz + j];
+				//if (headings[i].substr(0,2)=="d_") {nphase +=1;}
+				//else 
+				//	{
+					this->spc[(i-6)*nxyz + j] = so[i*nxyz + j];
 					if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
-					}
+				//	}
 			}
 		}
 	}

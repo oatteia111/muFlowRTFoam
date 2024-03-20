@@ -81,10 +81,20 @@ for (ic=1; ic<ph_ncomp;ic++)
 			for (i=0; i<cellsHghb.size(); i++) 
 				{ 
 				i1=cellsHghb[i];v=mesh.V()[i1];
-				if (qHghb[i]<0) {CiSp[i1] = -(qHghb[i])/v;} //in Sp term as discharge prop to local concentration
+				if (qHghb[i]<0) {CiSp[i1] = -qHghb[i]/v;} //in Sp term as discharge prop to local concentration
 				else {CiSu[i1] = -qHghb[i]/v*solu_conc[condSghb[i]*ph_ncomp+ic];}
 				} 
 		} //Info<<"Sghbi set"<<endl;
+		// for fixed head cells
+		if (cellsHfix.size()>0)
+		{
+			for (i=0; i<cellsHfix.size(); i++) 
+				{ 
+				i1=cellsHfix[i];v=mesh.V()[i1];//
+				if (qHfix[i]<0) {CiSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
+				else {CiSu[i1] = -qHfix[i]/v*solu_conc[condSfix[i]*ph_ncomp+ic];}
+				}
+		}
 		//remove conc at drn places
 		if (cellsHdrn.size()>0)
 		{

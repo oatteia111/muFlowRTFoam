@@ -1,5 +1,0 @@
-SOURCE = \
-cellSetOption/cellSetOption.C \
-cellSetOption/cellSetOptionIO.C \
-constraints/fixedValueConstraints/myfixedValueCo.C \
-sources/mySemiImplicitSource/mysemiImplicitSo.C 

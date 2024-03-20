@@ -89,4 +89,6 @@ std::vector<int> cellsSwel = indexC(cellsSwel0,cellsSwelData) ;
 std::vector<int> cellsSghb = indexC(cellsSghb0,cellsSghbData) ;
 std::vector<int> cellsSrch = indexC(cellsSrch0,cellsSrchData) ;
 
+std::vector<float> sqSghb,sqSdrn,sqSwel,sqSriv,sqSfix; // mass sum
+
 Info <<"end Cwifields " << endl;

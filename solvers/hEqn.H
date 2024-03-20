@@ -148,8 +148,3 @@ volScalarField d1 = stor*fvc::ddt(h);
 	//i1=ilay*ncell_lay+ic0;
 	//Info<<"h "<<h()[i1]<<" v "<<mesh.V()[i1]<<" sw "<<sw[i1]<<" q1 "<<q1[i1]<<" d1 "<<d1[i1]<<" SuSp "<<hSu[i1]-h()[i1]*hSp[i1]<<endl;
 	//}
-// get the the water discharge/recharge at fixed heads cells
-int i1;
-for (i=0; i<cellsHdrn.size(); i++) {i1=cellsHdrn[i];qHdrn[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];} //Info<<"qhfx "<<i<<" "<<i1<<" "<<qHfx[i]<<endl;}
-for (i=0; i<cellsHghb.size(); i++) {i1=cellsHghb[i];qHghb[i]=(hSu[i1]-h()[i1]*hSp[i1])*mesh.V()[i1];qGerr[i]=qHghb[i]-(q1[i1]+d1[i1]);}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<endl;}
-for (i=0;i<cellsHfix.size();i++) { i1=cellsHfix[i];qHfix[i] = (q1[i1]-d1[i1])*mesh.V()[i1];}

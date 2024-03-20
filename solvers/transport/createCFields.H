@@ -13,7 +13,7 @@ Info<< "Reading field C\n" << endl;
 wordList bcTypes (Kh.boundaryField().size(),zeroGradientFvPatchScalarField::typeName);
 volScalarField rhos
 (
-    IOobject("rhos",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("rhos",dimMass/dimVol,2.65),bcTypes
+    IOobject("rhos",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("rhos",dimMass/dimVol,2650),bcTypes
 );
 volScalarField C
 (

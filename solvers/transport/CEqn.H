@@ -28,8 +28,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 		//get the concentration well data
 		if (time>=tCwel) {
 			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
-			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
-			tnext = tCwel;
+			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;tnext = tCwel;
 			}
 		for (i=0; i<cellsCwel.size(); i++) 
 			{ 
@@ -43,8 +42,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	{
 		if (time>=tCghb) {
 			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
-			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
-			tnext = tCghb;
+			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;tnext = tCghb;
 			}
 		for (size_t i=0; i<cellsHghb.size(); i++) 
 			{ 
@@ -52,6 +50,21 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			if (qHghb[i]<0) {CSp[i1] = -qHghb[i]/v;} // outflow discharge prop to local concentration
 			else {CSu[i1] = -qHghb[i]/v*cellsCghbData[i*4+2];}
 			//Info<<"ghb "<< i<<" i1 " <<i1<<" q "<<qHghb[i]<<" conc "<<cellsCghbData[2+(icount+i)*4+2]<<endl;
+			}
+	}
+	//store the cfix conditions data
+	// for fixed head cells
+	if (cellsHfix.size()>0)
+	{
+		if (time>=tCfix) {
+			output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
+			tCfix = output.t; cellsCfixData=output.d; itCfix +=1;tnext = tCfix;
+			}
+		for (size_t i=0; i<cellsHfix.size(); i++) 
+			{ 
+			i1=cellsHfix[i];v=mesh.V()[i1];//
+			if (qHfix[i]<0) {CSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
+			else {CSu[i1] = -qHfix[i]/v*cellsCfixData[i*4+2];}
 			}
 	}
 	// for drain cells (only out), same as above, except that drains are constant in time
@@ -92,13 +105,9 @@ fvScalarMatrix CEqn
 		+ thetaw * fvm::Sp(lbdaw,C)
 		+ CSu + fvm::SuSp(CSp, C)
 	); 
-
+//for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)
 	{
-	if (time>=tCfix) {
-		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
-		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
-		}
 	for (i=0; i<cellsCfix.size(); i++) 	
 		{CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
 	}

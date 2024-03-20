@@ -175,28 +175,38 @@ int main(int argc, char *argv[])
 	//wsat.resize(nxyz,0.994);
 	freak.setPoro(poro);freak.setTemp(t_ph);
 	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
-	//for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
-	//freak.setP(p_ph);
+	p_ph.resize(nxyz);
+	for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
 	freak.init();
-	gvol.resize(nxyz,0.01);
-
-	//freak.run();
 	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
 	c_ph.resize(nxyz*ph_ncomp,0);
 	for (i=0; i<ph_ncomp;i++)
 		for (int j=0;j<nxyz;j++) 
 			{c_ph[i*nxyz+j] = freak.c[i*nxyz+j];}
-	// gases are in atm (freak.g) we start with ideal gas
-	gm_ph.resize(nxyz*ph_gcomp,0); // moles of gas
-	Info<<"gcomp "<<ph_gcomp<<" g size "<<freak.g.size()<<" frk.c size "<<freak.c.size()<<endl;
-	for (i=0; i<ph_gcomp;i++)
+			// gases are in atm (freak.g) we start with ideal gas
+	gm_ph.resize(nxyz*ph_gcomp,1e-9);gvol.resize(nxyz);phreeqcVm.resize(nxyz); // moles of gas
+	//in order to have correct correct pressure, we set gm using only the frist gas
+	if (ph_gcomp>0)
+		{
 		for (int j=0;j<nxyz;j++) 
 			{
 			phreeqcVm[j] = 24.47*(273.15+25.)/(273.15+25.)/(p[j]/atmPa);
-			gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
+			//gm_ph[i*nxyz+j] = freak.gm[i*nxyz+j];
+			gvol[j] = max(eps[j]*(1-sw[j]),1e-4);
+			gm_ph[j] = max(gvol[j]/phreeqcVm[j],1e-16); //only first gas comp
 			}
-	iw = freak.iGwater;
+		freak.setGvol(gvol); // set gas volume in phreeqc
+		freak.setGm(gm_ph);//transfer gm_ph to freak
+		freak.setTemp(t_ph);
+		freak.setP(p_ph);
+		freak.run();
+		for (int j=0;j<nxyz;j++)  {std::cout<<"p t0 "<<freak.p[j]<<"gv t0 "<<freak.gvol[j]<<" Vm t0 "<<phreeqcVm[j]<<"\n";}
+		}
+	
+	iw = freak.iGwater;	
+	
+
 	Info<<"end c_ph and gm_ph "<<endl;
 	//###################"" loading immobile component is present  ###############""
 	std::vector<std::string> immobStr;
@@ -217,13 +227,12 @@ int main(int argc, char *argv[])
 		ph_ncomp=0;ph_gcomp=0;
 	}
 	
-	//plugCwi.init(cur_dir,transportProperties,mesh,freak); // initiate the plugin for transport
 	plugCgi.init(cur_dir,transportProperties,mesh,freak); // initiate the plugin for transport
 
 	// #include "createFvOptions.H"
 	#include "transport/createCwiFields.H"
 	#include "transport/createCgiFields.H"
-	
+
 	//################### attribute to Cwi and Cgi concentrations/pressures from phreeqc
 	int icnt = 0;
 	//Info<<"ractive 2 "<<ractive[2]<<endl;
@@ -252,7 +261,7 @@ int main(int argc, char *argv[])
 	dimensionedScalar dt0 = mesh.time().deltaTValue();
 	scalar dt1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dt1<<endl;
 	scalar residu;
-	if ((flowStartSteady==1)&&(flowType>0))
+	if ((flowStartSteady==1)&&(flowType>0)&&(flowType<=2))
 		{
 		runTime.setDeltaT(1);
 		while (simple.loop(runTime))
@@ -264,10 +273,8 @@ int main(int argc, char *argv[])
 	//runTime.setTime(st,0); // 12/3/21 time value and index
 	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
-	//runTime.read();
 	Info <<"dt time "<<dt0<<endl;
 	runTime.setDeltaT(dt0);
-	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	
 	//const IOobject meshObj("constant/polyMesh", runTime.constant(),"volScalarField", "h", IOobject::MUST_READ);
@@ -280,38 +287,48 @@ int main(int argc, char *argv[])
 //const labelList& localIndices = mesh.cells().local();
     // Affichage des index des cellules réordonnées
     //Info << "Index des cellules réordonnées : " << level << endl;
-	
-	int itstep = 0;int tcnt = 0;int wtime=wTimes[itstep];int flagW=0; // first tstep is 0
+	//runTime.read();
+	int itstep = 0;int tcnt = 0;//dimensionedScalar wtime("wtime",dimTime,wTimes[itstep]);
+	float wtime=wTimes[itstep];
+	int flagW=0; // first tstep is 0
 	while (runTime.run())
     {
 		//double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
 		//set time step to stop at writeTimes
-		oldTime = mesh.time().value();
+		float oldTime = mesh.time().value();
 		float dt=wtime - oldTime;
-		float a1 = runTime.deltaTValue()+1;
-		float a2= mesh.time().deltaTValue()+1;
-		if (dt <= float(runTime.deltaTValue())*(1+5e-5)) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
+		float dt0=runTime.deltaTValue();
+		runTime.read();
+		if ((dt <= float(dt0)*(1+5e-5))||(std::round(dt)==std::round(dt0))) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
 			{
-			Info<<"dt "<<dt<<" deltaT "<<runTime.deltaTValue();
-			runTime.setDeltaT(wtime - oldTime);itstep+=1;wtime=wTimes[itstep];flagW=1;
-			Info<<" flg "<<flagW<<endl;}
-		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(runTime.deltaTValue())+0.01<<" flg "<<flagW<<endl;
+			Info<<"dt "<<dt<<" deltaT "<<dt0;
+			//float deltaTFact = std::round(dt)/float(runTime.deltaTValue());
+			runTime.setDeltaTNoAdjust(dt);
+			Info<<" flg "<<flagW<<endl;
+			//const Time newtime=oldTime+dt;
+			//runTime.setTime(newtime);
+			//runTime.setTime(runTime.timeOutputValue()+runTime.deltaTValue(),runTime.timeIndex());
+			itstep+=1;wtime=wTimes[itstep];flagW=1;
+			}
+		runTime++;
+		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(dt0)+0.01<<" flg "<<flagW<<endl;
 		if (dt==0) {itstep+=1;wtime=wTimes[itstep];flagW=1;}
 		Info<<"i time "<<itstep<<" "<<wtime<<" "<<flagW<<endl;
-		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
-		runTime++;
 		//if (mesh.time().value()==wtime) {flagW=1;}
+		
 		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
-		//for (j=0; j<nxyz;j++) {if (j<6) {Info<<"p before flow "<<p[j]/atmPa<<" sw "<<sw[j]<<endl;}}
+		Info<<"p before flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
+		Info<<"sw before flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
 		if (flowType>0) {
 			#include "flow.H"
 			}
-		//deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
-		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
+		Info<<"p after flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
+		Info<<"sw after flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
+		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=max(eps[j]*(1-sw[j]),1e-4);} }
 		
 		//***************  solve Transport  *************************
 		if (activateThermal==1) {
@@ -371,21 +388,21 @@ int main(int argc, char *argv[])
 					} //Cg in fraction and Vm in L/mol
 				} 
 
-			//for (j=0; j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 			
 			Info<<" phqVm[0] "<<phreeqcVm[0]<<" "<<endl;
 			
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
-			t_ph.resize(nxyz);
+			t_ph.resize(nxyz); p_ph.resize(nxyz);// showul dnot be necessary but seems required???
 			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T()[j];} //Info<<" "<<rchange[j];
+			for (j=0; j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 			freak.setGvol(gvol); // set gas volume in phreeqc
 			freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
 			freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
 			freak.setGm(gm_ph);//transfer gm_ph to freak
 			freak.setTemp(t_ph);
-			//freak.setP(p_ph);//transfer pressure to freak
+			freak.setP(p_ph);//transfer pressure to freak
 			freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 			Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
 			freak.run();
@@ -419,10 +436,16 @@ int main(int argc, char *argv[])
 					Cgtot = 0; Gmtot = 0;
 					forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j]; Gmtot += freak.gm[i*nxyz+j];}
 					forAll(Cg,i) {Cg[i]()[j] = freak.g[i*nxyz+j]/Cgtot;}
-					if (flowType==4) {phreeqcVm[j] = gvol[j]/Gmtot;p[j] = Cgtot*atmPa;}
+					if (flowType==4) {
+						gvol[j]=Gmtot*phreeqcVm[j];phreeqcVm[j] = gvol[j]/Gmtot;
+						//if (gvol[j]>1.01e-4) 
+						sw[j]=1-gvol[j]/eps[j];
+						}//p[j] = Cgtot*atmPa;}
 					//sw[j] = freak.wsat[j];
 					}
-				for (i=0; i<ph_gcomp;i++){for (j=0;j<3;j++) {Info <<"g_spc "<< i <<" Cg "<< Cg[i]()[j] <<" sw "<<sw[j]<< endl;}}
+				for (i=0; i<ph_gcomp;i++){Info <<"g_spc 0 "<< i <<" Cg "<< Cg[i]()[0] <<" p "<<p[0]<<" sw "<<sw[0]<< endl;}
+				for (i=0; i<ph_gcomp;i++){Info <<"g_spc 20 "<< i <<" Cg "<< Cg[i]()[20] <<" p "<<p[20]<<" sw "<<sw[20]<< endl;}
+				for (i=0; i<ph_gcomp;i++){Info <<"g_spc 50 "<< i <<" Cg "<< Cg[i]()[50] <<" p "<<p[50]<<" sw "<<sw[50]<< endl;}
 				}
 			// find the variation of wsat from nb moles H2O in gas phase, phreeqc considers a volume of 1 dm3
 			if (freak.iGwater>-1) //should consider ractive
@@ -440,21 +463,25 @@ int main(int argc, char *argv[])
 				//nb of moles of H2O(g) transformed in water volume (1 mol 18.01 mL at 25°C)
 			for (j=0;j<3;j++) {Info <<" new sw "<<sw[j]<< endl;}
 				
-			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
 		
 		//bool ts = runTime.write();
 		//write
 		#include "observation.H"
+		#include "budget.H"
 		if (flagW==1) {runTime.writeNow();}
 		
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
+			std::ofstream outFile(cur_dir/runTime.timeName()/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
-			for (const auto &x : freak.spc) outFile << x << "\n";
+			for (j=0;j<nxyz;j++)
+				{
+				for (i=0;i<freak.nselect;i++) {outFile << freak.spc[i*nxyz + j]<<" ";}
+				outFile <<"\n";
+				}
 			}
 			
 		if (flagW==1) {flagW=0;}

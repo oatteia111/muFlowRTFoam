@@ -183,6 +183,7 @@ labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;
 labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
 labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
 labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
+float sqHriv,sqHghb,sqHdrn,sqHfix,sqHwel;
 
 // reading the data for hfix
 //std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //

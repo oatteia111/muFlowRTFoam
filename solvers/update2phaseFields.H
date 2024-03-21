@@ -1,7 +1,7 @@
 
-sw = min(sw,sw_max*.9999);
+sw = min(sw,sw_max);
 //- relative permeability computation
-	Se = min(max((sw-sw_min)/(sw_max-sw_min),1e-5),0.99999);//Info<<"Se "<<Se[0]<<" "<<Se[1]<<endl;
+	Se = min(max((sw-sw_min)/(sw_max-sw_min),1e-5),1-1e-6);Info<<"Se "<<Se[0]<<" "<<Se[1]<<endl;
 	//Info<<"se done"<<endl;
 	// water
 	krw = 1 * pow(Se,0.5) * pow(1-pow(1-pow(Se,1/m_vg),m_vg),2);Info<<"krw "<<krw[0]<<endl; //krmax = 1

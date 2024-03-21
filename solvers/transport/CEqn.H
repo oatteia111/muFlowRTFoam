@@ -134,4 +134,3 @@ dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue();
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
 //newDeltaT = min(newDeltaT,(tnext-runTime.value())*day);
-runTime.setDeltaT (min (newDeltaT,maxDeltaT) );

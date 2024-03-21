@@ -81,3 +81,8 @@ std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;
 std::vector<int> cellsCriv = indexC(cellsCriv0,cellsCrivData) ;
 std::vector<int> cellsCrch = indexC(cellsCrch0,cellsCrchData) ;
 
+// mass balance
+float sqICriv,sqICghb,sqICdrn,sqICfix,sqICwel;
+float sqOCriv,sqOCghb,sqOCdrn,sqOCfix,sqOCwel;
+
+

@@ -69,4 +69,9 @@ std::vector<int> cellsTfix = indexC(cellsTfix0,cellsTfixData) ;
 std::vector<int> cellsTwel = indexC(cellsTwel0,cellsTwelData) ;
 std::vector<int> cellsTghb = indexC(cellsTghb0,cellsTghbData) ;
 std::vector<int> cellsTrch = indexC(cellsTrch0,cellsTrchData) ;
+
+// mass balance
+float sqITriv,sqITghb,sqITdrn,sqITfix,sqITwel;
+float sqOTriv,sqOTghb,sqOTdrn,sqOTfix,sqOTwel;
+
 Info<< "All T read\n" << endl;

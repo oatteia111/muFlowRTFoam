@@ -273,8 +273,10 @@ int main(int argc, char *argv[])
 	//runTime.setTime(st,0); // 12/3/21 time value and index
 	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
+	//runTime.read();
 	Info <<"dt time "<<dt0<<endl;
 	runTime.setDeltaT(dt0);
+	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	
 	//const IOobject meshObj("constant/polyMesh", runTime.constant(),"volScalarField", "h", IOobject::MUST_READ);
@@ -287,47 +289,38 @@ int main(int argc, char *argv[])
 //const labelList& localIndices = mesh.cells().local();
     // Affichage des index des cellules réordonnées
     //Info << "Index des cellules réordonnées : " << level << endl;
-	//runTime.read();
-	int itstep = 0;int tcnt = 0;//dimensionedScalar wtime("wtime",dimTime,wTimes[itstep]);
-	float wtime=wTimes[itstep];
-	int flagW=0; // first tstep is 0
+	
+	int itstep = 0;int tcnt = 0;float wtime=wTimes[itstep];int flagW=0; // first tstep is 0
 	while (runTime.run())
     {
 		//double rt = runTime.controlDict().lookupOrDefault("writeInterval",0);
 		//set time step to stop at writeTimes
-		float oldTime = mesh.time().value();
+		oldTime = mesh.time().value();
 		float dt=wtime - oldTime;
-		float dt0=runTime.deltaTValue();
-		runTime.read();
-		if ((dt <= float(dt0)*(1+5e-5))||(std::round(dt)==std::round(dt0))) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
+		if ((dt <= float(runTime.deltaTValue())*(1+5e-5))||(std::round(dt)==std::round(runTime.deltaTValue()))) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
 			{
-			Info<<"dt "<<dt<<" deltaT "<<dt0;
-			//float deltaTFact = std::round(dt)/float(runTime.deltaTValue());
-			runTime.setDeltaTNoAdjust(dt);
-			Info<<" flg "<<flagW<<endl;
-			//const Time newtime=oldTime+dt;
-			//runTime.setTime(newtime);
-			//runTime.setTime(runTime.timeOutputValue()+runTime.deltaTValue(),runTime.timeIndex());
-			itstep+=1;wtime=wTimes[itstep];flagW=1;
-			}
-		runTime++;
-		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(dt0)+0.01<<" flg "<<flagW<<endl;
+			Info<<"dt "<<dt<<" deltaT "<<runTime.deltaTValue();
+			//float deltaTFact = dt/float(runTime.deltaTValue())*(1+1e-3);
+			runTime.setDeltaTNoAdjust(dt);itstep+=1;wtime=wTimes[itstep];flagW=1;
+			Info<<" flg "<<flagW<<endl;}
+		Info<<"i time "<<itstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(runTime.deltaTValue())+0.01<<" flg "<<flagW<<endl;
 		if (dt==0) {itstep+=1;wtime=wTimes[itstep];flagW=1;}
 		Info<<"i time "<<itstep<<" "<<wtime<<" "<<flagW<<endl;
+		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
+		runTime++;
 		//if (mesh.time().value()==wtime) {flagW=1;}
-		
 		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
-		Info<<"p before flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
-		Info<<"sw before flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
+		//Info<<"p before flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
+		//Info<<"sw before flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
 		if (flowType>0) {
 			#include "flow.H"
 			}
-		Info<<"p after flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
-		Info<<"sw after flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
+		//Info<<"p after flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
+		//Info<<"sw after flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=max(eps[j]*(1-sw[j]),1e-4);} }
 		
 		//***************  solve Transport  *************************
@@ -336,7 +329,7 @@ int main(int argc, char *argv[])
 			}
 		if (activateTransport==1) {
 			if (activateReaction==0) {
-				#include "transport/setDeltaTtrsp.H"
+				//#include "transport/setDeltaTtrsp.H"
 				#include "transport/CEqn.H"
 				}
 			
@@ -350,7 +343,8 @@ int main(int argc, char *argv[])
 				}
 			
 			}
-		
+		runTime.setDeltaT (min(newDeltaT,maxDeltaT)); //deltaT msut be set only once!!!
+
 		//***************  solve reaction  *************************
 		// find where the transported conc have changed to calculate only there
 		//Info<<"runtime "<<runTime.value()-oldTime<<endl;
@@ -463,6 +457,7 @@ int main(int argc, char *argv[])
 				//nb of moles of H2O(g) transformed in water volume (1 mol 18.01 mL at 25°C)
 			for (j=0;j<3;j++) {Info <<" new sw "<<sw[j]<< endl;}
 				
+			oldTime = runTime.value()*1;
 		} //end activate reaction
 		
 		

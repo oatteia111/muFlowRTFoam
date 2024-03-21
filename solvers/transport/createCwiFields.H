@@ -89,6 +89,16 @@ std::vector<int> cellsSwel = indexC(cellsSwel0,cellsSwelData) ;
 std::vector<int> cellsSghb = indexC(cellsSghb0,cellsSghbData) ;
 std::vector<int> cellsSrch = indexC(cellsSrch0,cellsSrchData) ;
 
-std::vector<float> sqSghb,sqSdrn,sqSwel,sqSriv,sqSfix; // mass sum
+// for mass balance
+std::vector<float> sqISfix(ph_ncomp),sqISwel(ph_ncomp),sqISghb(ph_ncomp),sqISdrn(ph_ncomp),sqISrch(ph_ncomp);
+std::vector<float> sqOSfix(ph_ncomp),sqOSwel(ph_ncomp),sqOSghb(ph_ncomp),sqOSdrn(ph_ncomp),sqOSrch(ph_ncomp);
+	for (int ic=0;ic<ph_ncomp;ic++)
+	{
+	std::string s=std::to_string(ic);
+	std::ofstream fich1(cur_dir+"/observation/budgetCw"+s+".txt");// Ouvrir le fichier en mode append
+	fich1 <<"t sIFix sOFix sIWel sOWel sIDrn sODrn sIGhb sOGhb"<< std::endl;
+	fich1.close();
+	}
+
 
 Info <<"end Cwifields " << endl;

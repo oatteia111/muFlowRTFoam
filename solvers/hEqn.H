@@ -1,3 +1,8 @@
+/*
+Here we calculate the head equation for different conditions (confined, unconfined) the unsaturated is calculated in hpEqn,
+using the boundary conditions
+the fluxes at boundaries are calculated in the budget file
+*/
 double x;int ilay,nc,nc1;//Info<<"nlay "<<nlay<<" ncl "<<ncell_lay<<endl;//double pi = 3.141592654;
 double e=1e-5;
 //Info << "iter picard n "<< iterPicard << endl;
@@ -142,8 +147,8 @@ phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
 Uw = fvc::reconstruct(phiw);
 //phiw =  hEqn.flux() ;
 //Info<<"phi "<<phiw<<endl;
-volScalarField q1 = fvc::div(phiw);
-volScalarField d1 = stor*fvc::ddt(h);
+//volScalarField q1 = fvc::div(phiw);
+//volScalarField d1 = stor*fvc::ddt(h);
 //for (ilay=0;ilay<nlay;ilay++) {
 	//i1=ilay*ncell_lay+ic0;
 	//Info<<"h "<<h()[i1]<<" v "<<mesh.V()[i1]<<" sw "<<sw[i1]<<" q1 "<<q1[i1]<<" d1 "<<d1[i1]<<" SuSp "<<hSu[i1]-h()[i1]*hSp[i1]<<endl;

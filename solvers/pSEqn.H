@@ -33,15 +33,16 @@ if (cellsPfix.size()>0)
 	for (i=0; i<cellsPfix.size(); i++) {pEqn.setReference(cellsPfix[i],static_cast<int>(cellsPfixData[i*4+2]));}
 	}
 
-	pEqn.solve();
-	//for (j=0; j<3;j++) {Info<<"p after peq "<<p[j]<<" sw "<<sw[j]<<endl;}
-
 	fvScalarMatrix SEqn
         (
             eps*fvm::ddt(sw) + fvc::div(phiw) 
             //==
 			//b*fvOptions(sw,sw)
         );
+
+	pEqn.solve();
+	//for (j=0; j<3;j++) {Info<<"p after peq "<<p[j]<<" sw "<<sw[j]<<endl;}
+
     SEqn.solve();
 	//for (j=0; j<3;j++) {Info<<"p after seq "<<p[j]<<" sw "<<sw[j]<<endl;}
 	

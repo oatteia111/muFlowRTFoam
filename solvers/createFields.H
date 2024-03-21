@@ -183,7 +183,6 @@ labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;
 labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
 labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
 labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
-float sqHriv,sqHghb,sqHdrn,sqHfix,sqHwel;
 
 // reading the data for hfix
 //std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
@@ -216,6 +215,14 @@ std::vector<int> cellsHghb = indexC(cellsHghb0,cellsHghbData) ;
 std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
+// mass balance
+float sqIHriv,sqIHghb,sqIHdrn,sqIHfix,sqIHwel;
+float sqOHriv,sqOHghb,sqOHdrn,sqOHfix,sqOHwel;
+std::ofstream fich1(cur_dir+"/observation/budgetH.txt");// Ouvrir le fichier en mode append
+fich1 <<"t sIFix sOFix sIWel sOWel sIDrn sODrn sIGhb sOGhb sIRch sORch"<< std::endl;
+fich1.close();
+
+/*
 //--------------------------- neural network ------------------------------------
 scalar activateNNtransport(transportProperties.lookupOrDefault<scalar>("activateNNtransport",0));
 scalar activateNNchemistry(transportProperties.lookupOrDefault<scalar>("activateNNchemistry",0));
@@ -225,3 +232,4 @@ scalar nn_epoc(transportProperties.lookupOrDefault<scalar>("nn_epoc",6));
 scalar nn_batch(transportProperties.lookupOrDefault<scalar>("nn_batch",16));
 scalar nn_lr(transportProperties.lookupOrDefault<scalar>("nn_lr",1e-3));
 scalar nn_minr(transportProperties.lookupOrDefault<scalar>("nn_minr",1e-3));
+*/

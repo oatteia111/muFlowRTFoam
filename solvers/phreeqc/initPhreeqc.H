@@ -231,6 +231,7 @@ public:
 		
 		status = phreeqc_rm->SetTemperature(this->temp);
 		std::cout<<"temp ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
+		std::cout<<"press ";for (int j=0; j<5;j++){std::cout<<this->p[j]<<" ";} std::cout<<"\n";
 		if (gcomp.size()>0) {
 			std::cout<<"nb gcomp before "<<gcomp.size()<<"\n";//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
@@ -238,12 +239,11 @@ public:
 			status = phreeqc_rm->SetSaturation(this->wsat); // keep this order to set values
 			status = phreeqc_rm->SetGasPhaseVolume(this->gvol);
 			status = phreeqc_rm->SetGasCompMoles(this->gm);
-			status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
+			//status = phreeqc_rm->SetPressure(this->p); // does not seem to be usefull but we left it
 			}
 		else 
 			{std::cout<<"phq wsat "<<this->wsat[0];
 			//status = phreeqc_rm->SetSaturation(this->wsat);
-			status = phreeqc_rm->SetPressure(this->p);
 			}
 		std::cout<<"wsat done ";
 		if (this->EK) {status = phreeqc_rm->SpeciesConcentrations2Module(this->spc);}
@@ -262,8 +262,9 @@ public:
 			status = phreeqc_rm->GetGasCompPressures(this->g);
 			status = phreeqc_rm->GetGasCompMoles(this->gm);
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
-			//this->p = phreeqc_rm->GetPressure();
+			this->p = phreeqc_rm->GetPressure();
 			}
+		//for (int i=0;i<nxyz;i++) {std::cout<<"p "<<this->p[i]<<" gvol "<<this->gvol[i]<<"\n";}
 		//writes to the dump file
 		//bool dump_on = true;
 		//bool append = false;
@@ -292,7 +293,7 @@ public:
 				if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
 			}*/
 		nxyz = this->data[0];//std::cout<<"in phq nphase "<<nphase<<"\n";
-		this->nselect = ncol-6;//-nphase;
+		this->nselect = ncol-6; //-nphase;
 		this->spc.resize((this->nselect)*nxyz,0);
 		std::vector<double> so(ncol*nxyz);
 		status = phreeqc_rm->GetSelectedOutput(so);
@@ -303,10 +304,10 @@ public:
 			{
 				//if (headings[i].substr(0,2)=="d_") {nphase +=1;}
 				//else 
-				//	{
-					this->spc[(i-6)*nxyz + j] = so[i*nxyz + j];
-					if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
-				//	}
+					//{
+				this->spc[(i-6)*nxyz + j] = so[i*nxyz + j];
+				if (j==10) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
+					//}
 			}
 		}
 	}

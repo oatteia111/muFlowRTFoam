@@ -79,16 +79,15 @@ else if (flowType == 4) // 2 phase
     #include "pSEqn.H"
 	#include "CoatsNo.H"
 	deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.1);
-	runTime.setDeltaT (min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+	runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
 }
 else if (flowType != 0) // flowType=0 no flow
 {
    Info <<"in simple flow "<<endl;
    #include "hEqn.H"
-   deltaTFact = 1.2;
-   runTime.setDeltaT (min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+	newDeltaT = min(maxDeltaT, 1.2*runTime.deltaTValue());
+   //runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
 }
-//Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" tnext(s) "<<tnext*day<<endl;
-//maxDeltaT = min(maxDeltaT,(tnext-runTime.value())*day);
+Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" dtvalue "<<runTime.deltaTValue()<<endl;
 
 Uw = fvc::reconstruct(phiw); // This is a true darcy velocity (flux divided by surface even in unconfined)

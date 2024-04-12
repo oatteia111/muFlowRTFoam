@@ -1,3 +1,7 @@
+#include <dirent.h>
+#include <unistd.h>
+#include <stdio.h>
+
 std::vector<int> indexC(labelList &cells, std::vector<float> &data)
 {
     std::vector<int> c1(cells.size(),0);//Info<<"in index "<<cells.size()<<endl;
@@ -55,4 +59,26 @@ outTable readTable(string fname)
 	output.ncol=ncol;output.nrow=nrow;
 	output.data = data;
 	return output;
+}
+
+//delete all files in a folder (from chatgpt)
+void deleteFilesInDirectory(const std::string& path) {
+    DIR *directory = opendir(path.c_str());
+    struct dirent *entry;
+
+    if (directory != NULL) {
+        while ((entry = readdir(directory)) != NULL) {
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+                std::string filepath = std::string(path) + "/" + std::string(entry->d_name);
+                if (remove(filepath.c_str()) != 0) {
+                    std::cerr << "Erreur lors de la suppression de " << filepath << std::endl;
+                } else {
+                    std::cout << "Fichier supprimé : " << filepath << std::endl;
+                }
+            }
+        }
+        closedir(directory);
+    } else {
+        std::cerr << "Impossible d'ouvrir le répertoire " << path << std::endl;
+    }
 }

@@ -52,21 +52,21 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			//Info<<"ghb "<< i<<" i1 " <<i1<<" q "<<qHghb[i]<<" conc "<<cellsCghbData[2+(icount+i)*4+2]<<endl;
 			}
 	}
-	//store the cfix conditions data
+	//store the chfix conditions data
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>=tCfix) {
-			output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
-			tCfix = output.t; cellsCfixData=output.d; itCfix +=1;tnext = tCfix;
+		if (time>=tChfix) {
+			output = getCbuffer("chfix",itChfix,cellsChfix.size()); 
+			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;tnext = tChfix;
 			}
 		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
 			i1=cellsHfix[i];v=mesh.V()[i1];//
 			if (qHfix[i]<0) {CSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
-			else {CSu[i1] = -qHfix[i]/v*cellsCfixData[i*4+2];}
+			else {CSu[i1] = -qHfix[i]/v*cellsChfixData[i*4+2];}
 			}
-	}
+	} Info<<"Chfix set"<<endl;
 	// for drain cells (only out), same as above, except that drains are constant in time
 	if (cellsHdrn.size()>0)
 	{
@@ -108,8 +108,11 @@ fvScalarMatrix CEqn
 //for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)
 	{
-	for (i=0; i<cellsCfix.size(); i++) 	
-		{CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
+	if (time>=tCfix) {
+		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
+		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;tnext = tCfix;
+		}
+	for (i=0; i<cellsCfix.size(); i++) {CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
 	}
 	
 CEqn.solve();

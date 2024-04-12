@@ -182,7 +182,7 @@ public:
 			std::cout << "in phq poro "<<this->poro[1]<<"\n";
 			std::cout << "c 1-4 ";for (int i=0; i<4;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			std::cout << "c 5-9 ";for (int i=4; i<8;i++){std::cout<< this->c[i*nxyz+1]<<" ";} std::cout<<"\n";
-			std::cout<<"Vm "<<this->poro[0]/this->gm[0]<<" "<<this->poro[0]/this->gm[1]<<"\n";
+			//std::cout<<"Vm "<<this->poro[0]/this->gm[0]<<" "<<this->poro[0]/this->gm[1]<<"\n";
 			//std::cout<<"gvol 0 "<<this->gvol[0]<<"gvol 1 "<<this->gvol[1]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"g 1 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+1]<<" ";} std::cout<<"\n";
@@ -227,11 +227,11 @@ public:
 		const std::vector<std::string> &gcomp = phreeqc_rm->GetGasComponents(); std::cout<<"phq ngcomp sz "<<gcomp.size()<<" phq ws "<<this->wsat[0]<<"\n";
 		nxyz = this->data[0];
 		std::cout << "in phq nxyz "<<nxyz<<" size c "<<this->c.size()<<" poro "<<this->poro[2]<<"\n";
-		std::cout << "c 4 ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+4]<<" ";} std::cout<<"\n";
 		
 		status = phreeqc_rm->SetTemperature(this->temp);
-		std::cout<<"temp ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
-		std::cout<<"press ";for (int j=0; j<5;j++){std::cout<<this->p[j]<<" ";} std::cout<<"\n";
+		std::cout<<"temp 0-5 ";for (int j=0; j<5;j++){std::cout<<this->temp[j]<<" ";} std::cout<<"\n";
+		std::cout<<"press 0-5 ";for (int j=0; j<5;j++){std::cout<<this->p[j]<<" ";} std::cout<<"\n";
+		for (int j=0;j<nxyz;j++) {float c0=this->c[6*nxyz+j];if ((c0>4e-4)&&(c0<6e-4)) {std::cout << "cp "<<j<<" ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+j]<<" ";} std::cout<<"\n";} }
 		if (gcomp.size()>0) {
 			std::cout<<"nb gcomp before "<<gcomp.size()<<"\n";//<<" gvol 3 "<<this->gvol[0]<<" sat "<<this->wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<this->g[i*nxyz+0]<<" ";} std::cout<<"\n";
@@ -264,6 +264,7 @@ public:
 			status = phreeqc_rm->GetGasPhaseVolume(this->gvol);
 			this->p = phreeqc_rm->GetPressure();
 			}
+		for (int j=0;j<nxyz;j++) {float c0=this->c[6*nxyz+j];if ((c0>4e-4)&&(c0<6e-4)) {std::cout << "cp "<<j<<" ";for (int i=0; i<ph_ncomp;i++){std::cout<< this->c[i*nxyz+j]<<" ";} std::cout<<"\n";} }
 		//for (int i=0;i<nxyz;i++) {std::cout<<"p "<<this->p[i]<<" gvol "<<this->gvol[i]<<"\n";}
 		//writes to the dump file
 		//bool dump_on = true;

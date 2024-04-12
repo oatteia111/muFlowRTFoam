@@ -62,8 +62,8 @@ stor.dimensions().reset(dimless/dimLength);
 			tnext = tHwel;
 			}
 		for (i=0; i<cellsHwel.size(); i++)
-			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;}
-		//Info<<i<<" ic "<<cellsHw[i]<<" icdat "<<cellsHwData[2+(icount+i)*4+1]<<endl; }
+			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;
+			Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 	} //Info<<"Hfw read ";
 	//----- get the ghb conditions
 	//int ic0=10;
@@ -145,6 +145,10 @@ residu = hEqn.solve().initialResidual();
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
 Uw = fvc::reconstruct(phiw);
+volScalarField q1 = fvc::div(phiw);
+volScalarField d1 = stor*fvc::ddt(h);
+for (i=0;i<cellsHfix.size();i++) {i1=cellsHfix[i];qHfix[i] = q1[i1]*mesh.V()[i1];}//Info<<" heq hfix "<<i<<" "<<i1<<" "<<qHfix[i]<<endl;}
+
 //phiw =  hEqn.flux() ;
 //Info<<"phi "<<phiw<<endl;
 //volScalarField q1 = fvc::div(phiw);

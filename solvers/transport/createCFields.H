@@ -4,7 +4,7 @@ dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedS
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 dimensionedScalar Koc(transportProperties.lookupOrDefault("Koc",dimensionedScalar("Koc",dimVol/dimMass,0)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
-double dC,mxC,dff,dC0,sC,sC1,dtForC,dtForChem;
+double dC,mxC,dff,dC0,sC,sC1;
 const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.02);
 const scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.02);
 
@@ -53,6 +53,8 @@ volScalarField::Internal CSp
 );
 
 // -------------- conditions for concentration -------------
+// thre is chfix: conc for the cells where h is fixed and cfix: ccells for which only c is fixed
+labelList cellsChfix0; std::vector<float> cellsChfixData;float tChfix=0;int itChfix=0;
 labelList cellsCfix0; std::vector<float> cellsCfixData;float tCfix=0;int itCfix=0;
 labelList cellsCwel0; std::vector<float> cellsCwelData;float tCwel=0;int itCwel=0;
 labelList cellsCriv0; std::vector<float> cellsCrivData;float tCriv=0;int itCriv=0; 
@@ -60,8 +62,7 @@ labelList cellsCghb0; std::vector<float> cellsCghbData;float tCghb=0;int itCghb=
 labelList cellsCrch0; std::vector<float> cellsCrchData;float tCrch=0;int itCrch=0;
 
 // reading the data for hfix
-//std::ifstream inputCfxdata{cur_dir+"/constant/options/hfix"}; //
-//cellsCfxData = {std::istream_iterator<double>{inputCfxdata}, {}};
+if (fexists(cur_dir+"/constant/options/chfix")) { cellSet selectedChfix(mesh, "chfix");cellsChfix0 = selectedChfix.toc();}
 if (fexists(cur_dir+"/constant/options/cfix")) { cellSet selectedCfix(mesh, "cfix");cellsCfix0 = selectedCfix.toc();}
 if (fexists(cur_dir+"/constant/options/cwel")) { cellSet selectedCwel(mesh, "cwel");cellsCwel0 = selectedCwel.toc();}
 if (fexists(cur_dir+"/constant/options/cghb")) { cellSet selectedCghb(mesh, "cghb");cellsCghb0 = selectedCghb.toc();}
@@ -69,12 +70,14 @@ if (fexists(cur_dir+"/constant/options/criv")) { cellSet selectedCriv(mesh, "cri
 if (fexists(cur_dir+"/constant/options/crch")) { cellSet selectedCrch(mesh, "crch");cellsCrch0 = selectedCrch.toc();}
 //get the data
 time = mesh.time().value()/day;
+while (time>=tChfix) {output = getCbuffer("chfix",itChfix,cellsChfix0.size());itChfix +=1;tChfix = output.t;cellsChfixData=output.d;tnext=tChfix;}
 while (time>=tCfix) {output = getCbuffer("cfix",itCfix,cellsCfix0.size());itCfix +=1;tCfix = output.t;cellsCfixData=output.d;tnext=tCfix;}
 while (time>=tCwel) {output = getCbuffer("cwel",itCwel,cellsCwel0.size());itCwel +=1;tCwel = output.t;cellsCwelData=output.d;tnext=tCwel;}
 while (time>=tCghb) {output = getCbuffer("cghb",itCghb,cellsCghb0.size());itCghb +=1;tCghb = output.t;cellsCghbData=output.d;tnext=tCghb;}
 while (time>=tCriv) {output = getCbuffer("criv",itCriv,cellsCriv0.size());itCriv +=1;tCriv = output.t;cellsCrivData=output.d;tnext=tCriv;}
 while (time>=tCrch) {output = getCbuffer("crch",itCrch,cellsCrch0.size());itCrch +=1;tCrch = output.t;cellsCrchData=output.d;tnext=tCrch;}
 
+std::vector<int> cellsChfix = indexC(cellsChfix0,cellsChfixData) ;
 std::vector<int> cellsCfix = indexC(cellsCfix0,cellsCfixData) ;
 std::vector<int> cellsCwel = indexC(cellsCwel0,cellsCwelData) ;
 std::vector<int> cellsCghb = indexC(cellsCghb0,cellsCghbData) ;

@@ -19,7 +19,7 @@ if (cellsSwel.size()>0)
 		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
 		}
 	for (i=0; i<cellsSwel.size(); i++) {condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);}
-	Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
+	//Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
 	}
 //no solutions for drains
 //get the solution ghb data
@@ -30,6 +30,16 @@ if (cellsSghb.size()>0)
 		tSghb = output.t; cellsSghbData=output.d; itSghb +=1;
 		}
 	for (i=0; i<cellsSghb.size(); i++) {condSghb[i] = static_cast<int>(cellsSghbData[i*4+2]);}
+	}
+// get fixed solutions at h fix places
+if (cellsShfix.size()>0)
+	{
+	if (time>=tShfix) {
+		output = getCbuffer("shfix",itShfix,cellsShfix.size()); 
+		tShfix = output.t; cellsShfixData=output.d; itShfix +=1;
+		}
+	for (i=0; i<cellsShfix.size(); i++) {condShfix[i] = static_cast<int>(cellsShfixData[i*4+2]);}
+	//Info<<" tShfix "<<tShfix<<" cond 0 "<<condShfix[0]<<endl;
 	}
 // get fixed solutions 
 if (cellsSfix.size()>0)
@@ -50,29 +60,42 @@ if (cellsSrch.size()>0)
 	for (i=0; i<cellsSrch.size(); i++) {condSrch[i] = static_cast<int>(cellsSrchData[i*4+2]);}
 	}
 
-double dC=0;double sdC=0;
-
+float dC=0;dtForC=1e12;
+/*
+		for (j=0; j<nxyz;j++) {
+			float c0=Cw[6]()[j];//if (j<2) {std::cout << "c0 1 "<<c0<<" ";}
+			if ((c0>4e-4)&&(c0<6e-4)) {std::cout << "c "<<j<<" ";for (i=0; i<ph_ncomp;i++){std::cout<< Cw[i]()[j]<<" ";} std::cout<<"\n";} 
+			sumT+=Cw[5]()[j];sumPF += c0;sumPFa +=Cw[7]()[j];
+			}
+		Info<< " sumPF  "<<sumT<<" "<<sumPF<<" "<<sumPFa << endl; 
+		*/
+/*
+std::vector<double>sumC0(ph_ncomp-4,0.);
+for (ic=4;ic<ph_ncomp;ic++) {for (j=0;j<nxyz;j++) {sumC0[ic-4]+=Cw[ic]()[j];} }
+std::vector<double>sumC(ph_ncomp-4,0.);
+*/
 // main loop over species
+unity=unity*0+1;
 for (j=0;j<nxyz;j++) {Cw[0]()[j]=solu_conc[0];}  // water is alwas set to 55.34 from solution 0
 for (ic=1; ic<ph_ncomp;ic++)
     {
 		//Info<<"immob ic "<<immobile[ic]<<endl;
-		if (immobile[ic]==1) {continue;}
 		volScalarField& Cwi = Cw[ic]();
 		word nameCi ("Cw" + name(ic));
-		Cw[ic]().storePrevIter();
+		if (immobile[ic]==1) {continue;}
+		//Cw[ic]().storePrevIter();
 		//Info<<"start Cwi "<<endl;
-		icnt=0;
+		//icnt=0;
 		CiSu*=0; CiSp*=0; //previous cells with values must be destroyed
 		// --------------------- internal conditions ------------------------
 		if (cellsHwel.size()>0)  // solution in well (even if no Swl data we ned to pump the conc)
 		{
 			for (i=0; i<cellsHwel.size(); i++) 
 				{ 
-				i1=cellsHwel[i];v=mesh.V()[i1];
+				i1=cellsHwel[i];v=mesh.V()[i1];unity[i1]=0;
 				if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 				else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
-				//Info<< ic << " Csu wel "<<CiSu[i1]<<endl;
+				Info<< ic << " Csu wel "<<solu_conc[condSwel[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
 				}
 		} //Info<<"Cweli set"<<endl;
 		// conc at ghb places
@@ -92,7 +115,8 @@ for (ic=1; ic<ph_ncomp;ic++)
 				{ 
 				i1=cellsHfix[i];v=mesh.V()[i1];//
 				if (qHfix[i]<0) {CiSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
-				else {CiSu[i1] = -qHfix[i]/v*solu_conc[condSfix[i]*ph_ncomp+ic];}
+				else {CiSu[i1] = -qHfix[i]/v*solu_conc[condShfix[i]*ph_ncomp+ic];}
+				Info<< ic << " Csu hfix "<<solu_conc[condShfix[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<endl;
 				}
 		}
 		//remove conc at drn places
@@ -115,42 +139,43 @@ for (ic=1; ic<ph_ncomp;ic++)
 		} //Info<<"Srchi set"<<endl;
 		
 		//Rf = plugCwi.setRf(mesh,ic,Cwi); // this is the plugin for sorption,needs to be here (compn specific)
-		
+		//Info<<"Rf "<<ic<<" "<<Rf<<endl;
 		fvScalarMatrix CwiEqn
 		(		  
             Rf * thetaw * fvm::ddt(Cwi) + Rf * Cwi * fvc::ddt(thetaw)
             + fvm::div(phiw, Cwi, "div(phiw,C)")
-            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") // ne pas mettre thetaw
+            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") //*unity ne pas mettre thetaw
 			+ CiSu + fvm::SuSp(CiSp, Cwi)
 		);
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
-		//std::cout<<"Rf in Cwi(80) "<<Rf[80]<<" thetw "<<thetaw[80]<<"\n";
 
 		CwiEqn.solve();
+
+		//calculating dC, and time step (only for classical species)
+		if (ic>3) {
+			dC=0;mxC=0;dff=0;
+			for (j=0;j<nxyz;j++) {mxC=max(mxC,Cwi[j]);}
+			for (j=0;j<nxyz;j++) {
+				dff = mag(Cwi[j]-Cw[ic]().prevIter()[j]);//Info<<"dff "<<j<<" "<<dff<<endl;
+				dC= max(dC,dff);
+				//sumC[ic-4]+=Cwi[j];
+				} 
+			dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<" dtval " << runTime.deltaTValue()<<" c "<<Cwi[cellsHwel[0]]<<endl;
+			dtForC = min(dtForC,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); 
+		}
 	}
 
-/*		//calculating dC, (only for true species)
-		if (ic>3) 
-			{
-			double dff=0;int i1=0;double sC = 0;double dC0=0;double mxC0=0;
-			//for (int i=0;i<ncell;i++) {mxC0=max(mxC0,Cwi.prevIter()[i]);} //strange, ifwe remove that dC0 is wrong?
-			for (int i=0;i<ncell;i++) {mxCv[ic-4]=max(mxCv[ic-4],Cwi[i]);} //sC+=Cwi[i];
-			if (mxCv[ic-4]>0) {//Cwi=max(Cwi,a); // removing negative
-				for (int i=0;i<ncell;i++) {
-					dff = mag(Cwi[i]-Cw[ic]().prevIter()[i])/(mxCv[ic-4]+SMALL);
-					dC0= max(dC0,dff);//sC1+=Cwi[i]; //species max
-					} 
-				//Info<<"dC0 "<<dC0<<" mxC0 "<<mxC0<<" mxC "<<mxC<<endl;
-				dC=max(dC0,dC);
-				}
-			}
-		
-	} // end of species loop
-		
-dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
-//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
-
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
-newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
-runTime.setDeltaT (min (newDeltaT,maxDeltaT) ); */
+//for (ic=0;ic<ph_ncomp-4;ic++) {Info<<ic<<" "<<sumC0[ic]<<" "<<sumC[ic]<<" "<<sumC[ic]-sumC0[ic]<<endl;}
+newDeltaT = max(1e-4,min(dtForC, 1.2*runTime.deltaTValue()));
+		/*sumT=0;sumPF=0;sumPFa=0;
+		for (j=0; j<nxyz;j++) {
+			float c0=Cw[6]()[j];//if (j<2) {std::cout << "c0 1 "<<c0<<" ";}
+			if ((c0>4e-4)&&(c0<6e-4)) {
+				std::cout << "c "<<j<<" ";for (i=0; i<ph_ncomp;i++){std::cout<< Cw[i]()[j]<<" ";} std::cout<<"\n";
+				} 
+			sumT+=Cw[5]()[j];sumPF += c0;sumPFa +=Cw[7]()[j];
+			}
+		Info<< " sumPF  "<<sumT<<" "<<sumPF<<" "<<sumPFa << endl; 
+	*/

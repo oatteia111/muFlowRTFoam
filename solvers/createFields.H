@@ -39,7 +39,7 @@ volScalarField thk
 );
 volScalarField p
 (
-    IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),0)
+    IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325)
 );
 volScalarField sw
 (
@@ -152,7 +152,7 @@ surfaceScalarField Mf ("Mf",M0f*1);
 Info<< "end Kf tensor \n" << endl;
 
 //various
-int i,i1,j,ilay,ilay1; int icount = 0;double day = 86400.;double v=0;
+int i,i1,j,ilay,ilay1; int icount = 0;double v=0;double day = 1;//86400.;
 volScalarField carea ("carea",unity); // this is the cell area but unitless
 forAll(carea(), celli) { carea[celli] = mesh.V()[celli]/thk[celli] ;}
 

@@ -36,7 +36,7 @@ if (flowType == 3) // unsaturated
 		{deltaTFact = 0.8;}
 	else if (iterPicard <= nIterStability)
 		{deltaTFact = 1.2;}
-	runTime.setDeltaT (min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
 
     }
 	
@@ -60,7 +60,7 @@ if (flowType == 3) // unsaturated
 		else {
 		*/
 			deltaTFact = max(min(ratio,1.2),0.1);
-			runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+			newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
 			//runTime.setTime(runTime.timeOutputValue()+runTime.deltaTValue(),runTime.timeIndex());
 			//}
 	//runTime.setDeltaT(min(max(deltaTFact*runTime.deltaTValue(),1),maxDeltaT));
@@ -79,7 +79,7 @@ else if (flowType == 4) // 2 phase
     #include "pSEqn.H"
 	#include "CoatsNo.H"
 	deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.1);
-	runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
 }
 else if (flowType != 0) // flowType=0 no flow
 {

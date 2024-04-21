@@ -52,7 +52,7 @@ stor.dimensions().reset(dimless/dimLength);
 
 // -################# - conditions  ---####################---
 	hSu=hSu*0; hSp=hSp*0; size_t i;//previous cells with values must be destroyed
-	time = mesh.time().value()/day;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
+	time = mesh.time().value() ;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge/recharge
 	if (cellsHwel.size()>0)
 	{
@@ -62,7 +62,7 @@ stor.dimensions().reset(dimless/dimLength);
 			tnext = tHwel;
 			}
 		for (i=0; i<cellsHwel.size(); i++)
-			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;
+			{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;
 			Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 	} //Info<<"Hfw read ";
 	//----- get the ghb conditions
@@ -75,7 +75,7 @@ stor.dimensions().reset(dimless/dimLength);
 			tnext = tHghb;
 			}
 		for (i=0; i<cellsHghb.size(); i++) 
-			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day;}
+			{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v ; hSp[i1] = cellsHghbData[i*4+3]/v ;}
 	} //Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 	//----- get the riv conditions
 	if (cellsHriv.size()>0)
@@ -86,7 +86,7 @@ stor.dimensions().reset(dimless/dimLength);
 			tnext= tHriv;
 			}
 		for (i=0; i<cellsHriv.size(); i++) 
-			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day;}
+			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v ; hSp[i1] = cellsHrivData[i*4+3]/v ;}
 			//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 	} //Info<<"Hriv read "<<endl;
 	//----- get the drn conditions
@@ -100,7 +100,8 @@ stor.dimensions().reset(dimless/dimLength);
 		for (i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i]; v=mesh.V()[i1]; // missing condition!!!
-			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1]=cellsHdrnData[i*4+3]/v/day;
+			hSu[i1] = cellsHdrnData[i*4+2]/v ; hSp[i1]=cellsHdrnData[i*4+3]/v ;
+			if (h()[i1]< cellsHdrnData[i*4+2]/cellsHdrnData[i*4+3] ) {hSu[i1]/=1000.;hSp[i1]/=1000.;} // no flow if head below fixed one
 			}
 	}  //Info<<"Hdrn read ";
 	//---- recharge conditions		
@@ -115,7 +116,7 @@ stor.dimensions().reset(dimless/dimLength);
 			i1 = cellsHrch[i];//Info<<" i "<<i<<" i1 "<<i1<<" nla "<<nlay<<" ncl "<<ncell_lay;
 			for (ilay=0;ilay<nlay;ilay++) { nc=i1-ilay*ncell_lay; if (sw[nc]>=sw_max) {break;} ;} //search for the first confined layer from the top
 			ilay1 = max(0, ilay-1);// ilay1 from top
-			nc = i1-ilay1*ncell_lay;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2]/day;
+			nc = i1-ilay1*ncell_lay;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2] ;
 			//if(hSu[nc]!=0) {Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;}
 			if (hSu[nc]==0) {
 				hSu[nc] = qHrch[i]/mesh.V()[nc]; 

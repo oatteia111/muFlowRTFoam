@@ -20,7 +20,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 // Normally, if the conditions don't change and the model is trained we use NN, if not we use the eqs
 
 // --------------------- internal conditions ------------------------
-	float time = mesh.time().value()/day; //const Time&
+	float time = mesh.time().value(); //const Time&
 	CSu=CSu*0; CSp=CSp*0; a1=1; double conc;//previous cells with values must be destroyed
 	size_t i;
 	if (cellsHwel.size()>0)
@@ -87,11 +87,11 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			}
 		for (size_t i=0; i<cellsHrch.size(); i++) 
 			{ 
-			v=mesh.V()[clayRch[i]];
-			if (CSu[clayRch[i]]==0) { //recharge occurs only where no ghb, riv or drains
-				CSu[clayRch[i]] += -qHrch[i]/v*cellsCrchData[i*4+2];
+			i1=clayRch[i];v=mesh.V()[i1];
+			if ((CSu[i1]==0)&&(qHrch[i]>0)) { //recharge occurs only where no ghb, riv or drains + rch<0=evapo and no solutes evporaiton
+				CSu[i1] = -qHrch[i]/v*cellsCrchData[i*4+2];
 				}
-			//else {Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[2+(icount+i)*4+2]<<endl;}
+			Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
 			} 
 	} //Info<<"Hrdh set"<<endl;
 	

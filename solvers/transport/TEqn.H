@@ -11,7 +11,7 @@ forAll(Deffw.boundaryField(),patchi)
 	}
 lbdaT = thetaw*lbdaTw + (1-eps)*lbdaTs;
 
-float time = mesh.time().value()/day; //const Time&
+float time = mesh.time().value(); //const Time&
 // --------------------- internal conditions ------------------------
 if (cellsHwel.size()>0)
 	{

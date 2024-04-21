@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(muFlowRT_mpi)
+project(muFlowRT)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -59,7 +59,7 @@ include_directories(.
                     ${FOAM_SRC}/meshTools/lnInclude
 					) #
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libraries/phaseModels/lnInclude)
+#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libraries/phaseModels/lnInclude)
 include_directories(usr/local/lib/include) # for phreeqc
 include_directories(/usr/local/lib) # for phreeqc
 include_directories(/usr/lib) # for torch libs
@@ -69,7 +69,7 @@ include_directories(${MPI_CXX_INCLUDE_PATH})
 set(LINK_LIBS ${LINK_LIBS} ${MPI_CXX_LIBRARIES})
 link_directories(${FOAM_LIB_DIR} ${FOAM_USER_LIBBIN} ${FOAM_LIB_DIR} ${PATH_LIB_OPENMPI})
 
-add_executable(${PROJECT_NAME} muFlowRT_mpi.C)
+add_executable(${PROJECT_NAME} muFlowRT.C)
 target_link_libraries(${PROJECT_NAME} PhreeqcRM ${MPI_CXX_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}")
 target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase)

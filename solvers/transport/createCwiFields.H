@@ -68,6 +68,7 @@ labelList cellsSfix0; std::vector<float> condSfix;std::vector<float> cellsSfixDa
 labelList cellsSwel0; std::vector<float> condSwel;std::vector<float> cellsSwelData;float tSwel=0;int itSwel=0;
 labelList cellsSghb0; std::vector<float> condSghb;std::vector<float> cellsSghbData;float tSghb=0;int itSghb=0;
 labelList cellsSrch0; std::vector<float> condSrch;std::vector<float> cellsSrchData;float tSrch=0;int itSrch=0;
+std::vector<int> bcCwi;
 
 std::string s="/constant/options";
 if (fexists(cur_dir+s+"/shfix")) {cellSet selectedShfix(mesh, "shfix");cellsShfix0 = selectedShfix.toc();}
@@ -76,7 +77,7 @@ if (fexists(cur_dir+s+"/swel")) {cellSet selectedSwel(mesh, "swel");cellsSwel0 =
 if (fexists(cur_dir+s+"/sghb")) {cellSet selectedSghb(mesh, "sghb");cellsSghb0 = selectedSghb.toc();}
 if (fexists(cur_dir+s+"/srch")) {cellSet selectedSrch(mesh, "srch");cellsSrch0 = selectedSrch.toc();}
 
-time = mesh.time().value()/day;
+time = mesh.time().value();
 while (time>=tShfix) {output = getCbuffer("shfix",itShfix,cellsShfix0.size());itShfix+=1;tShfix = output.t;cellsShfixData=output.d;tnext=tShfix;}
 while (time>=tSfix) {output = getCbuffer("sfix",itSfix,cellsSfix0.size());itSfix+=1;tSfix = output.t;cellsSfixData=output.d;tnext=tSfix;}
 while (time>=tSwel) {output = getCbuffer("swel",itSwel,cellsSwel0.size());itSwel+=1;tSwel = output.t;cellsSwelData=output.d;tnext=tSwel;}

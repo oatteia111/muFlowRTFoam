@@ -35,8 +35,7 @@ Developers
 //#include <iomanip> //NB when in < > don't add the .h
 #include <stdlib.h>
 #include <vector>
-//#include <math.h>       /* atan */ don(t include it, it creates pb in opf when compiled with blue-cfd???
-//#define MY_PI 3.14159265 // pb in blueCfd conflict with math?
+//#include <iostream>
 #include <fstream>
 #include <iterator>
 #include <sstream>
@@ -65,9 +64,8 @@ std::string cur_dir = get_current_dir();
 
 std::vector<double> a(12,0.);
 #include "phreeqc/initPhreeqc.H"
-std::vector<double> c_ph,gm_ph,poro,t_ph,foc_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
-std::vector<int> immobile;
-std::vector<float> wTimes;
+std::vector<double> c_ph,gm_ph,t_ph,p_ph,gvol,ractive,solu_conc,gas_conc;
+std::vector<int> immobile,wTimes;
 float atmPa=101325.;float vmw,Cgtot,Gmtot,dtForC,dtForChem;
 int i,j,iw,oindex;int rSteps=1;
 
@@ -106,8 +104,8 @@ int main(int argc, char *argv[])
 	//remove all files in the folder observation
 	fname = cur_dir+"/observation"; if (fexists(fname)) {deleteFilesInDirectory(fname);}
 	// reading files times
-	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };
-	wTimes = {std::istream_iterator<float>{inputwTimes}, {}};Info<<" wt0 "<<wTimes[0]<<endl;
+	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	wTimes = {std::istream_iterator<int>{inputwTimes}, {}};
 	
 	//##########################
 	//Observations : obspts a file with the name of each point and its x,y,z, coordinates
@@ -133,47 +131,41 @@ int main(int argc, char *argv[])
 
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
-	//std::ifstream inputInit{cur_dir/"phqinit.txt"};
-	//std::vector<int> ph_init{std::istream_iterator<int>{inputInit}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
-	fname=cur_dir/"phqfoam.txt";std::ifstream inputData{fname};int tunits=1;
-	std::vector<int> ph_data{std::istream_iterator<int>{inputData}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
-	if (fexists(fname)) {
-		std::vector<int> tu={1,60,3600,86400,3153600};tunits=tu[ph_data[4]]; // we need time units to send time to phrq in seconds
-		}
+	std::ifstream inputInit{cur_dir/"phqinit.txt"};
+	std::vector<int> ph_init{std::istream_iterator<int>{inputInit}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
 	//--------------- for mpi -----------------
 	#include "add_mpi.h"
 
 	//##############  phreeqc intiialisation for solutions and gases
 	if (activateReaction==1)
-	{	
-	//##################### make the initialization of phreeqc : data,poro, gvol
-	nxyz=ph_data[0];ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
-	freak.setData(ph_data); Info << "nxyz " << nxyz << endl;
-	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
+	{
+	nxyz=ph_init[0];ph_ncomp=ph_init[1];ph_gcomp=ph_init[2];ph_nsolu=ph_init[3];
+
 	freak.setDB(cur_dir/"phreeqc.dat");
-	//initiate poro and gas volume
-	poro.resize(nxyz,0.);t_ph.resize(nxyz,0.);foc_ph.resize(nxyz,0.);
-	for (i=0;i<nxyz;i++) {poro[i]=eps[i];t_ph[i]=T[i];foc_ph[i]=foc[i];}
-	//wsat.resize(nxyz,0.994);
-	freak.setPoro(poro);freak.setTemp(t_ph);freak.setFoc(foc_ph);
-	p_ph.resize(nxyz);
-	for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
-	int a0= phqInit(freak);
+	//make a first init to calculate the inital solutions (poro required for the initial solutions)
+	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
+	freak.setData(ph_init);
+	std::vector<double> poro(ph_nsolu,0.25);std::vector<double> t_ph(ph_nsolu,25);
+	for (i=0;i<ph_nsolu;i++) {poro[i] = eps[i];t_ph[i]=T[i];}
+	gvol.resize(ph_nsolu,1.e-4); 
+	//p_ph.resize(ph_nsolu,1.);
+	//std::vector<double> wsat(ph_nsolu,0.9); // at teh beginning we set high gaz volume so the solution does not modify the gaz composition
+	freak.setPoro(poro);freak.setTemp(t_ph);freak.setGvol(gvol);
+	int a0=phqInit(freak); //Info << "nxyz " << nxyz << endl;
 	
 	//################ writes the initial solutions and gases to files
 	std::ofstream outFile(cur_dir/"constant/options/solutions");
 	solu_conc.resize(ph_nsolu*ph_ncomp,0.);Info << "nsolu "<<ph_nsolu << " ncomp "<< ph_ncomp <<endl;
+	gas_conc.resize(ph_nsolu*ph_gcomp,0.);
 	for (i=0;i<ph_nsolu;i++) // solu number
 		{ for (j=0;j<ph_ncomp;j++) // component number
 			{
-			float a = freak.bc_conc[j*ph_nsolu+i];
+			float a = freak.c[j*ph_nsolu+i];
 			solu_conc[i*ph_ncomp+j] = a; outFile << a << "\n"; 
 			} 
 		}
 	outFile.close();
 	
-	/* // now gases are not calc in init
-	gas_conc.resize(ph_nsolu*ph_gcomp,0.);
 	std::ofstream outFile1(cur_dir/"constant/options/gases");
 	for (i=0;i<ph_nsolu;i++) // solu number
 		{ 
@@ -185,7 +177,22 @@ int main(int argc, char *argv[])
 			gas_conc[i*ph_gcomp+j] = a;outFile1 << a << "\n"; } //in fraction /Cgtot/phreeqcVm
 		}
 	outFile1.close();
-	*/
+
+	//##################### make the initialization for the full domain in phreeqc : data,poro, gvol
+	std::ifstream inputData{cur_dir/"phqfoam.txt"};
+	std::vector<int> ph_data{std::istream_iterator<int>{inputData}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
+	nxyz=ph_data[0];ph_ncomp=ph_data[1];ph_gcomp=ph_data[2];ph_nsolu=ph_data[3]; //!!! nxyz here is inside the ractive part
+	freak.setData(ph_data); Info << "nxyz " << nxyz << endl;
+	//initiate poro and gas volume
+	poro.resize(nxyz,0); t_ph.resize(nxyz,0.);
+	for (i=0;i<nxyz;i++) {poro[i]=eps[i];t_ph[i]=T[i];}
+	//wsat.resize(nxyz,0.994);
+	freak.setPoro(poro);freak.setTemp(t_ph);
+	//freak.setWsat(wsat); // rchange for the calculation doamin, with 0 outside, sw saturation
+	p_ph.resize(nxyz);
+	for (i=0;i<nxyz;i++) {p_ph[i]=p[i]/atmPa;}	
+	a0= phqInit(freak);
+	
 	//##############" build the c_ph and gm_ph fields and get conc from phreeqc (c_ph=freak.c but needed two variables for format questions)
 	c_ph.resize(nxyz*ph_ncomp,0);
 	for (i=0; i<ph_ncomp;i++)
@@ -267,12 +274,12 @@ int main(int argc, char *argv[])
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();
 	dimensionedScalar et = runTime.endTime();
-	float dt0 = mesh.time().deltaTValue();
+	dimensionedScalar dt0 = mesh.time().deltaTValue();
 	int tstep=0;int itwstep = 0;int tcnt = 0;float wtime=wTimes[itwstep];int flagW=0; // first tstep is 0
-	scalar residu;//float dt0=wtime/50.;Info<<"wtime 0 "<<wtime<<" dt "<<dt0<<endl;
+	scalar residu;
 	if ((flowStartSteady==1)&&(flowType>0)&&(flowType<=2))
 		{
-		runTime.setDeltaT(dt0);
+		runTime.setDeltaT(wtime/500);
 		while (simple.loop(runTime))
 			{
 			#include "hstdEqn.H"
@@ -284,8 +291,8 @@ int main(int argc, char *argv[])
 	//runTime.read();
 	Info <<"dt time "<<dt0<<endl;
 	
-	runTime.setDeltaT(dt0);
-	runTime.setTime(dt0,0); // 12/3/21 time value and index
+	runTime.setDeltaT(wtime/500);
+	runTime.setTime(wtime/500,0); // 12/3/21 time value and index
 	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	while (runTime.run())
@@ -294,14 +301,14 @@ int main(int argc, char *argv[])
 		//set time step to stop at writeTimes
 		oldTime = mesh.time().value();
 		float dt=wtime - oldTime;
-		if ((dt <= float(runTime.deltaTValue())*(1+1e-5))&&(dt>0)) //||(std::round(dt)==std::round(runTime.deltaTValue()))) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
+		if (dt <= float(runTime.deltaTValue())*(1+1e-5)) //||(std::round(dt)==std::round(runTime.deltaTValue()))) //wpb round jus tone, sometime for long times there is a diff of 2 or 3 sec
 			{
 			Info<<"dt "<<dt<<" deltaT "<<runTime.deltaTValue();
 			//float deltaTFact = dt/float(runTime.deltaTValue())*(1+1e-3);
 			runTime.setDeltaTNoAdjust(dt);itwstep+=1;wtime=wTimes[itwstep];flagW=1;
 			Info<<" flg "<<flagW<<endl;}
-		if (dt==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;} //runTime.setDeltaT((wtime-wTimes[itwstep-1])/100);}
 		Info<<"i time "<<itwstep<<" oldt "<<oldTime<<" wt "<<wtime<<" dt "<<dt<<" deltaT "<<float(runTime.deltaTValue())+0.01<<" flg "<<flagW<<endl;
+		if (dt==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;runTime.setDeltaT((wtime-wTimes[itwstep-1])/100);}
 		Info<<"i time "<<itwstep<<" "<<wtime<<" "<<flagW<<endl;
 		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
@@ -329,6 +336,7 @@ int main(int argc, char *argv[])
 			}
 		if (activateTransport==1) {
 			if (activateReaction==0) {
+				//#include "transport/setDeltaTtrsp.H"
 				#include "transport/CEqn.H"
 				}
 			
@@ -383,6 +391,7 @@ int main(int argc, char *argv[])
 
 			
 			Info<<" phqVm[0] "<<phreeqcVm[0]<<" "<<endl;
+			Info<< " dtForC "<<dtForC << endl; 
 			
 			//auto start = std::chrono::high_resolution_clock::now();
 			//################# RUN PHREEQC   ################
@@ -396,8 +405,8 @@ int main(int argc, char *argv[])
 			freak.setGm(gm_ph);//transfer gm_ph to freak
 			freak.setTemp(t_ph);
 			freak.setP(p_ph);//transfer pressure to freak
-			freak.setTstep((runTime.value()-oldTime)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
-			Info << "running phreeqc dt "<<(runTime.value()-oldTime)*tunits<<endl;
+			freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
+			Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
 			int a0= phqRun(freak);
 			a0=getSelOutput(freak);
 			Info << "phreeqc done "<<endl;
@@ -411,31 +420,27 @@ int main(int argc, char *argv[])
 			//forAll(Cw,ic) { if (immobile[ic]==0) {Cw[ic]() = Cw[ic]().prevIter();} }
 			if (ph_gcomp>0) {forAll(Cg,i) {Cg[i]() = Cg[i]().prevIter();} }
 
-			//finding the time step (not for immobile species)
+			//finding the time step + transfer
 			dtForChem = 1e12;
 			forAll(Cw,ic) // dissolved
-				if ((ic>3)&&(immobile[ic]==0))
+				if (ic>3)
 				{
 					dC = 0;dff=0;mxC=0;mnC=1;
 					for (j=0;j<nxyz;j++) 
 						{mnC=min(mnC,freak.c[ic*nxyz+j]);
 						mxC=max(mxC,freak.c[ic*nxyz+j]);}
 					for (j=0; j<nxyz;j++)
-						if (bcCwi[j]==0) 
 						{
 						dff = mag(Cw[ic]()[ractive[j]]-freak.c[ic*nxyz+j]);
 						dC = max(dC,dff);
-						//Info<<"ic, j "<<ic<<" "<<j<<" c "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<dff<<" "<<dC<<endl;
+						//Info<<"ic "<<ic<<" c "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<dff<<" "<<dC<<endl;
 						}
 					dC = dC/(mxC-mnC+SMALL);
-					dtForChem = min(dtForChem,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); Info<<"ic "<<ic<<" dC "<<dC<<" dtForChem "<<dtForChem<<endl;
+					dtForChem = min(dtForChem,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue());// Info<<"dC "<<dC<<" dtForChem "<<dtForChem<<endl;
 				} 
 			Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC "<<dtForC<<" dtForChem " << dtForChem << endl; 
 			newDeltaT = min(dtForChem, newDeltaT);
-			if ((dtForChem>dtForC*10)&&(tstep>10)) {rSteps=10;}
-			else if ((dtForChem>dtForC*2)&&(tstep>10)) {rSteps=static_cast<int>(std::round(dtForChem/dtForC));}
-			else {rSteps=1;}
-			Info<<"new deltat "<<newDeltaT<<endl;
+			if ((dtForChem>dtForC*3)&&(tstep>10)) {rSteps=min(static_cast<int>(std::round(dtForChem/dtForC)),10);}
 			
 			//transfer back to opf
 			forAll(Cw,ic) {for (j=0;j<nxyz;j++)	{Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} } // trasnfer phq -> opf
@@ -506,12 +511,11 @@ int main(int argc, char *argv[])
 
 	}
 	Info<<"Normal termination of OpenFoam"<<endl;
-	/*
+
 	#ifdef USE_MPI
 		freak.PhreeqcRM_ptr->MpiWorkerBreak();
 		int status = MPI_Finalize();
 	#endif
-	*/
     return 0;
 }
 

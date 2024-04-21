@@ -66,7 +66,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	{
 		std::cout<<" hsuw ";
 		for (i=0; i<cellsHwel.size(); i++) 
-			{i1=cellsHwel[i]; v=mesh.V()[i1];hSu[i1] = cellsHwelData[i*4+2]/v/day;} // discharge must be in s-1
+			{i1=cellsHwel[i]; v=mesh.V()[i1];hSu[i1] = cellsHwelData[i*4+2]/v ;} // discharge must be in s-1
 	} Info<<"\nHw read ";
 	// set the values in the matrix
 	//get the ghb conditions
@@ -74,13 +74,13 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	{
 		std::cout<<" hsughb ";
 		for (i=0; i<cellsHghb.size(); i++) 
-			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v/day; hSp[i1] = cellsHghbData[i*4+3]/v/day; }
+			{i1=cellsHghb[i]; v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v ; hSp[i1] = cellsHghbData[i*4+3]/v ; }
 	} Info<<"Hghb read ";
 	//get the riv conditions
 	if (cellsHriv.size()>0)
 	{
 		for (i=0; i<cellsHriv.size(); i++) 
-			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v/day; hSp[i1] = cellsHrivData[i*4+3]/v/day; }
+			{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v ; hSp[i1] = cellsHrivData[i*4+3]/v ; }
 	} Info<<"Hriv read ";
 	//get the drn conditions
 	if (cellsHdrn.size()>0)
@@ -89,8 +89,8 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 		for (i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i];v=mesh.V()[i1];//Info<<"i1 "<<i1<<" h "<<h()[i1]<<endl;
-			hSu[i1] = cellsHdrnData[i*4+2]/v/day; hSp[i1] = cellsHdrnData[i*4+3]/v/day; 
-			//hSp[i1] = cellsHdrnData[2+(icount+i)*4+3]/day;
+			hSu[i1] = cellsHdrnData[i*4+2]/v ; hSp[i1] = cellsHdrnData[i*4+3]/v ; 
+			//hSp[i1] = cellsHdrnData[2+(icount+i)*4+3] ;
 			//if (i<5) {Info<<"drn i1 "<<i1<<" h(i1) "<<h()[i1]<<" hSu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
 			//scalar dff = hSu[i1]-hSp[i1]*h()[i1];
 			//if (dff>0) {hSu[i1]/=1000;hSp[i1]/=1000;}
@@ -106,7 +106,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 			for (ilay=0;ilay<nlay;ilay++) { if (sw[i1-ilay*ncell_lay]>0.999) {break;} ;} //search for the first confined layer from the top
 			ilay1 = max(0, ilay-1); // ilay1 from top
 			nc = i1-ilay1*ncell_lay;
-			hSu[nc] += cellsHrchData[i*4+2]/mesh.V()[nc]/day; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
+			hSu[nc] += cellsHrchData[i*4+2]/mesh.V()[nc] ; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
 			} 
 	} Info<<"Hdrn read "<<endl;
 	//fixed head cells

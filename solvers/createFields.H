@@ -152,7 +152,7 @@ surfaceScalarField Mf ("Mf",M0f*1);
 Info<< "end Kf tensor \n" << endl;
 
 //various
-int i,i1,j,ilay,ilay1; int icount = 0;double v=0;double day = 1;//86400.;
+int i,i1,j,ilay,ilay1; int icount = 0;double v=0;
 volScalarField carea ("carea",unity); // this is the cell area but unitless
 forAll(carea(), celli) { carea[celli] = mesh.V()[celli]/thk[celli] ;}
 
@@ -194,13 +194,14 @@ if (fexists(cur_dir+"/constant/options/hriv")) { cellSet selectedHriv(mesh, "hri
 if (fexists(cur_dir+"/constant/options/hghb")) { cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
 if (fexists(cur_dir+"/constant/options/hrch")) { cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
 //get the data
-outData output;float time = mesh.time().value()/day;float tnext;//tnext does not work that way, not used
+outData output;float time = mesh.time().value();float tnext;//tnext does not work that way, not used
 while (time>=tHfix) {output = getCbuffer("hfix",itHfix,cellsHfix0.size());itHfix +=1;tHfix = output.t;cellsHfixData=output.d;}
 while (time>=tHwel) {output = getCbuffer("hwel",itHwel,cellsHwel0.size());itHwel +=1;tHwel = output.t;cellsHwelData=output.d;}
 while (time>=tHdrn) {output = getCbuffer("hdrn",itHdrn,cellsHdrn0.size());itHdrn +=1;tHdrn = output.t;cellsHdrnData=output.d;}
 while (time>=tHriv) {output = getCbuffer("hriv",itHriv,cellsHriv0.size());itHriv +=1;tHriv = output.t;cellsHrivData=output.d;}
 while (time>=tHghb) {output = getCbuffer("hghb",itHghb,cellsHghb0.size());itHghb +=1;tHghb = output.t;cellsHghbData=output.d;}
 while (time>=tHrch) {output = getCbuffer("hrch",itHrch,cellsHrch0.size());itHrch +=1;tHrch = output.t;cellsHrchData=output.d;}
+Info <<"hrech in init "<<cellsHrchData[2]<<endl;
 //tnext should be equal to the min of all t (but not 0)
 qHfix.resize(cellsHfix0.size());
 qHwel.resize(cellsHwel0.size());

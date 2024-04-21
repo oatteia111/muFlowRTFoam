@@ -1,3 +1,0 @@
-darcyGradPressure/darcyGradPressure.C
-
-LIB = $(FOAM_USER_LIBBIN)/libporousBoundaryConditions

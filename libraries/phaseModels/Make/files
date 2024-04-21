@@ -1,5 +1,0 @@
-phase/phase.C
-fluidPhase/fluidPhase.C
-incompressiblePhase/incompressiblePhase.C
-
-LIB = $(FOAM_USER_LIBBIN)/libphase

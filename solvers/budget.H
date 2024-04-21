@@ -58,7 +58,7 @@ if (activateReaction==1)
 
 if (flagW==1) // write the files    
 	{
-	float t = mesh.time().value()/day;
+	float t = mesh.time().value() ;
 	std::ofstream fich1(cur_dir+"/observation/budgetH.txt", std::ios::app);// Ouvrir le fichier en mode append
 	fich1 << t<<" "<<sqIHfix<<" "<<sqOHfix<<" "<<sqIHwel<<" "<<sqOHwel<<" "<<sqIHdrn<<" "<<sqOHdrn<<" "<<sqIHghb<<" "<<sqOHghb<< std::endl;
 	fich1.close();

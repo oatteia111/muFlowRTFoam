@@ -88,6 +88,6 @@ else if (flowType != 0) // flowType=0 no flow
 	newDeltaT = min(maxDeltaT, 1.2*runTime.deltaTValue());
    //runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
 }
-Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" dtvalue "<<runTime.deltaTValue()<<endl;
+Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" newdeltat "<<newDeltaT<<endl;
 
 Uw = fvc::reconstruct(phiw); // This is a true darcy velocity (flux divided by surface even in unconfined)

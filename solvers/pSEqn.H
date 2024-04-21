@@ -40,13 +40,14 @@ if (cellsPfix.size()>0)
 			//b*fvOptions(sw,sw)
         );
 
+	#include "update2phaseFields.H"		//update done first if wsat changed by phreeqc
+
 	pEqn.solve();
 	//for (j=0; j<3;j++) {Info<<"p after peq "<<p[j]<<" sw "<<sw[j]<<endl;}
 
     SEqn.solve();
 	//for (j=0; j<3;j++) {Info<<"p after seq "<<p[j]<<" sw "<<sw[j]<<endl;}
 	
-	#include "update2phaseFields.H"		
 	//for (j=0; j<3;j++) {Info<<"p after upd "<<p[j]<<" sw "<<sw[j]<<endl;}
 
 	//Info<<"p solved"<<endl;

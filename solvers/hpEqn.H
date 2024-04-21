@@ -8,7 +8,7 @@ Info<<"stor ";for (int i=0;i<8;i++) {Info<<stor[i*12]<<" ";};Info<<stor[98]<<" "
 
 // -------------- conditions  ----------------------
 	hSu=hSu*0; hSp=hSp*0;size_t i; //previous cells with values must be destroyed
-	time = mesh.time().value()/day; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
+	time = mesh.time().value() ; //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
 	if (cellsHwel.size()>0)
 	{
@@ -18,8 +18,8 @@ Info<<"stor ";for (int i=0;i<8;i++) {Info<<stor[i*12]<<" ";};Info<<stor[98]<<" "
 			newDeltaT = runTime.deltaTValue()/20;
 			}
 		for (i=0; i<cellsHwel.size(); i++) {
-			v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2]/day; hSu[cellsHwel[i]] = qHwel[i]/v;
-			Info<<i<<" ic "<<cellsHwel[i]<<" q "<<qHwel[i]<<" hSu "<<hSu[cellsHwel[i]]<<endl;
+			i1=cellsHwel[i];qHwel[i] = cellsHwelData[i*4+2] ; hSu[i1] = qHwel[i]/mesh.V()[i1];
+			//Info<<i<<" ic "<<cellsHwel[i]<<" q "<<qHwel[i]<<" hSu "<<hSu[cellsHwel[i]]<<endl;
 			}
 	}
 	//---- recharge conditions		
@@ -29,11 +29,15 @@ Info<<"stor ";for (int i=0;i<8;i++) {Info<<stor[i*12]<<" ";};Info<<stor[98]<<" "
 			output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
 			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 			}
+		float frech;float pi=3.141592654; //frech is used to stop recharge or evapo when hp is too high or too low
 		for (i=0; i<cellsHrch.size(); i++) 
 			{
-			i1 = cellsHrch[i];clayRch[i] = i1;qHrch[i] = cellsHrchData[i*4+2]/day;
+			i1 = cellsHrch[i];clayRch[i] = i1;qHrch[i] = cellsHrchData[i*4+2] ; // here the injection is at the exact place of recharge (not like in unconfined)
+			//Info<<i<<" ic "<<cellsHrch[i]<<" i lay "<<clayRch[i]<<" rch "<<qHrch[i]<<endl;
 			if (hSu[i1]==0) { // apply recharge only if there is nothing else in the cell
-				hSu[i1] = qHrch[i]/mesh.V()[i1]; 
+				if (hp()[i1]<0) {frech = 0.5+std::atan((hp()[i1]+20.)*10.)/pi;} 
+				else {frech = 0.5-std::atan((hp()[i1]-10.)*20.)/pi;}
+				hSu[i1] = frech*qHrch[i]/mesh.V()[i1]; 
 				}
 			} 	
 	} //Info<<"Hrch read ";//<<" Hghb "<<hSu[ncell_lay*3+ic0]<<" "<<endl;

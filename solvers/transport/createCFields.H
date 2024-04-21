@@ -4,7 +4,7 @@ dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedS
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 dimensionedScalar Koc(transportProperties.lookupOrDefault("Koc",dimensionedScalar("Koc",dimVol/dimMass,0)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
-double dC,mxC,dff,dC0,sC,sC1;
+double dC,mnC,mxC,dff,dC0,sC,sC1;
 const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.02);
 const scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.02);
 
@@ -69,7 +69,7 @@ if (fexists(cur_dir+"/constant/options/cghb")) { cellSet selectedCghb(mesh, "cgh
 if (fexists(cur_dir+"/constant/options/criv")) { cellSet selectedCriv(mesh, "criv");cellsCriv0 = selectedCriv.toc();}
 if (fexists(cur_dir+"/constant/options/crch")) { cellSet selectedCrch(mesh, "crch");cellsCrch0 = selectedCrch.toc();}
 //get the data
-time = mesh.time().value()/day;
+time = mesh.time().value() ;
 while (time>=tChfix) {output = getCbuffer("chfix",itChfix,cellsChfix0.size());itChfix +=1;tChfix = output.t;cellsChfixData=output.d;tnext=tChfix;}
 while (time>=tCfix) {output = getCbuffer("cfix",itCfix,cellsCfix0.size());itCfix +=1;tCfix = output.t;cellsCfixData=output.d;tnext=tCfix;}
 while (time>=tCwel) {output = getCbuffer("cwel",itCwel,cellsCwel0.size());itCwel +=1;tCwel = output.t;cellsCwelData=output.d;tnext=tCwel;}

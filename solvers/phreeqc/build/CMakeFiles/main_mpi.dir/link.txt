@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/main_mpi.dir/main_mpi.cpp.o  -o main_mpi  -Wl,-rpath,/usr/lib/x86_64-linux-gnu/openmpi/lib -lphreeqcrm /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so -lpthread -lOpenFOAM -ldl -lm -lfiniteVolume -lmeshTools 

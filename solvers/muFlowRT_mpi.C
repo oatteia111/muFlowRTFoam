@@ -116,6 +116,7 @@ outData getCbuffer(string fname, int itime, int ncell) {
 int main(int argc, char *argv[])
 {
 	my_phq freak; //need to be here to be availabel for every chem condition
+	namespace chr = std::chrono;
 
 	//init openFoam
     #include "setRootCase.H"
@@ -263,7 +264,8 @@ int main(int argc, char *argv[])
 	dimensionedScalar et = runTime.endTime();
 	dimensionedScalar dt = mesh.time().deltaTValue();
 	scalar dt1 = runTime.controlDict().lookupOrDefault("writeInterval",0)/10;Info<<"dt1 "<<dt1<<endl;
-
+	scalar resid;
+	
 	if ((flowStartSteady==1)&&(flowType>0))
 		{
 		runTime.setDeltaT(1);
@@ -282,18 +284,18 @@ int main(int argc, char *argv[])
 	float oldTime=0;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	//- C-variation control
-	scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.01);
-	scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.01);
 	
-	int istep = 0;int tcnt = 0;int itWrite=0;bool flgWrite=0;double oldDeltaT;
-	Info<<"nb of tsteps "<<writetimes.size()<<endl;
-
+	int istep = 0;int tcnt = 0;int itWrite=0;bool flgWrite=0;double oldDeltaT,tWrite;
+	time = mesh.time().value();
+	while (time>=tWrite) {tWrite=writetimes[itWrite];itWrite +=1;}
+	Info<<"time "<<time<<" nb of tsteps "<<writetimes.size()<<" itWrite "<<itWrite<<" tWrite "<<tWrite<<endl;
+	
 	while (runTime.run())
     {
 		if (istep==0) {runTime++;}  // needed to find the values below
 		runTime.read();
 		//verify if delatT too long for next write time
-		//Info << "time = " << runTime.timeName() << "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << runTime.timeName() << "  iTwrite " <<  itWrite <<" tw "<<writetimes[itWrite]<<  endl;
 		if (itWrite<writetimes.size()) {
 			if (flgWrite==1) {
 				runTime.setDeltaT((oldDeltaT+runTime.deltaTValue())/2.);flgWrite=0;
@@ -317,7 +319,9 @@ int main(int argc, char *argv[])
 		if (flowType>0) {
 			#include "flow.H"
 			}
-		//deltaTchem -= runTime.deltaTValue(); Info<<"dtchem "<<deltaTchem<<endl;
+		//deltaTchem -= runTime.deltaTValue(); 
+		Info<<"resid "<<resid<<endl;
+		if (abs(resid)>maxHresid) {runTime.setDeltaT(runTime.deltaTValue()/4);}
 		if (ph_gcomp>0) {for (j=0; j<nxyz;j++) {gvol[j]=eps[j]*(1-sw[j]);} }
 		
 		//***************  solve Transport  *************************
@@ -331,7 +335,11 @@ int main(int argc, char *argv[])
 				}
 			else {
 				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
+				auto t1 = chr::high_resolution_clock::now();
 				#include "transport/CwiEqn.H"
+				auto t2 = chr::high_resolution_clock::now();
+				auto ms_int = chr::duration_cast<chr::milliseconds>(t2 - t1);
+				std::cout << "t run Cw "<<ms_int.count()<< " ";
 				if (ph_gcomp>0) {
 					forAll(Cg,i) {Cg[i]().storePrevIter();}
 					#include "transport/CgiEqn.H"
@@ -353,7 +361,9 @@ int main(int argc, char *argv[])
 			// find the cells where the chcemistry has changed to calculate there
 			//icnt = 0;
 			//deltaTchem = transportProperties.lookupOrDefault<scalar>("deltaTchem",86400);Info<<"dtchem in reac "<<deltaTchem<<endl;
+			
 			std::vector<double> rchange(nxyz,0.);double dff,mxC,dC0,dCc;
+			/*
 			for (i=4; i<ph_ncomp; i++)
 				{
 				mxC = 0;dCc=0;
@@ -369,9 +379,18 @@ int main(int argc, char *argv[])
 			dtForC = dCmax/(max(dCc,0)+SMALL)*runTime.deltaTValue(); 
 			//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
-			//Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dCc<<" dtForChem " << dtForC << endl; 
-			//scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
-			//runTime.setDeltaT (min (newDeltaT,maxDeltaT) );
+			Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dCc<<" dtForChem " << dtForC << endl; 
+			scalar newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
+			runTime.setDeltaT (min (newDeltaT,maxDeltaT) );
+			*/
+			//find where conc change and where sw>swmin (max because there are several species)
+			for (i=0; i<ph_ncomp; i++)
+				{
+				for (j=0; j<nxyz;j++)
+					{
+					if (abs(c_ph[i*nxyz+j]-Cw[i]()[ractive[j]])/(c_ph[i*nxyz+j]+1e-20)>1e-5 && sw[ractive[j]]>sw_min[j]) {rchange[j] = max(rchange[j],1.);}
+					}
+				} 
 			for (i=0; i<ph_gcomp; i++)
 				{
 				for (j=0; j<nxyz;j++)
@@ -410,14 +429,18 @@ int main(int argc, char *argv[])
 			Info<<"temp sz "<<t_ph.size()<<" gvol sz "<<gvol.size()<<endl;
 			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T[j];}//Info<<T[j]<<" ";}//Info<<"rch "<<rchange[j]<<endl;}
 			freak.setGvol(gvol); // set gas volume in phreeqc
-			freak.setWsat(rchange); // rchange for the calculation doamin, with 0 outside, sw saturation
+			freak.setWsat(rchange); // rchange for the place where conc changed, with 0 outside, sw saturation
 			freak.setC(c_ph);//transfer c_ph to freak : it does not work to send directly to freak.c
 			freak.setGm(gm_ph);//transfer gm_ph to freak
 			freak.setTemp(t_ph);
 			//freak.setP(p_ph);//transfer pressure to freak
 			freak.setTstep(runTime.value()-oldTime); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 			Info << "running phreeqc dt "<<runTime.value()-oldTime<<endl;
+			auto t1 = chr::high_resolution_clock::now();
 			int a0 = phqRun(freak);
+			auto t2 = chr::high_resolution_clock::now();
+			auto ms_int = chr::duration_cast<chr::milliseconds>(t2 - t1);
+			std::cout << "t run phq "<<ms_int.count()<< " ";
 			//freak.getSelOutput();
 			Info << "phreeqc done "<<endl;
 				
@@ -499,6 +522,7 @@ int main(int argc, char *argv[])
 		ts = runTime.write();//oldTime=runTime.value();
 		if (flgWrite) {
 			for (int ic=1; ic<ph_ncomp;ic++) { Cw[ic]().write();}
+			h.write();sw.write();
 			}
 			else {if (runTime.deltaTValue()>0) {oldTime = runTime.value()*1;} }
 		//write species

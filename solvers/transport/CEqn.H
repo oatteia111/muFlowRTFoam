@@ -26,9 +26,10 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-		if (time>=tCwel) {
+		if (time>tCwel) {
 			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
-			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;tnext = tCwel;
+			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
+			tnext = min(tnext,tCwel);
 			}
 		for (i=0; i<cellsCwel.size(); i++) 
 			{ 
@@ -37,28 +38,30 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[i*4+2];} //the injected mass is the water flow x the conc
 			}
 	}
-	// for ghb cells only for the outflow of conc (1st step) -> Hghb because Cghb may not be set here
+	// Hghb because Cghb may not be set here
 	if (cellsHghb.size()>0)
 	{
-		if (time>=tCghb) {
+		if (time>tCghb) {
 			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
-			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;tnext = tCghb;
+			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
+			tnext = min(tnext,tCghb);
 			}
 		for (size_t i=0; i<cellsHghb.size(); i++) 
 			{ 
 			i1=cellsHghb[i];v=mesh.V()[i1];//
 			if (qHghb[i]<0) {CSp[i1] = -qHghb[i]/v;} // outflow discharge prop to local concentration
 			else {CSu[i1] = -qHghb[i]/v*cellsCghbData[i*4+2];}
-			//Info<<"ghb "<< i<<" i1 " <<i1<<" q "<<qHghb[i]<<" conc "<<cellsCghbData[2+(icount+i)*4+2]<<endl;
+			//Info<<"ghb "<< i<<" i1 " <<i1<<" q "<<qHghb[i]<<" conc "<<cellsCghbData[i*4+2]<<endl;
 			}
 	}
 	//store the chfix conditions data
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>=tChfix) {
+		if (time>tChfix) {
 			output = getCbuffer("chfix",itChfix,cellsChfix.size()); 
-			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;tnext = tChfix;
+			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;
+			tnext = min(tnext,tChfix);
 			}
 		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
@@ -78,12 +81,12 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	}
 
 	//recharge
-	if (cellsHrch.size()>0) // recharge is different, required only if C>0
+	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
-		if (time>=tCrch) {
+		if (time>tCrch) {
 			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
 			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
-			tnext = tCrch;
+			tnext = min(tnext,tCrch);
 			}
 		for (size_t i=0; i<cellsHrch.size(); i++) 
 			{ 
@@ -91,10 +94,10 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			if ((CSu[i1]==0)&&(qHrch[i]>0)) { //recharge occurs only where no ghb, riv or drains + rch<0=evapo and no solutes evporaiton
 				CSu[i1] = -qHrch[i]/v*cellsCrchData[i*4+2];
 				}
-			Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
+			//Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
 			} 
 	} //Info<<"Hrdh set"<<endl;
-	
+//Info<<" Rf "<<Rf<<" thetaw "<<thetaw<<endl;	
 // ----------------------  equation  --------------------------
 C.storePrevIter();//Info<<"c 10740 avt "<<C()[10740]<<endl;
 fvScalarMatrix CEqn
@@ -103,14 +106,15 @@ fvScalarMatrix CEqn
 		+ fvm::div(phiw, C, "div(phiw,C)") 
 		- fvm::laplacian(Deffw, C, "laplacian(Deffw,C)")
 		+ thetaw * fvm::Sp(lbdaw,C)
-		+ CSu + fvm::SuSp(CSp, C)
+		== - CSu - fvm::SuSp(CSp, C)
 	); 
 //for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)
 	{
-	if (time>=tCfix) {
+	if (time>tCfix) {
 		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
-		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;tnext = tCfix;
+		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
+		tnext = min(tnext,tCfix);
 		}
 	for (i=0; i<cellsCfix.size(); i++) {CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
 	}
@@ -118,13 +122,13 @@ if (cellsCfix.size()>0)
 CEqn.solve();
 
 //calculating dC, removing negative C and compensating mass
-a=a* 0;dC=0;mxC=0;double dff=0;int i1=0;
+a=a* 0;dC=0;mxC=0;double dff=0;int imax=0;
 for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}
 C=max(C,a); // removing negative
 for (i=0;i<ncell;i++) {
 	dff = mag(C()[i]-C.prevIter()[i]);
-	if (dff>dC) {i1=i;}
-	dC= max(dC,dff);sC1+=C()[i];
+	if (dff>dC) {dC=dff;imax=i;}
+	sC1+=C()[i];
 	} 
 	Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
@@ -135,5 +139,4 @@ dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue();
 //if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
-newDeltaT = min(dtForC, 1.2*runTime.deltaTValue());
-//newDeltaT = min(newDeltaT,(tnext-runTime.value())*day);
+newDeltaT = min(dtForC, newDeltaT);

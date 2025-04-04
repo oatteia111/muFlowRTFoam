@@ -15,7 +15,7 @@ std::vector<int> indexC(labelList &cells, std::vector<float> &data)
 }
 
 inline bool fexists(const std::string& name) {
-    ifstream f(name.c_str());
+    std::ifstream f(name.c_str());
     return f.good();
 }
 

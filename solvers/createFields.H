@@ -5,7 +5,11 @@ IOdictionary transportProperties
     IOobject
     ("transportProperties",runTime.constant(), mesh,IOobject::MUST_READ_IF_MODIFIED,IOobject::NO_WRITE)
 );
-scalar flowStartSteady(transportProperties.lookupOrDefault<scalar>("flowStartSteady",0.));
+IOdictionary solutionDict
+(
+    IOobject("fvSolution",runTime.system(),runTime,IOobject::MUST_READ)
+);
+scalar flowStartSteady(transportProperties.lookupOrDefault<scalar>("flowStartSteady",0));
 scalar flowType(transportProperties.lookupOrDefault<scalar>("flowType",1)); //0 no flow, 1 confined, 2 unconfined, 3 unsat 4 dualphase
 scalar activateCapillarity(transportProperties.lookupOrDefault<scalar>("activateCapillarity",1));
 scalar activateTransport(transportProperties.lookupOrDefault<scalar>("activateTransport",0));
@@ -14,46 +18,31 @@ scalar reactionSteps(transportProperties.lookupOrDefault<scalar>("reactionSteps"
 scalar deltaTchem(transportProperties.lookupOrDefault<scalar>("deltaTchem",86400));
 scalar stor0(transportProperties.lookupOrDefault<scalar>("stor0",1e-4));
 scalar maxHresid(transportProperties.lookupOrDefault<scalar>("maxHresid",1e-4));
+scalar lg_units(transportProperties.lookupOrDefault<scalar>("lg_units",1));
 int nlay(transportProperties.lookupOrDefault<int>("nlay",1));
 int ncell_lay(transportProperties.lookupOrDefault<int>("ncell_lay",1));
 int ncell=nlay*ncell_lay;
+scalar coupleK_eps(transportProperties.lookupOrDefault<scalar>("coupleK_eps",0));
+dimensionedScalar rhowRef(transportProperties.lookupOrDefault("rhowRef",dimensionedScalar("rhowRef",dimensionSet(1,-3,0,0,0,0,0),1e3)));
+dimensionedScalar muwRef(transportProperties.lookupOrDefault("muwRef",dimensionedScalar("muwRef",dimensionSet(1,-1,-1,0,0,0,0),1e-3)));
 Info << "transportP read "<< endl;
 
-Info << nl << "Reading field h\n" << endl;
-volScalarField eps
-(
-    IOobject("eps",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("eps",dimless,0.3)
-);
-volScalarField h
-(
-    IOobject("h",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("h",dimLength,0)
-);
+Info << nl << "Reading fields\n" << endl;
+volScalarField eps (IOobject("eps",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("eps",dimless,0));
+//volScalarField eps (IOobject("eps",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("eps",dimless,0.3));
+volScalarField eps0("eps0",eps*1);
+volScalarField h (IOobject("h",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("h",dimLength,0));
+//volScalarField eps0("h0",h);
+volScalarField zbot(IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("zbot",dimLength,0.));
+volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1));
+volScalarField p (IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325));
+//Info<<p<<endl;
+volScalarField rhow (IOobject("rhow",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef);
+volScalarField muw (IOobject("muw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,muwRef);
+volScalarField sw (IOobject("sw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.));
+volScalarField phreeqcVm (IOobject("phreeqcVm",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phreeqcVm",dimless,24.5));
+volScalarField unity(IOobject("unity",runTime.constant(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("unity",dimless,1));
 
-volScalarField zbot
-(
-    IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("zbot",dimLength,0.)
-);
-volScalarField thk
-(
-    IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1)
-);
-volScalarField p
-(
-    IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325)
-);
-volScalarField sw
-(
-    IOobject("sw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.)
-);
-volScalarField phreeqcVm
-(
-    IOobject("phreeqcVm",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phreeqcVm",dimless,24.5)
-);
-
-volScalarField unity
-(
-    IOobject("unity",runTime.constant(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("unity",dimless,1)
-);
 volScalarField a("a",unity);
 a.dimensions().reset(dimMass/dimVol); //for C
 volScalarField a1("a1",unity);
@@ -75,50 +64,17 @@ Info<<"CFL "<<CFL<<" int "<<CFLint<<endl;
 
 volScalarField stor("stor", unity); //Info << "stor " << stor().size() << endl;
 
-/*//phases 
-autoPtr<incompressiblePhase> phasew = incompressiblePhase::New(mesh,transportProperties,"w");
-volVectorField& Uw = phasew->U();
-const dimensionedScalar& rhow = phasew->rho();
-const dimensionedScalar& muw = phasew->mu();
-phasew->phi().writeOpt()=IOobject::NO_WRITE;
-Info << "phase done "<< endl;
-volVectorField& U = Uw;
-surfaceScalarField& phiw = phasew->phi();*/
-dimensionedScalar rhow(transportProperties.lookupOrDefault("rhow",dimensionedScalar("rhow",dimensionSet(1,-3,0,0,0,0,0),1e3)));
-dimensionedScalar muw(transportProperties.lookupOrDefault("muw",dimensionedScalar("muw",dimensionSet(1,-1,-1,0,0,0,0),1e-3)));
-volVectorField Uw
-(
-    IOobject("Uw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Uw",dimLength/dimTime,vector::zero)
-);
-surfaceScalarField phiw
-(
-    IOobject("phiw", runTime.timeName(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVol/dimTime,0.)
-);
+volVectorField Uw(IOobject("Uw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Uw",dimLength/dimTime,vector::zero));
+surfaceScalarField phiw(IOobject("phiw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVol/dimTime,0.));
 
 //hydraulic conductivity
 Info<< "reading Kh and Kv field " << endl;
 
-volScalarField Kh
-(
-    IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh
-);
-volScalarField Kv
-(
-    IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh
-);
-volScalarField storC
-(
-    IOobject("storC",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storC",dimless,1.e-6)
-);
-volScalarField storU
-(
-    IOobject("storU",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storU",dimless,0.25)
-);
-
-surfaceScalarField Kf
-(
-    IOobject("Kf",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("Kf",dimArea,1.e-12)
-);
+volScalarField Kh (IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+volScalarField Kv (IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+volScalarField storC(IOobject("storC",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storC",dimless,1.e-6));
+volScalarField storU(IOobject("storU",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storU",dimless,0.25));
+surfaceScalarField Kf(IOobject("Kf",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("Kf",dimArea,1.e-12));
 Kf = fvc::interpolate(Kh,"Kh");
 
 //create a surface scalar field with harmonic mean different for the vertical and non-vertical faces
@@ -147,7 +103,9 @@ forAll( mesh.owner() , iface )
 
 //set values for sw
 //forAll(swT, celli) { swT[celli] = tensor::I;}//.xx() = 1; swT[celli].yy() = 1;swT[celli].zz() = 1;}
-surfaceScalarField M0f ("M0f",rhow*mag(g)*Kf/muw);
+surfaceScalarField rhowf =fvc::interpolate(rhow,"rhow");
+surfaceScalarField muwf = fvc::interpolate(muw,"muw");
+surfaceScalarField M0f ("M0f",rhowf*mag(g)*Kf/muwf);
 surfaceScalarField Mf ("Mf",M0f*1);
 Info<< "end Kf tensor \n" << endl;
 
@@ -158,22 +116,12 @@ forAll(carea(), celli) { carea[celli] = mesh.V()[celli]/thk[celli] ;}
 
 //deltat
 scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
-scalar newDeltaT;
-
+scalar minDeltaT = runTime.controlDict().lookupOrDefault("minDeltaT", 1e-8);
 // creating the internal Su and Sp fields to input head conditions inside the domain
 volScalarField::Internal hSu
-(
-   IOobject("hSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
-		mesh,
-		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
-);
-
+(IOobject("hSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0)); // the overall eq in in m3.s-1
 volScalarField::Internal hSp
-(
-   IOobject("hSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
-		mesh,
-		dimensionedScalar("zero",dimensionSet(0,-1,-1,0,0,0,0),0.0) 
-);
+(IOobject("hSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero",dimensionSet(0,-1,-1,0,0,0,0),0.0) );
 
 
 // -------------- conditions for head -------------
@@ -183,25 +131,34 @@ labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;
 labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
 labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
 labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
-
-// reading the data for hfix
-//std::ifstream inputHfxdata{cur_dir+"/constant/options/hfix"}; //
-//cellsHfxData = {std::istream_iterator<double>{inputHfxdata}, {}};
-if (fexists(cur_dir+"/constant/options/hfix")) { cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();}
-if (fexists(cur_dir+"/constant/options/hwel")) { cellSet selectedHwel(mesh, "hwel");cellsHwel0 = selectedHwel.toc();}
-if (fexists(cur_dir+"/constant/options/hdrn")) { cellSet selectedHdrn(mesh, "hdrn");cellsHdrn0 = selectedHdrn.toc();}
-if (fexists(cur_dir+"/constant/options/hriv")) { cellSet selectedHriv(mesh, "hriv");cellsHriv0 = selectedHriv.toc();}
-if (fexists(cur_dir+"/constant/options/hghb")) { cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();}
-if (fexists(cur_dir+"/constant/options/hrch")) { cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();}
-//get the data
-outData output;float time = mesh.time().value();float tnext;//tnext does not work that way, not used
+//std::vector<float> ratio;
+outData output;float time = mesh.time().value();tnext=1e8;
+if (fexists(cur_dir+"/constant/options/hfix")) { 
+cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();
 while (time>=tHfix) {output = getCbuffer("hfix",itHfix,cellsHfix0.size());itHfix +=1;tHfix = output.t;cellsHfixData=output.d;}
-while (time>=tHwel) {output = getCbuffer("hwel",itHwel,cellsHwel0.size());itHwel +=1;tHwel = output.t;cellsHwelData=output.d;}
+}
+if (fexists(cur_dir+"/constant/options/hwel")) { 
+cellSet selectedHwel(mesh, "hwel");cellsHwel0 = selectedHwel.toc();
+while (time>=tHwel) {output = getCbuffer("hwel",itHwel,cellsHwel0.size());itHwel +=1;tHwel = output.t;tnext=min(tnext,tHwel);cellsHwelData=output.d;}
+}
+if (fexists(cur_dir+"/constant/options/hdrn")) { 
+cellSet selectedHdrn(mesh, "hdrn");cellsHdrn0 = selectedHdrn.toc();
 while (time>=tHdrn) {output = getCbuffer("hdrn",itHdrn,cellsHdrn0.size());itHdrn +=1;tHdrn = output.t;cellsHdrnData=output.d;}
+}
+if (fexists(cur_dir+"/constant/options/hriv")) { 
+cellSet selectedHriv(mesh, "hriv");cellsHriv0 = selectedHriv.toc();
 while (time>=tHriv) {output = getCbuffer("hriv",itHriv,cellsHriv0.size());itHriv +=1;tHriv = output.t;cellsHrivData=output.d;}
+}
+if (fexists(cur_dir+"/constant/options/hghb")) { 
+cellSet selectedHghb(mesh, "hghb");cellsHghb0 = selectedHghb.toc();
 while (time>=tHghb) {output = getCbuffer("hghb",itHghb,cellsHghb0.size());itHghb +=1;tHghb = output.t;cellsHghbData=output.d;}
-while (time>=tHrch) {output = getCbuffer("hrch",itHrch,cellsHrch0.size());itHrch +=1;tHrch = output.t;cellsHrchData=output.d;}
-Info <<"hrech in init "<<cellsHrchData[2]<<endl;
+}
+if (fexists(cur_dir+"/constant/options/hrch")) { 
+cellSet selectedHrch(mesh, "hrch");cellsHrch0 = selectedHrch.toc();
+while (time>=tHrch) {output = getCbuffer("hrch",itHrch,cellsHrch0.size());itHrch +=1;tHrch = output.t;tnext=min(tnext,tHrch);cellsHrchData=output.d;}
+}
+//get the data
+Info <<"hrech tnext "<<tnext<<endl;
 //tnext should be equal to the min of all t (but not 0)
 qHfix.resize(cellsHfix0.size());
 qHwel.resize(cellsHwel0.size());
@@ -217,10 +174,10 @@ std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
 // mass balance
-float sqIHriv,sqIHghb,sqIHdrn,sqIHfix,sqIHwel;
-float sqOHriv,sqOHghb,sqOHdrn,sqOHfix,sqOHwel;
+float sqIHrch,sqIHghb,sqIHdrn,sqIHfix,sqIHwel;
+float sqOHrch,sqOHghb,sqOHdrn,sqOHfix,sqOHwel;
 std::ofstream fich1(cur_dir+"/observation/budgetH.txt");// Ouvrir le fichier en mode append
-fich1 <<"t sIFix sOFix sIWel sOWel sIDrn sODrn sIGhb sOGhb sIRch sORch"<< std::endl;
+fich1 <<"time InHfix OutHfix InHwel OutHwel InHdrn OutHdrn InHghb OutHghb InHrch OutHrch\n"<< std::endl;
 fich1.close();
 
 /*

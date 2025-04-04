@@ -16,32 +16,34 @@ float time = mesh.time().value(); //const Time&
 if (cellsHwel.size()>0)
 	{
 		//get the temp well data
-		if (time>=tTwel) {
+		if (time>tTwel) {
 			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
 			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
-			tnext = tTwel;
+			tnext = min(tnext,tTwel);
 			}
 		for (size_t i=0; i<cellsTwel.size(); i++) 
 			{ 
 			i1=cellsTwel[i];v=mesh.V()[i1];
-			if (qHwel[i]<0) {TSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
-			else {TSu[i1] = -qHwel[i]/v*cellsTwelData[i*4+2];} //the injected mass is the water flow x the conc
-			//Info<<"cellw "<<cellsCw[i]<<" q "<<qHw[i]<<" cloc "<<cloc<<" Su "<<CSu[cellsCw[i]]<<" Sp "<<CSp[cellsCw[i]]<<endl;
+			if (qHwel[i]<0) {TSp[i1] = -rhow[i1]*qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
+			else {TSu[i1] = -rhow[i1]* qHwel[i]/v*cellsTwelData[i*4+2];} //the injected mass is the water flow x the conc
+			//Info<<"cellw "<<cellsTwel[i]<<" q "<<qHwel[i]<<" tloc "<<T[i1]<<" Su "<<TSu[i1]<<" Sp "<<TSp[i1]<<endl;
 			}
 	}
 
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>=tTfix) {
-			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
-			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;tnext = tTfix;
+		if (time>tThfix) {
+			output = getCbuffer("thfix",itThfix,cellsThfix.size()); 
+			tThfix = output.t; cellsThfixData=output.d; itThfix +=1;
+			tnext = min(tnext,tThfix);
 			}
 		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
 			i1=cellsHfix[i];v=mesh.V()[i1];//
-			if (qHfix[i]<0) {TSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
-			else {TSu[i1] = -qHfix[i]/v*cellsTfixData[i*4+2];}
+			if (qHfix[i]<0) {TSp[i1] = -rhow[i1]*qHfix[i]/v;} // outflow discharge prop to local concentration
+			else {TSu[i1] = -rhow[i1]*qHfix[i]/v*cellsThfixData[i*4+2];}
+			//Info<<"cell thfix "<<cellsThfix[i]<<" q "<<qHfix[i]<<" tloc "<<T[i1]<<" Su "<<TSu[i1]<<" Sp "<<TSp[i1]<<endl;
 			}
 	}
 	
@@ -56,18 +58,18 @@ if (cellsHwel.size()>0)
 //forAll(dvPhi,i) {if (dvPhi()[i]>1e-3) {TSp[i] = -dvPhi()[i];Info<<"div pos at "<<i<<" dv "<<dvPhi()[i]<<endl;} } //if the div is too positive there is imposed discharge here
 
 T.storePrevIter();
+surfaceScalarField rhophi = rhowf* phiw;
 
 Info << "before Teq "<<endl;
+
 fvScalarMatrix TEqn
 	(
 		rhow*cpw * thetaw * fvm::ddt(T) + rhow*cpw * T * fvc::ddt(thetaw) + rhos*cps * (1-eps) * fvm::ddt(T) 
-		+ fvm::div(rhow*cpw * phiw, T, "div(phiw,T)") 
+		+ fvm::div(cpw * rhophi, T, "div(phiw,T)") 
 		- fvm::laplacian(eps*rhow*cpw * Deffw, T, "laplacian(Deffw,T)")
 		- fvm::laplacian(lbdaT, T, "laplacian(lbdaT,T)")
-		+ rhow*cpw * TSu + rhow*cpw * fvm::SuSp(TSp, T)
+		== - cpw*TSu - cpw*fvm::SuSp(TSp, T)
 	);
-
-//fvOptions.constrain(TEqn);
 	
 //get the fixed temperature conditions
 if (cellsTfix.size()>0)
@@ -75,7 +77,7 @@ if (cellsTfix.size()>0)
 	if (time>=tTfix) {
 		output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
 		tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
-		tnext = tTfix;
+		tnext = min(tnext,tTfix);
 		}
 	for (size_t i=0; i<cellsTfix.size(); i++) 
 		{TEqn.setReference(cellsTfix[i],cellsTfixData[i*4+2]);} 

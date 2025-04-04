@@ -1,14 +1,10 @@
 EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
-    -I../libraries/phaseModels/lnInclude \
 	-I/usr/local/include
 
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
     -lfiniteVolume \
-	-lfvOptions \
 	-lmeshTools \
-	-lphreeqcrm \
-	-lporousBoundaryConditions \
-	-lphase
+	-lphreeqcrm

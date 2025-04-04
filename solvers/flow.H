@@ -1,10 +1,9 @@
 scalar CFLUse = -1;
 scalar deltaTFact = 1;
 scalar maxDeltaTFact = -1;
-scalar CoNum = 0.0;
-scalar meanCoNum = 0.0;
-scalar deltaT = 0.;
-const scalar maxCo = runTime.controlDict().lookupOrDefault("maxCo", 0.75);
+//scalar CoNum = 0.0;
+//scalar meanCoNum = 0.0;
+//const scalar maxCo = runTime.controlDict().lookupOrDefault("maxCo", 0.75);
 scalar maxDeltaT = runTime.controlDict().lookupOrDefault("maxDeltaT", GREAT);
 scalar dswmax = runTime.controlDict().lookupOrDefault("dswmax", 0.02);
 
@@ -17,33 +16,34 @@ forAll(mesh.boundary(),patchi)
 
 if (flowType == 3) // unsaturated
 {
-   if (timeStepControl == "Picard")
-   {
-	   Info<<"in picard "<<endl;
+    if (timeStepControl == "Picard")
+    {
+	Info<<"in picard "<<endl;
 	iterPicard = 0; resPicard = 1000.;
+	// this loop is imitated from Orgogozo Richards
+	deltaTFact = 1.;
+	hp1 = hp;
 	while (resPicard > tolPicard)
 		{
 		iterPicard++;
-		#include "hpEqn.H"
-		#include "updateThetaFields.H"
-		//resPicard = gMax((mag(hp-hp.prevIter()))->internalField());
-		Info << "Picard iteration : " << iterPicard << " residual = " << resPicard << endl; 
+		hp = hp_tmp; 
+		#include "flow/updateThetaFields.H"
+		#include "flow/hpEqn.H"
+		resPicard = gMax((mag(hp-hp_tmp))->internalField());
+		hp_tmp = hp;
 		if (iterPicard == maxIterPicard)
-			{ Warning() <<  " Max iteration reached in Picard loop" << endl; 
-			break; }
-		}
-	if (iterPicard == maxIterPicard)
-		{deltaTFact = 0.8;}
-	else if (iterPicard <= nIterStability)
-		{deltaTFact = 1.2;}
+			{ runTime.setTime(oldTime,tstep); break; }
+		}  // end picard iter
+	Info << "Picard nb iterations : "<<iterPicard<<endl;
+	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;hp_tmp=hp1;hp=hp1;rewind=1;}
+	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
-
     }
 	
 	else 
 	{
-		#include "hpEqn.H"
-		#include "updateThetaFields.H"
+		#include "flow/hpEqn.H"
+		#include "flow/updateThetaFields.H"
 		//Info<<"update done "<<endl;
 		volScalarField::Internal dsw_tmp = mag(sw-sw.oldTime());
 		dsw= gMax(dsw_tmp)/average(sw).value(); // cannot do directly linne aboe and that one
@@ -70,23 +70,54 @@ if (flowType == 3) // unsaturated
 else if (flowType == 4) // 2 phase
 {
    Info <<"in 2phase "<<endl;
-	Ug.correctBoundaryConditions();
+	/*Ug.correctBoundaryConditions();
 	forAll(mesh.boundary(),patchi)
 	{
 		if (isA< fixedValueFvPatchField<vector> >(Ug.boundaryField()[patchi]))
 			{ phig.boundaryFieldRef()[patchi] = Ug.boundaryField()[patchi] & mesh.Sf().boundaryField()[patchi]; }
-	} 
-    #include "pSEqn.H"
-	#include "CoatsNo.H"
-	deltaTFact = min(min(maxDeltaTFact, 1.0 + 0.1*maxDeltaTFact), 1.1);
+	} */
+	//Info<<p<<endl;
+    if (timeStepControl == "Picard")
+    {
+	Info<<"in picard "<<endl;
+	iterPicard = 0; resPicard = 1000.;
+	// this loop is imitated from Orgogozo Richards
+	deltaTFact = 1.;
+	p1 = p;
+	while (resPicard > tolPicard)
+		{
+		iterPicard++;
+		p = p_tmp; 
+		#include "flow/pSEqn.H"
+		Info<<" end pS ,p_tmp(0) "<<p_tmp[0]<<endl;
+		resPicard = gMax((mag(p-p_tmp)/atmPa*1e3)->internalField());Info<<"res Pic "<<resPicard<<endl;
+		p_tmp = p;
+		if (iterPicard == maxIterPicard){ break; }
+		}  // end picard iter
+	Info << "Picard nb iterations : "<<iterPicard<<endl;
+	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;p_tmp=p1;p=p1;rewind=1;}
+	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
+    }
+	
+	else 
+	{
+    #include "flow/pSEqn.H"
+	//#include "CoatsNo.H"
+	volScalarField::Internal dsw_tmp = mag(sw-sw.oldTime());
+	for (j=0; j<nxyz;j++) {if (bcPS[j]==0) {dsw_tmp[j]=0;} }
+	dsw= gMax(dsw_tmp)/average(sw).value(); // cannot do directly linne aboe and that one
+	scalar ratio = dswmax/(dsw+SMALL);
+	deltaTFact = max(min(ratio,1.2),0.1);
+	newDeltaT = min(deltaTFact*runTime.deltaTValue(),newDeltaT);
+	}
+	Info<<" dswmax "<<dswmax<<" ndetlaT "<<newDeltaT<<endl;
 }
 else if (flowType != 0) // flowType=0 no flow
 {
    Info <<"in simple flow "<<endl;
-   #include "hEqn.H"
-	newDeltaT = min(maxDeltaT, 1.2*runTime.deltaTValue());
-   //runTime.setDeltaT(min(deltaTFact*runTime.deltaTValue(),maxDeltaT));
+   #include "flow/hEqn.H"
+	newDeltaT = min(maxDeltaT, 1.5*runTime.deltaTValue());
 }
 Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" newdeltat "<<newDeltaT<<endl;
 

@@ -14,6 +14,8 @@ bcCwi.resize(ncell,0);
 
 time = mesh.time().value() ; //nb tnext is the future time that a new condition will appear
 
+//for (j=0;j<5;j++) { for (i=0;i<ph_ncomp;i++) {Info<<Cw[i]()[j]<<" ";} Info<<endl; }
+	
 if (flowType<4) 
 {
 	//no solutions for drains
@@ -98,6 +100,7 @@ float dC=0;dtForC=1e12;
 
 // main loop over species
 unity=unity*0+1;
+inactiveFaces.clear();
 
 for (j=0;j<nxyz;j++) {Cw[0]()[j]=solu_conc[0];}  // water is alwas set to 55.34 from solution 0
 for (ic=1; ic<ph_ncomp;ic++)
@@ -113,6 +116,18 @@ for (ic=1; ic<ph_ncomp;ic++)
 		//icnt=0;
 		CiSu*=0; CiSp*=0; //previous cells with values must be destroyed
 		// --------------------- internal conditions ------------------------
+		// we add phreeqc results as source term (during one tstep) : CiSu : M/time/Volume, as C=M/V -> Csu=(C_pqh-C_opf)/dt
+		// these results will be replaced by classical ones at well and hfix bc (no chem at wells)
+		
+		
+		if (reactIndicator==1) {
+			for (j=0;j<nxyz;j++) {
+				CiSu[j] += (Cw[ic]()[ractive[j]] - freak.c[ic*nxyz+j])/float(runTime.deltaTValue())*thetaw[j];
+				//if (j<5) {Info<<j<< " Csu phq Cw, fk.c csu "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<CiSu[j]<<endl;}
+			}
+		}
+		
+		
 		if (flowType<4)
 		{
 			if (cellsHwel.size()>0)  // solution in well (even if no Swl data we ned to pump the conc)
@@ -123,7 +138,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 					if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 					else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
 					}
-				Info<< ic << " Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
+				//Info<< ic << " Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
 			} //Info<<"Cweli set"<<endl;
 			// conc at ghb places
 			if (cellsHghb.size()>0)
@@ -138,11 +153,11 @@ for (ic=1; ic<ph_ncomp;ic++)
 				//Info<< ic << " Csu ghb "<<solu_conc[condSghb[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
 			} //Info<<"Sghbi set"<<endl;
 			// for fixed head cells
-			if (cellsHfix.size()>0)
+			if (cellsShfix.size()>0)
 			{
-				for (i=0; i<cellsHfix.size(); i++) 
+				for (i=0; i<cellsShfix.size(); i++) 
 					{ 
-					i1=cellsHfix[i];v=mesh.V()[i1];//
+					i1=cellsShfix[i];v=mesh.V()[i1];//
 					if (qHfix[i]<0) {CiSp[i1] = -qHfix[i]/v;} // outflow discharge prop to local concentration
 					else {CiSu[i1] = -qHfix[i]/v*solu_conc[condShfix[i]*ph_ncomp+ic];}
 					}
@@ -191,7 +206,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 					i1=cellsPwel[i];v=mesh.V()[i1];unity[i1]=0;Info<<"qPwel "<<qPwel[i]<<"\n";
 					if (qPwel[i]<=0) {CiSp[i1] = -qPwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 					else {CiSu[i1] = -qFwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
-					//if (i==0) {Info<<i<< " Csu wel "<<solu_conc[condSwel[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;}
+					if (i==0) {Info<<i<< " Csu wel "<<solu_conc[condSwel[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;}
 					}
 			} //Info<<"Cweli set"<<endl;
 
@@ -199,20 +214,56 @@ for (ic=1; ic<ph_ncomp;ic++)
 		//for (j=1;j<ncell-nxyz;j++) {CiSu[rinactive[j]]=0;CiSp[rinactive[j]]=0;}
 		//Rf = plugCwi.setRf(mesh,ic,Cwi); // this is the plugin for sorption,needs to be here (compn specific)
 		//Info<<"Rf "<<ic<<" "<<Rf<<endl;
-		
 
 		fvScalarMatrix CwiEqn
 		(		  
-            Rf * thetaw * fvm::ddt(Cwi) + Rf * Cwi * fvc::ddt(thetaw)
-            + fvm::div(phiw, Cwi, "div(phiw,C)")
-            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") //*unity ne pas mettre thetaw
-			== - CiSu - fvm::SuSp(CiSp, Cwi)
+            Rf * thetaw  * fvm::ddt(Cwi) + Rf * Cwi * fvc::ddt(thetaw)
+            + fvc::div(phiw, Cwi, "div(phiw,Cwi)")
+            - fvm::laplacian(Deffw, Cwi, "laplacian(Deffw,Cwi)") // (1-reactIndicator) *  reactInd 0 : full implicit (or the one chosen in fvschemes
+            + fvm::SuSp(CiSp, Cwi)
+			//- reactIndicator * fvc::laplacian(Deffw, Cwi, "laplacian(Deffw,C)") // reactInd 1 full explicit
+			== - CiSu 
 		);
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
 
+		//inactive cells
+		if (inactiveCells.size()+dryCells.size()>0) 
+		{
+			Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
+			labelHashSet inactiveCellsSet(inactiveCells);
+			labelList myList = dryCells.shrink();
+			labelHashSet dryCellsSet(myList);
+
+			if (ic==1) // for 1st comp we find ths places
+			{
+			forAll(CwiEqn.upper(),iface)
+			{
+				if (inactiveCellsSet.found(CwiEqn.lduAddr().lowerAddr()[iface])||dryCellsSet.found(CwiEqn.lduAddr().lowerAddr()[iface]))
+				{
+					CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;//Info<<iface		
+					inactiveFaces.append(iface);
+				}
+				if (inactiveCellsSet.found(CwiEqn.lduAddr().upperAddr()[iface])||dryCellsSet.found(CwiEqn.lduAddr().upperAddr()[iface]))
+				{
+					CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;		
+					inactiveFaces.append(iface);
+				}
+			}
+			}
+			else
+			{
+			forAll(inactiveFaces,iface)	
+				{CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;}
+			}
+		for (label cellI : inactiveCells) {CwiEqn.diag()[cellI] = 1.0;CiSu[cellI] = 0;}
+		for (label cellI : myList) {CwiEqn.diag()[cellI] = 1.0;CiSu[cellI] = 0;}
+			
+		}
+
 		CwiEqn.solve();
-		Info<<"Cw (0) "<<Cw[ic]()[0]<<endl;
+			
+		//for (j=0;j<nxyz;j++) {if (j<5) {Info<<j<< " Cw, "<<Cw[ic]()[ractive[j]]<<endl;}}
 
 		//calculating dC, and time step (only for classical species)
 		if (ic>3) {
@@ -227,7 +278,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<endl;
 		}
 	}
-
+if (ph_gcomp==0) {reactIndicator = 0.;}
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 //for (ic=0;ic<ph_ncomp-4;ic++) {Info<<ic<<" "<<sumC0[ic]<<" "<<sumC[ic]<<" "<<sumC[ic]-sumC0[ic]<<endl;}
 newDeltaT = max(minDeltaT,min(dtForC, newDeltaT));

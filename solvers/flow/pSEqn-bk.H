@@ -6,10 +6,9 @@
 	float time = mesh.time().value();float f; 
 	icount = 0;	//get the ghb conditions
 	//Info<< " p "<<p<<"\n sw "<<sw<<"\n rhow "<<rhow<<"\n Mf "<<Mf<<"\n Lwf "<<Lwf<<"\n phiGr "<<phiGr<<"\n phiw "<<phiw<<endl;
-
 	//------------------------------- SEqn
 	// nb as S is already used for solution, we use F instead (fraction of water)
-	//volVectorField gp = fvc::grad(p);//Info<<"gp after Seq "<<gp<<endl;
+	volVectorField gp = fvc::grad(p);//Info<<"gp after Seq "<<gp<<endl;
 	if (cellsFwel.size()>0)
 		{
 		if (time>tFwel) {
@@ -30,16 +29,12 @@
 	dpcdS *= pow(pow(Se,-1/m_vg)-1,1/n_vg-1) ;//(x^a - 1)^(b - 1)
 	surfaceScalarField dpcdSf ("dpcdSf",fvc::interpolate(dpcdS,"dpcdS"));//Info<<"krgf "<<krgf<<endl;	
 	*/
-	volScalarField dphiw = fvc::div(phiw);
-	//Info<<"p phiw1,2,3 dphiw"<<endl; !! not possible to print fluxes for 2D they are on faces
-	//for (i=0;i<30;i++) {Info<<p[i*12+5]<<" "<<phiw[i*12+4]<<" "<<phiw[i*12+5]<<" "<<phiw[i*12+6]<<" "<<dphiw[i*12+5]<<endl;}
 	fvScalarMatrix SEqn
         (
-            //eps*fvm::ddt(sw) + fvc::div(phiw) == fSu
-            eps*fvm::ddt(sg) + fvc::div(phig) == pSu - fSu
-           //eps*fvm::ddt(sw) - fvc::laplacian(Mwf,p) + fvm::laplacian(Mwf * dpcdSf,sw) == fSu
+            eps*fvm::ddt(sw) + fvc::div(phiw) == fSu
+            //eps*fvm::ddt(sw) - fvc::laplacian(Mwf,p) + fvm::laplacian(Mwf * dpcdSf,sw) == fSu
         );
-	sw = sw_max - sg;	
+		
 	if (cellsFfix.size()>0)
 		{
 		if (time>tFfix) {
@@ -56,7 +51,7 @@
 	SEqn.solve();	
 	//gp = fvc::grad(p);Info<<"gp after Seq "<<gp<<endl;
 
-	//Info<<" after Seq sw 1-Se Mwf p-tmp p pc phiPc phiGr phiP phiw"<<endl;for (j=0;j<25;j++) {i=j*12+5;Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
+	//Info<<" after Seq sw 1-Se Mwf p-tmp p pc diffpc phiPc phiGr gp phiP phiw"<<endl;for (i=0;i<ncell_lay-1;i++) {Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<pc[i+1]-pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<mag(gp[i])<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
 	//---------------------------- update	
 	if (plugPS.flag)
 		{
@@ -68,10 +63,7 @@
 		}
 	//gp = fvc::grad(p);Info<<"after upd "<<gp<<endl;
 	//Info<<"p 0 end "<<p[0]<<" "<<p[ncell_lay-1]<<" sw 0 end "<<sw[0]<<" "<<sw[ncell_lay-1]<<" rhow "<<rhow[0]<<" muw "<<muw[0]<<endl;
-	//Info<<" after upd sw 1-Se Mwf p-tmp p pc phiPc phiGr phiP phiw"<<endl;for (i=0;i<ncell_lay-1;i++) {Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
-	volScalarField dphipc = fvc::div(phiPc);//fvc::div(fvc::snGrad(pc),krw/muw,"div(phiPc)");
-	volScalarField dphigr = fvc::div(phiGr);
-	//Info<<" after upd sw 1-Se Mwf pc phiPc dphiPc phiGr dphiGr"<<endl;for (i=0;i<ncell_lay-1;i++) {Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<pc[i]<<" "<<phiPc[i]<<" "<<dphipc[i]<<" "<<phiGr[i]<<" "<<dphigr[i]<<endl;}
+	//Info<<" after upd sw 1-Se Mwf p-tmp p pc diffpc phiPc phiGr gp phiP phiw"<<endl;for (i=0;i<ncell_lay-1;i++) {Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<pc[i+1]-pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<mag(gp[i])<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
 
 	//------------------------- start Peqn
 	if (cellsPwel.size()>0)
@@ -119,10 +111,22 @@
 	
 	pEqn.solve();
 	
+	gp = fvc::grad(p);//Info<<gp<<endl;
+	//Info<<" after Peq sw 1-Se Mwf p-tmp p pc diffpc phiPc phiGr gp phiP phiw"<<endl;for (i=0;i<ncell_lay-1;i++) {Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<pc[i+1]-pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<mag(gp[i])<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
 	//recalculate fluxes (phiw, phig used for transport)
 	//phiP = pEqn.flux();
 	phiP == - (Mf * fvc::snGrad(p)) * mesh.magSf();
-	//phiP ==  ((-Mf * fvc::interpolate(gp)) & mesh.Sf());	
+	//phiP ==  ((-Mf * fvc::interpolate(gp)) & mesh.Sf());
+	gradpc = fvc::interpolate(fvc::grad(pc,"pc"));									      
+	phiPc = (Mwf*gradpc) &  mesh.Sf();
+	/*
+	Info<<" sw ";for (i=0;i<24;i++) {Info<<sw[i]<<" ";};Info<<"\n";
+	Info<<" Mf ";for (i=0;i<24;i++) {Info<<Mf[i]<<" ";};Info<<"\n";
+	Info<<" p ";for (i=0;i<24;i++) {Info<<p[i]<<" ";};Info<<"\n";
+	Info<<" gradp ";for (i=0;i<24;i++) {Info<<mag(gp[i])<<" ";};Info<<"\n";
+	Info<<" phiPc ";for (i=0;i<24;i++) {Info<<phiPc[i]<<" ";};Info<<"\n";
+	Info<<" phiP ";for (i=0;i<24;i++) {Info<<phiP[i]<<" ";};Info<<"\n";
+	*/				
 	phi == phiGr + phiP + phiPc*activateCapillarity;
 	//phi = phiGr - ((Mf * fvc::interpolate(gp) ) & mesh.Sf()) + phiPc*activateCapillarity; //not usre about tha tone
     // keep Fwf (not Mwf/Mf, don't know why)
@@ -130,9 +134,6 @@
     //phiw == Fwf*phi + (((Lwf-Fwf*Lf)*g) & mesh.Sf()) + (1-Fwf)*phiPc*activateCapillarity; // old: wrong (in fact gravity=0?) but this is the only one that works!
     //phiw == (Lwf/Lf)*phiGr - ((Mwf * fvc::interpolate(gp) ) & mesh.Sf()) + phiPc*activateCapillarity; // does not work
 	//phiw = ((Lwf * g) & mesh.Sf()) - ((Mwf * fvc::interpolate(gp) ) & mesh.Sf()) + phiPc*activateCapillarity;
-	//Info<<"p phiw1,2,3 dphiw"<<endl; // !! not possible to print fluxes for 2D they are on faces
-	//for (i=0;i<30;i++) {Info<<p[i*12+5]<<" "<<phiw[i*12+4]<<" "<<phiw[i*12+5]<<" "<<phiw[i*12+6]<<" "<<dphiw[i*12+5]<<endl;}
-	//Info<<" after Peq sw 1-Se Mwf p-tmp p pc phiPc phiGr phiP phiw"<<endl;for (j=0;j<25;j++) {i=j*12+5;Info<<sw[i]<<" "<<1-Se[i]<<" "<<Mwf[i]<<" "<<p_tmp[i]<<" "<<p[i]<<" "<<pc[i]<<" "<<phiPc[i]<<" "<<phiGr[i]<<" "<<phiP[i]<<" "<<phiw[i]<<endl;}
     phig == phi - phiw;
 	volScalarField q1 = fvc::div(phiw);
 	for (i=0;i<cellsPfix.size();i++) {i1=cellsPfix[i];qPfix[i] = q1[i1]*mesh.V()[i1];} //Info<<" heq hfix "<<i<<" "<<i1<<" "<<qHfix[i]<<endl;

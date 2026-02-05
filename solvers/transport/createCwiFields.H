@@ -31,7 +31,7 @@ for (int i=0;i<bcNames.size();i++)
 */
 std::vector<double> mxCv;
 int ncc;
-if (activateEK) {ncc=ph_nspc;}
+if (activateEK) {ncc=freak.nspc;}
 else {ncc=ph_ncomp;}
 
 List <autoPtr <volScalarField> > Cw(ncc);
@@ -65,6 +65,7 @@ volScalarField::Internal CiSp
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
 );
 
+DynamicList<label> inactiveFaces;
 // -------------- conditions for solutions -------------
 labelList cellsShfix0; std::vector<float> condShfix;std::vector<float> cellsShfixData;float tShfix=0;int itShfix=0;
 labelList cellsSpfix0; std::vector<float> condSpfix;std::vector<float> cellsSpfixData;float tSpfix=0;int itSpfix=0;
@@ -114,7 +115,7 @@ std::vector<float> sqOSfix(ph_ncomp),sqOSwel(ph_ncomp),sqOSghb(ph_ncomp),sqOSdrn
 	{
 	std::string s=std::to_string(ic);
 	std::ofstream fich1(cur_dir+"/observation/budgetCw"+s+".txt");
-	fich1 << "time InCfix OutCfix InCwel OutCwel InCdrn OutCdrn InCghb OutCghb InCrch OutCrch ";
+	fich1 << "time InCfix OutCfix InCwel OutCwel InCdrn OutCdrn InCghb OutCghb InCrch OutCrch \n";
 	fich1.close();
 	}
 

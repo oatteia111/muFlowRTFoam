@@ -8,6 +8,9 @@ double dC,mnC,mxC,dff,dC0,sC,sC1;
 const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.02);
 const scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.02);
 
+scalar reactIndicator = 0; // indicator for reaction; 0 crank; 1 euler
+//adaptiveReactiveDdtScheme<scalar> Rddt(mesh, "Cwi", phaseIndicator);
+
 //const scalar dCresidual = runTime.controlDict().lookupOrDefault("dCresidual", 1e-3);
 Info<< "Reading field C\n" << endl;
 wordList bcTypes (Kh.boundaryField().size(),zeroGradientFvPatchScalarField::typeName);

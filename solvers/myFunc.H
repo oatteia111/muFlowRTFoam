@@ -26,6 +26,18 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
 			fact = 1.+ fparms[0]*(fvar-Xref);Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
 			}
+		if (ftype == "polynomial")
+			{
+			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
+			fact = 1.+ fparms[0]*(fvar-Xref) + fparms[1]*pow(fvar-Xref,2) ;
+			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
+			}
+		if (ftype == "exponential")
+			{
+			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
+			fact = 1.+ fparms[0]*exp(fparms[1]*(fvar-Xref)) ;
+			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
+			}
 		if (ftype=="kozeny") // kozeny F=eps^3/(1-eps^2), with the initial being 
 			{
 			volScalarField eps0 = mesh.objectRegistry::lookupObject<volScalarField>("eps0");  //Xvar is the name of the variable

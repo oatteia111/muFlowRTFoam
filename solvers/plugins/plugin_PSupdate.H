@@ -35,5 +35,5 @@ Fwf = (krwf/muwf) / (krgf/mug + krwf/muwf);
 //Info<<"Mf done"<<endl;
 //- compute fluxes
 phiGr = (Lf * g) & mesh.Sf();//Info<<"phiGr "<<"PhiGr(10) "<<phiGr[10]<<endl;
-gradpc = fvc::interpolate(dpcdS*fvc::grad(sw),"pc");//Info<<"dpcds "<<dpcdS[2]<<" sw "<<sw[1]<<" "<<sw[2]<<endl;
-phiPc = (Mwf * gradpc) & mesh.Sf();//Info<<"PhiPc(10) "<<phiPc[10]<<endl;
+gradpcf = fvc::interpolate(dpcdS*fvc::grad(sw),"pc");//Info<<"dpcds "<<dpcdS[2]<<" sw "<<sw[1]<<" "<<sw[2]<<endl;
+phiPc = (Mwf * gradpcf) & mesh.Sf();//Info<<"PhiPc(10) "<<phiPc[10]<<endl;

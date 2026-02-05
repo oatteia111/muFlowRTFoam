@@ -27,6 +27,7 @@ public:
 	std::vector<double> c;
 	void setC(std::vector<double> c){this->c = c;}
 	std::vector<double> bc_conc;
+	std::vector<double> bc_species;
 	std::vector<double> g;
 	void setG(std::vector<double> g){this->g = g;}
 	std::vector<double> gm;
@@ -89,11 +90,11 @@ int phqInit(my_phq & freak)
 		phreeqc_rm->SetPartitionUZSolids(false);
 		status = phreeqc_rm->SetUnitsSolution(2);           // 1 mg/L; 2 mol/L; 3 kg/kgs
 		status = phreeqc_rm->SetUnitsPPassemblage(0);       // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
-		status = phreeqc_rm->SetUnitsExchange(1);           // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
+		status = phreeqc_rm->SetUnitsExchange(0);           // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
 		status = phreeqc_rm->SetUnitsSurface(0);            // 0 mol/L RV; 1 mol/L water; 2 mol/L rock
 		status = phreeqc_rm->SetUnitsGasPhase(0);           // 0 mol/L RV; 1 mol/L water; 2 mol/L rock
 		status = phreeqc_rm->SetUnitsSSassemblage(1);       // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
-		status = phreeqc_rm->SetUnitsKinetics(1);           // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
+		status = phreeqc_rm->SetUnitsKinetics(0);           // 0 mol/L cell; 1 mol/L water; 2 mol/L rock
 		if (freak.EK) {status = phreeqc_rm->SetSpeciesSaveOn(true);}
 				
 		std::vector<double> rv(nxyz, 1.);
@@ -149,8 +150,10 @@ int phqInit(my_phq & freak)
 			if (test == 0)  // if 0 just one value to read
 				{
 				icnt++; 
-				for (int j=0;j<nxyz;j++) {ic1[i*nxyz+j] = freak.data[icnt];}
-				//if ((j==0)||(j==10)) {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} }
+				for (int j=0;j<nxyz;j++) {
+					ic1[i*nxyz+j] = freak.data[icnt];
+					if ((j==0)||(j==nxyz-2)) {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
+					}
 				}
 			else 		
 				{
@@ -158,14 +161,14 @@ int phqInit(my_phq & freak)
 					{
 					icnt++;ic1[i*nxyz+j] = freak.data[icnt]; 
 					mx = std::max(mx,freak.data[icnt]);
+					if ((j==0)||(j==nxyz-2))  {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
 					}
-					//if ((j==0)||(j==10))  {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
 				}
 			if (i==1) {freak.nphase=mx;}
 			if (i==2) {freak.nexch=mx;}
 			if (i==3) {freak.nsurf=mx;}
 		}
-		std::cout << "end fill \n";
+		std::cout << "end fill here\n";
 		/*
 		const std::vector<IPhreeqcPhast *> w = phreeqc_rm->GetWorkers();
 		w[0]->AccumulateLine("Delete; -all");
@@ -197,17 +200,22 @@ int phqInit(my_phq & freak)
 		bc1.resize(ph_nsolu,0);
 		for (i=0;i<ph_nsolu;i++) {bc1[i]=i;std::cout<<"in phq bc "<<i<<"\n";}
 		status = phreeqc_rm->InitialPhreeqc2Concentrations(freak.bc_conc, bc1);
-	
-		if (freak.EK) {
-			int nspc = phreeqc_rm->GetSpeciesCount(); //std::cout<<"phq eK nspc "<<EK<<" "<<nspc<<"\n";
+		std::cout<<" ek "<<freak.EK<<"\n";
+		if (freak.EK>0) {
+			int nspc = phreeqc_rm->GetSpeciesCount(); std::cout<<"phq eK nspc "<<nspc<<"\n";
 			freak.nspc = nspc;
-			status = phreeqc_rm->GetSpeciesConcentrations(freak.spc);
-			const std::vector <double> & diff25 = phreeqc_rm->GetSpeciesD25();
-			freak.diff25 = diff25;
-			const std::vector <double> & z = phreeqc_rm->GetSpeciesZ();
-			freak.z = z;
-			const std::vector<std::string> & spcNames = phreeqc_rm->GetSpeciesNames();
-			freak.spcNames = spcNames;
+			const std::vector<std::string> &spcNames = phreeqc_rm->GetSpeciesNames();
+			for (i=0;i<freak.nspc;i++) {std::cout<<" "<<spcNames[i];} std::cout<<"\n";
+			const std::vector <double> &z = phreeqc_rm->GetSpeciesZ();
+			freak.z = z;for (i=0;i<nspc;i++) {std::cout<<z[i]<<"\n";}
+			std::vector<double> c(nxyz*nspc,0.);freak.c = c;
+			status = phreeqc_rm->GetSpeciesConcentrations(freak.c);
+			status = phreeqc_rm->InitialPhreeqc2SpeciesConcentrations(freak.bc_species, bc1);
+			std::cout<<"phq spc \n"; 
+			for (j=0;j<nxyz;j++){for (i=0;i<nspc;i++) {if (freak.z[i]!=0){std::cout<<freak.c[i*nxyz+j]<<" ";}} std::cout<<"\n";}
+			const std::vector <double> &diff25 = phreeqc_rm->GetSpeciesD25();
+			freak.diff25 = diff25; 
+			std::cout<<"phq eK diff25 0 ";for (i=0;i<nspc;i++) {std::cout<<" "<<diff25[i]<<"\n";}
 		}
 		if (ph_gcomp>0) {
 			status = phreeqc_rm->GetSaturation(freak.wsat);
@@ -218,8 +226,8 @@ int phqInit(my_phq & freak)
 			//std::cout << "c 1-4 ";for (int i=0; i<4;i++){std::cout<< freak.c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			//std::cout << "c 5-9 ";for (int i=4; i<8;i++){std::cout<< freak.c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			//std::cout<<"Vm "<<freak.gvol[0]/freak.gm[0]<<" "<<freak.gvol[0]/freak.gm[1]<<"\n"; // false
-		//std::cout<<"gvol "; for (j=0;j<5;j++){std::cout<<freak.gvol[j]<<" ";}std::cout<<"\n";
-		//std::cout<<"gm "; for (j=0;j<5;j++){ for (i=0;i<ph_gcomp;i++) {std::cout<<freak.gm[i*nxyz+j]<<" ";} std::cout<<"\n";}
+		std::cout<<"gvol "; for (j=0;j<5;j++){std::cout<<freak.gvol[j]<<" ";}std::cout<<"\n";
+		std::cout<<"gm "; for (j=0;j<5;j++){ for (i=0;i<ph_gcomp;i++) {std::cout<<freak.gm[i*nxyz+j]<<" ";} std::cout<<"\n";}
 			for (i=0;i<gcomp.size();i++) { if (gcomp[i]=="H2O(g)") {freak.iGwater = i;} }
 			std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+0]<<" ";} std::cout<<"\n";
 		}
@@ -280,9 +288,10 @@ int phqRun(my_phq & freak)
 	
 	status = freak.PhreeqcRM_ptr->SetTemperature(freak.temp);
 	//std::cout<<"temp 0-5 ";for (int j=0; j<5;j++){std::cout<<freak.temp[j]<<" ";} std::cout<<"\n";
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz]<<" ";} std::cout<<"\n";
+	//std::cout << "c 0 ";
+	//for (int j=0;j<8;j++) {for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz]<<" ";} std::cout<<"\n";}
 	//std::cout << "c mid ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+int(nxyz/2)]<<" ";} std::cout<<"\n";
-	//std::cout << "c end ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+nxyz-1]<<" ";} std::cout<<"\n";
+	//std::cout << "c end ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+nxyz-2]<<" ";} std::cout<<"\n";
 	//std::cout<<"press 0-5 ";for (int j=0; j<5;j++){std::cout<<freak.p[j]<<" ";} std::cout<<"\n";//don't use it pressure is calculated by phq
 	//for (int j=0;j<nxyz;j++) {float c0=freak.c[6*nxyz+j];if ((c0>4e-4)&&(c0<6e-4)) {std::cout << "cp "<<j<<" ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+j]<<" ";} std::cout<<"\n";} }
 	if (gcomp.size()>0) {
@@ -293,14 +302,17 @@ int phqRun(my_phq & freak)
 		status = freak.PhreeqcRM_ptr->SetGasPhaseVolume(freak.gvol);
 		status = freak.PhreeqcRM_ptr->SetGasCompMoles(freak.gm);
 		//status = freak.PhreeqcRM_ptr->SetPressure(freak.p); // we cannot set preesur ein fact
-		//for (int j=0;j<std::min(10,nxyz);j++) {std::cout<<j<<" p "<<freak.p[j]<<" gvol "<<freak.gvol[j]<<" ";for (int i=0;i<gcomp.size();i++) {std::cout<<freak.gm[i*nxyz+j]<<" ";}std::cout<<"\n";}
+		//for (int j=0;j<8;j++) {std::cout<<j<<" p "<<freak.p[j]<<" gvol "<<freak.gvol[j]<<" wsat "<<freak.wsat[j]<<" g1 "<<freak.gm[nxyz+j]<<"\n";}
 		}
 	else 
 		{
 		status = freak.PhreeqcRM_ptr->SetSaturation(freak.wsat);
 		}
-	std::cout<<"phq wsat "<<freak.wsat[0];
-	if (freak.EK) {status = freak.PhreeqcRM_ptr->SpeciesConcentrations2Module(freak.spc);}
+	std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
+	status = freak.PhreeqcRM_ptr->GetSaturation(freak.wsat);
+	std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
+
+	if (freak.EK) {status = freak.PhreeqcRM_ptr->SpeciesConcentrations2Module(freak.c);}
 	else {status = freak.PhreeqcRM_ptr->SetConcentrations(freak.c);}
 	status = freak.PhreeqcRM_ptr->SetTimeStep(freak.tstep);std::cout<<"tstep "<<freak.tstep<<"\n";
 	//----- run here ------
@@ -311,19 +323,21 @@ int phqRun(my_phq & freak)
 	//status = freak.PhreeqcRM_ptr->GetTemperature(freak.temp);
 	if (freak.EK) {status = freak.PhreeqcRM_ptr->GetSpeciesConcentrations(freak.c);}
 	else {status = freak.PhreeqcRM_ptr->GetConcentrations(freak.c);}
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz]<<" ";} std::cout<<"\n";
-	//std::cout << "c mid ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+int(nxyz/2)]<<" ";} std::cout<<"\n";
-	//std::cout << "c end ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+nxyz-1]<<" ";} std::cout<<"\n";
+	
+	//for (int j=0;j<8;j++) {for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz]<<" ";} std::cout<<"\n";}
+	
 	if (gcomp.size()>0) {
 		status = freak.PhreeqcRM_ptr->GetGasCompPressures(freak.g);
 		status = freak.PhreeqcRM_ptr->GetGasCompMoles(freak.gm);
 		status = freak.PhreeqcRM_ptr->GetGasPhaseVolume(freak.gvol);
 		freak.p = freak.PhreeqcRM_ptr->GetPressure();
-		//for (int j=0;j<10;j++) {std::cout<<j<<" p "<<freak.p[j]<<" gvol "<<freak.gvol[j]<<" ";for (int i=0;i<gcomp.size();i++) {std::cout<<freak.g[i*nxyz+j]<<" "<<freak.gm[i*nxyz+j]<<" ";}std::cout<<"\n";}
-		//std::cout<<"nb gcomp after "<<ph_gcomp<<" gvol 0 "<<freak.gvol[0]<<" sat "<<freak.wsat[0]<<"\n";
+		//for (int j=0;j<8;j++) {std::cout<<j<<" p "<<freak.p[j]<<" gvol "<<freak.gvol[j]<<" ";for (int i=0;i<gcomp.size();i++) {std::cout<<freak.g[i*nxyz+j]<<" "<<freak.gm[i*nxyz+j]<<" ";}std::cout<<"\n";}
+		//std::cout<<"nb gcomp after "<<ph_gcomp<<" gvol mid "<<freak.gvol[int(nxyz/2)]<<" sat "<<freak.wsat[int(nxyz/2)]<<"\n";
+		/*
 		std::cout<<"g mid ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.g[i*nxyz+int(nxyz/2)]<<" ";} std::cout<<"\n";
 		std::cout<<"gm mid ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.gm[i*nxyz+int(nxyz/2)]<<" ";} std::cout<<"\n";
 		std::cout<<"p mid ";std::cout<<freak.p[nxyz/2]<<"\n";
+		*/
 		}
 	std::cout<<"end phq run \n ";
 	}
@@ -366,7 +380,7 @@ int getSelOutput(my_phq & freak)
 			status = freak.PhreeqcRM_ptr->GetSelectedOutputHeading(i,headings[i]);
 			//if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
 		}
-	nxyz = freak.data[0];std::cout<<"in phq selout nxyz "<<nxyz<<" for cell 0:\n";
+	nxyz = freak.data[0];std::cout<<"in phq selout nxyz "<<nxyz<<" for cell 0 and nxyz-2\n";
 	freak.nselect = ncol-6; //-nphase;
 	freak.spc.resize((freak.nselect)*nxyz,0);
 	std::vector<double> so(ncol*nxyz);
@@ -378,7 +392,7 @@ int getSelOutput(my_phq & freak)
 			{
 				if (headings[i].substr(0,2)=="d_") {freak.deltaMvol[j]+=so[i*nxyz + j];}
 				freak.spc[(i-6)*nxyz + j] = so[i*nxyz + j];
-				if (j==0) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
+				if ((j==0)||(j==nxyz-2)) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
 					//}
 			}
 		}

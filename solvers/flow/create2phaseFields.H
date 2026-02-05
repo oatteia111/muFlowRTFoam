@@ -16,10 +16,13 @@ volVectorField Ug
 surfaceScalarField phig ("phig",phiw*0);
 //Info<<"sw "<<sw<<endl;
 volScalarField p1=p;
+volScalarField pw=p;
 volScalarField p_tmp=p;
 volScalarField pc0 = mag(g)*rhow/alpha_vg; //Info<<"pc0 "<<pc0<<endl;// alphavg 1/m -> Pa
 Info<<"Sw min"<<sw_min<<" Sw max "<<sw_max<<endl;
 // be careful, if g=0 pc0=0
+Se = max(SMALL,min((sw-sw_min)/(sw_max-sw_min),1.-SMALL));
+/*
 if ((max(sw).value()-min(sw).value()>0.)||(pc0[0]==0.)) {Se = max(0.,min((sw-sw_min)/(sw_max-sw_min),1.));}
 else { 
 	Info<<"pc0 n m "<<pc0<<" "<<n_vg<<" "<<m_vg;
@@ -27,11 +30,18 @@ else {
 	//Se =  neg(hp) *pow(1.0+pow(alpha_vg*mag(hp),n_vg),-m_vg) + pos(hp+VSMALL)*(1-SMALL);
 	sw = sw_min + (sw_max-sw_min)*Se;
 	}
+*/
+volScalarField comp_g(IOobject("comp_g",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("comp_g",dimensionSet(-1,1,2,0,0,0,0),1./atmPa));
+
 volScalarField krg ("krg", pow(1-Se,0.5) * pow(1-pow(Se,1/m_vg),2*m_vg) );//Info<<"krg "<<krg<<endl;
+volScalarField Seg = Se;
+volScalarField sg (IOobject("sg",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sg",dimless,0));
 surfaceScalarField krgf ("krgf",fvc::interpolate(krg,"krg"));//Info<<"krgf "<<krgf<<endl;
-volScalarField pc=pc0*pow(pow(Se+VSMALL,-1/m_vg)-1,1/n_vg);//Info<<"dpcdS "<<dpcdS<<endl;
+volScalarField pc(IOobject("pc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("pc",dimensionSet(1,-1,-2,0,0,0,0),1.));
+pc==pc0*pow(pow(Se+VSMALL,-1./m_vg)-1,1./n_vg);//Info<<"pc "<<pc<<endl;
 volScalarField dpcdS ("dpcdS", pc0*0);//Info<<"dpcdS "<<dpcdS<<endl;
-volScalarField dkrgdS ("dkrgdS", unity);
+surfaceScalarField dpcdSf ("dpcdSf", fvc::interpolate(dpcdS) );
+//volScalarField dkrgdS ("dkrgdS", unity);
 
 //dpcdS.dimensions().reset(dimensionSet(1,-1,-2,0,0,0,0));
 
@@ -39,12 +49,15 @@ Info<<"end phase g"<<endl;
 //- mobility computation 
 surfaceScalarField Mwf ("Mwf",Kf*krwf/muwf);
 surfaceScalarField Lwf ("Lwf",Mwf*rhowf);
+surfaceScalarField Mgf ("Mgf",Kf*krgf/mug);
+surfaceScalarField Lgf ("Lgf",Mgf*rhog);
 surfaceScalarField Fwf ("Fwf",(krwf/muwf)/(krgf/mug + krwf/muwf));
 volVectorField U = Ug + Uw;
 
-surfaceVectorField gradpc ("gradpc", fvc::interpolate(fvc::grad(pc),"pc") );
+volVectorField gradpc ("gradpc", fvc::grad(pc,"pc") );
+surfaceVectorField gradpcf ("gradpcf", fvc::interpolate(gradpc,"gradpc") );
 surfaceScalarField phi = phiw;
-surfaceScalarField phiPc = phiw*0;
+surfaceScalarField phiPc = ("phiPc",phiw*0);
 surfaceScalarField phiP ("phiP", phiw);
 
 if (flowType == 4) // 2 phase
@@ -55,8 +68,8 @@ if (flowType == 4) // 2 phase
 	Mf = Mwf + Kf*krgf/mug;//Info<<"Mf 0 1 "<<Mf[0]<<" "<<Mf[1]<<endl;
 	Lf.dimensions().reset(dimensionSet(0,0,1,0,0,0,0));
 	Lf = Lwf + Kf*rhog*krgf/mug;//Info<<"Lf "<<Lf[10]<<endl;
-	surfaceScalarField phiPc ("phiPc", (Mwf * gradpc) & mesh.Sf() );
-	phiGr = (Lf * g) & mesh.Sf();//Info<<"phiGr 0 1 "<<phiGr[0]<<" "<<phiGr[1]<<endl;
+	surfaceScalarField phiPc ("phiPc", (Mwf * gradpcf) & mesh.Sf() );
+	surfaceScalarField phiGr ("phiGr", (Lf * g) & mesh.Sf());//Info<<"phiGr 0 1 "<<phiGr[0]<<" "<<phiGr[1]<<endl;
 	//recalculate fluxes (phiw, phig used for transport)
 	//phi = phiGr - ((Mf * gradpc ) & mesh.Sf()) + phiPc*activateCapillarity;
     //phiw == Fwf*phi + (((Lwf/Lf)*g) & mesh.Sf()) + phiPc*activateCapillarity; // == to transfer also BC

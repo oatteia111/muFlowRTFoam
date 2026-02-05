@@ -19,25 +19,31 @@ if (flowType == 3) // unsaturated
     if (timeStepControl == "Picard")
     {
 	Info<<"in picard "<<endl;
-	iterPicard = 0; resPicard = 1000.;
+	iterPicard = 0; resPicard = 1000.;float residu0 = 1000;
 	// this loop is imitated from Orgogozo Richards
 	deltaTFact = 1.;
-	hp1 = hp;
+	sw1 = sw;
+	//hp1 = hp;
 	while (resPicard > tolPicard)
 		{
 		iterPicard++;
-		hp = hp_tmp; 
+		sw = sw_tmp; 
+		//hp = hp_tmp; 
 		#include "flow/updateThetaFields.H"
 		#include "flow/hpEqn.H"
-		resPicard = gMax((mag(hp-hp_tmp))->internalField());
-		hp_tmp = hp;
+		resPicard = gMax((mag(sw-sw_tmp)*200)->internalField());
+		//resPicard = gMax((mag(hp-hp_tmp))->internalField());
+		if (residu>residu0) {hp  = hp*0.75 + hp.prevIter()*0.25;}//relax //sw_tmp = sw_tmp*0.75+sw*0.25;Info<<"relax"<<endl;}
+		sw_tmp = sw;
+		residu0 = residu;
+		//hp_tmp = hp;
 		if (iterPicard == maxIterPicard)
 			{ runTime.setTime(oldTime,tstep); break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;hp_tmp=hp1;hp=hp1;rewind=1;}
+	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;sw_tmp=sw1;sw=sw1;rewind=1;}//hp_tmp=hp1;hp=hp1;rewind=1;}
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
-	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
+	newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
     }
 	
 	else 
@@ -83,19 +89,19 @@ else if (flowType == 4) // 2 phase
 	iterPicard = 0; resPicard = 1000.;
 	// this loop is imitated from Orgogozo Richards
 	deltaTFact = 1.;
-	p1 = p;
+	p1 = p*1;
 	while (resPicard > tolPicard)
 		{
 		iterPicard++;
-		p = p_tmp; 
-		#include "flow/pSEqn.H"
-		Info<<" end pS ,p_tmp(0) "<<p_tmp[0]<<endl;
-		resPicard = gMax((mag(p-p_tmp)/atmPa*1e3)->internalField());Info<<"res Pic "<<resPicard<<endl;
 		p_tmp = p;
+		//Info<<" before p_tmp, p "<<endl;for (i=0;i<16;i++) {Info<<p_tmp[i]<<" "<<p[i]<<endl;} 
+		#include "flow/pSEqn.H"
+		//Info<<" after p_tmp, p "<<endl;for (i=0;i<16;i++) {Info<<p_tmp[i]<<" "<<p[i]<<endl;} 
+		resPicard = gMax((mag(p-p_tmp)/atmPa*1e3)->internalField());Info<<"res Pic "<<resPicard<<endl;
 		if (iterPicard == maxIterPicard){ break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;p_tmp=p1;p=p1;rewind=1;}
+	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;p=p1;rewind=1;}
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
     }

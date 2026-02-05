@@ -262,55 +262,56 @@ int phqInit(my_phq phq_data)
 
 	//--------------------------- RUN ------------------------------
 	
-int phqRun(my_phq &phq_data)
+int phqRun(my_phq &freak)
 	{
 	try
 	{
 		IRM_RESULT status;
-		PhreeqcRM* phreeqc_rm_ptr = phq_data.PhreeqcRM_ptr;
-		int nxyz = phq_data.data[0];int ph_gcomp = phq_data.data[2];int ph_nsolu = phq_data.data[3];
+		//PhreeqcRM* phreeqc_rm_ptr = freak.PhreeqcRM_ptr;
+		status = freak.PhreeqcRM_ptr->SetErrorHandlerMode(1);
+		int nxyz = freak.data[0];int ph_gcomp = freak.data[2];int ph_nsolu = freak.data[3];
 		//int nthreads = 3;std::cout<<"threads "<<nthreads<<"\n";
 		
 		std::vector<int> gcompn;
-	status = phreeqc_rm.SetErrorHandlerMode(1);
-		int ph_ncomp = phq_data.data[1];//phreeqc_rm.FindComponents(); 
-		const std::vector<std::string> &components = phreeqc_rm.GetComponents();
-		if (ph_gcomp>0) {const std::vector<std::string> &gcompn = phreeqc_rm.GetGasComponents(); }
+		//status = phreeqc_rm_ptr.SetErrorHandlerMode(1);
+		int ph_ncomp = freak.data[1];//phreeqc_rm.FindComponents(); 
+		const std::vector<std::string> &components = freak.PhreeqcRM_ptr->GetComponents();
+		if (ph_gcomp>0) {const std::vector<std::string> &gcompn = freak.PhreeqcRM_ptr->GetGasComponents(); }
 		std::cout<<"phqrun compo done";//std::cout<<"phq ncomp sz "<<ph_ncomp<<" gcomp "<<gcompn.size()<<" ws "<<freak.wsat[0]<<"\n";
 		std::cout << "in phq nxyz "<<nxyz;//<<" size c "<<freak.c.size()<<" poro "<<freak.poro[1]<<"\n";
-		status = phreeqc_rm.SetTemperature(phq_data.temp);std::cout<<"temp done ";
-		std::cout << "c_0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< phq_data.c[i*nxyz+2]<<" ";} std::cout<<"\n";
+		status = freak.PhreeqcRM_ptr->SetTemperature(freak.temp);std::cout<<"temp done ";
+		std::cout << "c_0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+2]<<" ";} std::cout<<"\n";
 		if (gcompn.size()>0) {
 			std::cout<<"nb gcomp before "<<gcompn.size();//<<" gvol 3 "<<freak.gvol[0]<<" sat "<<freak.wsat[0]<<"\n";
 			//std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.g[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.gm[i*nxyz+0]<<" ";} std::cout<<"\n";
 			//status = phreeqc_rm_ptr->SetSaturation(freak.wsat); // keep this order to set values
-			status = phreeqc_rm.SetGasPhaseVolume(phq_data.gvol);
-			status = phreeqc_rm.SetGasCompMoles(phq_data.gm);
+			status = freak.PhreeqcRM_ptr->SetGasPhaseVolume(freak.gvol);
+			status = freak.PhreeqcRM_ptr->SetGasCompMoles(freak.gm);
 			//status = phreeqc_rm_ptr->SetPressure(freak.p); // does not seem to be usefull 
 			}
 		else 
-			{std::cout<<"phq wsat "<<phq_data.wsat[0];
+			{std::cout<<"phq wsat "<<freak.wsat[0];
 			//status = phreeqc_rm_ptr->SetSaturation(freak.wsat);
 			}
 		std::cout<<"wsat done ";
-		if (phq_data.EK) {status = phreeqc_rm.SpeciesConcentrations2Module(phq_data.spc);}
-		else {status = phreeqc_rm.SetConcentrations(phq_data.c);}
+		if (freak.EK) {status = freak.PhreeqcRM_ptr->SpeciesConcentrations2Module(freak.spc);}
+		else {status = freak.PhreeqcRM_ptr->SetConcentrations(freak.c);}
 		std::cout<<"c done ";
-		status = phreeqc_rm.SetTimeStep(phq_data.tstep);std::cout<<"tstep "<<phq_data.tstep<<"\n";
+		status = freak.PhreeqcRM_ptr->SetTimeStep(freak.tstep);std::cout<<"tstep "<<freak.tstep<<"\n";
 		//----- run here ------
-		status = phreeqc_rm.RunCells();
+		status = freak.PhreeqcRM_ptr->RunCells();
 		
 		//status = phreeqc_rm_ptr->GetSaturation(freak.wsat);
 		//freak.temp = phreeqc_rm_ptr->GetTemperature();
-		if (phq_data.EK) {status = phreeqc_rm.GetSpeciesConcentrations(phq_data.c);}
-		else {status = phreeqc_rm.GetConcentrations(phq_data.c);}
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< phq_data.c[i*nxyz]<<" ";} std::cout<<"\n";
+		if (freak.EK) {status = freak.PhreeqcRM_ptr->GetSpeciesConcentrations(freak.c);}
+		else {status = freak.PhreeqcRM_ptr->GetConcentrations(freak.c);}
+	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz]<<" ";} std::cout<<"\n";
 		if (gcompn.size()>0) {
-			status = phreeqc_rm.GetGasCompPressures(phq_data.g);
-			status = phreeqc_rm.GetGasCompMoles(phq_data.gm);
-			status = phreeqc_rm.GetGasPhaseVolume(phq_data.gvol);
-			phq_data.p = phreeqc_rm.GetPressure();
+			status = freak.PhreeqcRM_ptr->GetGasCompPressures(freak.g);
+			status = freak.PhreeqcRM_ptr->GetGasCompMoles(freak.gm);
+			status = freak.PhreeqcRM_ptr->GetGasPhaseVolume(freak.gvol);
+			freak.p = freak.PhreeqcRM_ptr->GetPressure();
 			}
 		//writes to the dump file
 		//bool dump_on = true;
@@ -318,12 +319,12 @@ int phqRun(my_phq &phq_data)
 		//status = phreeqc_rm_ptr->SetDumpFileName("phreeqc.dmp");
 		//status = phreeqc_rm_ptr->DumpModule(dump_on, append);
 	//phreeqc_rm_ptr->SetSelectedOutputOn(true);
-	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< phq_data.c[i*nxyz+0]<<" ";} std::cout<<"\n";
+	std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+0]<<" ";} std::cout<<"\n";
 	if (ph_gcomp>0) {
 	//std::cout<<"nb gcomp after "<<gcompn.size()<<" gvol 0 "<<freak.gvol[0]<<" sat "<<freak.wsat[0]<<"\n";
-		std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<phq_data.g[i*nxyz+0]<<" ";} std::cout<<"\n";
-		std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<phq_data.gm[i*nxyz+0]<<" ";} std::cout<<"\n";
-		std::cout<<"p ";for (int i=0;i<5;i++) {std::cout<<phq_data.p[i]<<" ";} std::cout<<"\n";
+		std::cout<<"g 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.g[i*nxyz+0]<<" ";} std::cout<<"\n";
+		std::cout<<"gm 0 ";for (int i=0;i<ph_gcomp;i++) {std::cout <<freak.gm[i*nxyz+0]<<" ";} std::cout<<"\n";
+		std::cout<<"p ";for (int i=0;i<5;i++) {std::cout<<freak.p[i]<<" ";} std::cout<<"\n";
 		}
 	}
 	catch (PhreeqcRMStop)
@@ -354,23 +355,23 @@ int i,j,nxyz,ph_ncomp,ph_gcomp,ph_nsolu;
 
 int main()
 {
-	my_phq phq_data;
-	phq_data.DB="phreeqc.dat";
-	phq_data.ChemFile = "initChem.pqi";
+	my_phq freak;
+	freak.setDB("phreeqc.dat");
+	freak.setChemFile("initChem1.pqi");
 	char sep ='/';std::cout<<"start \n";
 	std::ifstream inputInit{cur_dir+sep+"phqinit.txt"};
 	std::vector<int> ph_init{std::istream_iterator<int>{inputInit}, {}}; 
-	phq_data.setData(ph_init);
-	nxyz=phq_data.data[0];std::cout<<"nxyz "<<nxyz<<"\n";
+	freak.setData(ph_init);
+	nxyz=freak.data[0];std::cout<<"nxyz "<<nxyz<<"\n";
 	std::vector<double> rv(nxyz, 1.);
 	std::vector<double> poro(nxyz, .25);for (i=0;i<nxyz;i++) {poro[i]=0.25;}
 	std::vector<double> temp(nxyz, 25);
 	//std::vector<int> data={nxyz,ph_ncomp,0,ph_nsolu,1, 0,-1, 0,-1,0,-1,0,-1,0,-1,0,-1,0,-1};
-	phq_data.setTemp(temp);//std::cout("temp size",temp.size());
-	phq_data.setPoro(poro);std::cout<<"poro size "<<poro.size()<<"\n";
-	int a0=phqInit(phq_data);
-	//phq_data.setC(c);
+	freak.setTemp(temp);//std::cout("temp size",temp.size());
+	freak.setPoro(poro);std::cout<<"poro size "<<poro.size()<<"\n";
+	int a0=phqInit(freak);
+	//freak.setC(c);
 	std::cout<<"init done\n";
-	a0 = phqRun(phq_data.PhreeqcRM_ptr);
+	a0 = phqRun(freak);
 }
 

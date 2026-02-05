@@ -12,21 +12,22 @@
 	//
 	//dpcdS = -pc0/(n_vg*m_vg)*pow(Se,-1/m_vg - 1); //a b x^(a - 1);a=-1/m,b=1/n
 	//dpcdS *= pow(pow(Se,-1/m_vg)-1,1/n_vg-1) ;//(x^a - 1)^(b - 1)
+	//Info<<" dpcdS "<<dpcdS;
+	//dpcdS = -1/(n_vg*m_vg)*pc0/(sw_max-sw_min)*1; // swx-swn because of Se vs sw
+	//dpcdS *= pow(pow(Se,-1/m_vg)-1,(1/n_vg)-1); 
+	//dpcdS *= pow(Se,-(1+m_vg)/m_vg);
 	//brooks corey
 	//dpcdS = -alpha_vg*pc0*(pow(Se,-alpha_vg-1))/(sw_max-sw_min);
+	// same as above to validate
+	//dpcdS = - (1/(n_vg*m_vg)) * (pc0/(sw_max-sw_min)); 
+	//dpcdS *= pow(pow(Se,-1/m_vg)-1,1/n_vg-1); 
+	//dpcdS *= pow(Se,-(1+m_vg)/m_vg);//Info<<"dpc "<<dpcdS<<endl;
 	//Info<<"in upd sw "<<sw[0]<<" "<<sw_min[0]<<" "<<sw_max[0]<<" "<<sw_max[0]-sw[0]<<endl;
-	//sw = max(sw_min,min(sw,sw_max));//Info<<"in upd sw "<<sw[0]<<" "<<sw_min[0]<<" "<<sw_max[0]<<" "<<sw_max[0]-sw[0]<<endl;
-	sw = sw_max - sg;
+	sw = max(sw_min,min(sw,sw_max));//Info<<"in upd sw "<<sw[0]<<" "<<sw_min[0]<<" "<<sw_max[0]<<" "<<sw_max[0]-sw[0]<<endl;
 	double mysmall = 1e-18;
 	Se = min(max((sw-sw_min)/(sw_max-sw_min),mysmall),1-mysmall);//Info<<"Se0 "<<Se[0]<<" "<<1-Se[0]<<endl;
 	//if (activateEbullition) {Seg = min(max((sw-sw_min)/(1-sw_min),mysmall),1-mysmall);} else {Seg = Se;}//Segas can reach a saturation of 1	
 
-	pc == pc0*pow(pow(Se,-1/m_vg)-1,1/n_vg); //Info<<"pc "<<pc<<endl;//Se=(1+(p/pc0)^n)^-m; Se^-1/m-1=(p/pc0)^n
-	// same as above to validate
-	/*dpcdS == - (1/(n_vg*m_vg)) * (pc0/(sw_max-sw_min)); Info<<"step 1"<<endl;
-	dpcdS *= pow(pow(Se,-1/m_vg)-1,1/n_vg-1); Info<<"step 2"<<endl;
-	dpcdS *= pow(Se,-(1+m_vg)/m_vg);Info<<"dpc "<<dpcdS<<endl;
-	*/
 	//- mobility computation 
 	krw = 1 * pow(Se,0.5) * pow(1-pow(1-pow(Se,1/m_vg),m_vg),2);
 	krwf = fvc::interpolate(krw,"krw");
@@ -42,10 +43,7 @@
 	Fwf = (krwf/muwf) / (krgf/mug + krwf/muwf);
 	// fluxes
 	phiGr = (Lf * g) & mesh.Sf();Info<<"PhiGr(8) "<<phiGr[8]<<" Lwf/Lf "<<Lwf[8]/Lf[8]<<endl;
-	gradpc = fvc::grad(pc,"pc");//
-	gradpcf = fvc::interpolate(gradpc,"gradpc");//
-	phiPc = (Mwf * gradpcf) & mesh.Sf(); //fvc::snGrad(pc)
-	//phiPc = (Mwf * fvc::snGrad(pc,"pc")) * mesh.magSf(); 
-	//dpcdSf == fvc::interpolate(dpcdS);//
-	//phiPc == (Mwf * dpcdSf * fvc::snGrad(sw)) * mesh.magSf(); 
+	pc == pc0*pow(pow(Se,-1/m_vg)-1,1/n_vg); //Info<<"pc "<<pc<<endl;//Se=(1+(p/pc0)^n)^-m; Se^-1/m-1=(p/pc0)^n
+	gradpc = fvc::interpolate(fvc::grad(pc,"pc"));//
+	phiPc = (Mwf * gradpc) & mesh.Sf(); //fvc::snGrad(pc)
 

@@ -16,6 +16,7 @@ sw.storePrevIter();
 			i1=cellsHwel[i];qHwel[i] = cellsHwelData[i*4+2] ; hSu[i1] = qHwel[i]/mesh.V()[i1];
 			//Info<<"q "<<qHwel[i]<<" "<<mesh.V()[i1]<<endl;
 			}
+		//Info<<"tHwell "<<tHwel<<" tnext "<<tnext<<endl;
 	}
 	//----- get the drn conditions
 	if (cellsHdrn.size()>0)
@@ -40,17 +41,23 @@ sw.storePrevIter();
 			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 			tnext = min(tnext,tHrch);
 			}
-		float frech=1;float pi=3.141592654; //frech is used to stop recharge or evapo when hp is too high or too low
+		float frech=1;float pi=3.141592654;float hplim = -1.0/lunits; //frech is used to stop recharge or evapo when hp is too high or too low
 		for (i=0; i<cellsHrch.size(); i++) 
 			{
 			i1 = cellsHrch[i];clayRch[i] = i1;qHrch[i] = cellsHrchData[i*4+2] ; // here the injection is at the exact place of recharge (not like in unconfined)
 			//Info<<i<<" ic "<<cellsHrch[i]<<" i lay "<<clayRch[i]<<" rch "<<qHrch[i]<<" tHrch "<<tHrch<<" tnext "<<tnext<<endl;
 			if (hSu[i1]==0) { // apply recharge only if there is nothing else in the cell
-				//if (hp()[i1]<0) {frech = 0.5+std::atan((hp()[i1]+20.)*10.)/pi;} //correction to limit head
-				//else {frech = 0.5-std::atan((hp()[i1]-10.)*20.)/pi;}
+				if (qHrch[i]>0) {frech=1;}
+				else 
+					{
+					if (hp()[i1]< hplim) {frech=0;}//Info<<"frech "<<i1<<" "<<hp()[i1]<<" "<<frech<<endl;} // hp<-3 m stop all evt
+					else if (hp()[i1]<0) {frech = 0.5*(1+std::erf((hp()[i1]+0.4/lunits)/20));}//0.5+std::atan((hp()[i1]+0.4/lunits)/8.0)/pi;} //correction to limit head, if cm, lunits= 0.01 -> 40 cm head
+					else {frech = 1;}
+					}
 				hSu[i1] = frech*qHrch[i]/mesh.V()[i1]; 
+				//Info<<"rch "<<lunits<<" "<<i1<<" "<<hp()[i1]<<" "<<frech<<endl;
 				}
-			Info<<"q rch "<<i<<" " <<qHrch[i]<<endl;
+			//Info<<"q rch "<<i<<" " <<qHrch[i]<<endl;
 			} 
 	}
 	//hp fixed
@@ -71,9 +78,10 @@ sw.storePrevIter();
 
 	//scalar converge = 0;
 	
-	hpEqn.solve(); 
+	//if (hp().mesh().equationRelaxationFactor("hp")) {hpEqn.relax(hp().mesh().equationRelaxationFactor("hp"));}
+	//hpEqn.solve(); 
 
-	//residu = hpEqn.solve().initialResidual(); //initial residual does not seem to include hSu??
+	residu = hpEqn.solve().initialResidual(); //initial residual does not seem to include hSu??
 
 //phiw =  phiGr - ((Mf * fvc::interpolate(fvc::grad(hp)) ) & mesh.Sf() ) ;//WRONG
 phiw ==  phiGr - (Mf * fvc::snGrad(hp)) * mesh.magSf();//fvc::interpolate(sw) *

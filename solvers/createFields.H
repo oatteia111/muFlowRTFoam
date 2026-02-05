@@ -22,24 +22,28 @@ scalar lg_units(transportProperties.lookupOrDefault<scalar>("lg_units",1));
 int nlay(transportProperties.lookupOrDefault<int>("nlay",1));
 int ncell_lay(transportProperties.lookupOrDefault<int>("ncell_lay",1));
 int ncell=nlay*ncell_lay;
+labelList inactiveCells;
+DynamicList<label> dryCells;
 scalar coupleK_eps(transportProperties.lookupOrDefault<scalar>("coupleK_eps",0));
 dimensionedScalar rhowRef(transportProperties.lookupOrDefault("rhowRef",dimensionedScalar("rhowRef",dimensionSet(1,-3,0,0,0,0,0),1e3)));
 dimensionedScalar muwRef(transportProperties.lookupOrDefault("muwRef",dimensionedScalar("muwRef",dimensionSet(1,-1,-1,0,0,0,0),1e-3)));
 Info << "transportP read "<< endl;
 
 Info << nl << "Reading fields\n" << endl;
-volScalarField eps (IOobject("eps",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("eps",dimless,0));
+volScalarField eps (IOobject("eps",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("eps",dimless,0.3));
 //volScalarField eps (IOobject("eps",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("eps",dimless,0.3));
 volScalarField eps0("eps0",eps*1);
-volScalarField h (IOobject("h",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("h",dimLength,0));
+volScalarField h (IOobject("h",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("h",dimLength,0.));
 //volScalarField eps0("h0",h);
 volScalarField zbot(IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("zbot",dimLength,0.));
-volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1));
-volScalarField p (IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325));
+volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1.));
+volScalarField p (IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325.));
 //Info<<p<<endl;
 volScalarField rhow (IOobject("rhow",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef);
 volScalarField muw (IOobject("muw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,muwRef);
 volScalarField sw (IOobject("sw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.));
+volScalarField sw1 = sw;
+volScalarField sw_tmp = sw;
 volScalarField phreeqcVm (IOobject("phreeqcVm",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phreeqcVm",dimless,24.5));
 volScalarField unity(IOobject("unity",runTime.constant(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("unity",dimless,1));
 
@@ -65,13 +69,14 @@ Info<<"CFL "<<CFL<<" int "<<CFLint<<endl;
 volScalarField stor("stor", unity); //Info << "stor " << stor().size() << endl;
 
 volVectorField Uw(IOobject("Uw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Uw",dimLength/dimTime,vector::zero));
+volScalarField magUw("magUw",mag(Uw));
 surfaceScalarField phiw(IOobject("phiw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVol/dimTime,0.));
 
 //hydraulic conductivity
 Info<< "reading Kh and Kv field " << endl;
 
-volScalarField Kh (IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
-volScalarField Kv (IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+volScalarField Kh(IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+volScalarField Kv(IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
 volScalarField storC(IOobject("storC",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storC",dimless,1.e-6));
 volScalarField storU(IOobject("storU",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storU",dimless,0.25));
 surfaceScalarField Kf(IOobject("Kf",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("Kf",dimArea,1.e-12));

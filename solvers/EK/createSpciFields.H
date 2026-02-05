@@ -22,11 +22,11 @@ wordList bcTypes
 	);
 	
 
-List <autoPtr <volScalarField> > Cw(ph_nspc); // here Cw are the water conc of species
-forAll (Cw, i)
+List <autoPtr <volScalarField> > ECw(ph_nspc); // here Cw are the water conc of species
+forAll (ECw, i)
 {
-		word nameCi ("Cw" + name(i));
-		Cw[i].reset
+		word nameCi ("ECw" + name(i));
+		ECw[i].reset
 		(
 			new volScalarField
 			(
@@ -38,4 +38,4 @@ forAll (Cw, i)
 		);
 }
 
-Info <<"end Cwifields " << endl;
+Info <<"end ECwifields " << endl;

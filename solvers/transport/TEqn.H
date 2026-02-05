@@ -65,10 +65,11 @@ Info << "before Teq "<<endl;
 fvScalarMatrix TEqn
 	(
 		rhow*cpw * thetaw * fvm::ddt(T) + rhow*cpw * T * fvc::ddt(thetaw) + rhos*cps * (1-eps) * fvm::ddt(T) 
-		+ fvm::div(cpw * rhophi, T, "div(phiw,T)") 
+		+ fvc::div(cpw * rhophi, T, "div(phiw,T)") 
 		- fvm::laplacian(eps*rhow*cpw * Deffw, T, "laplacian(Deffw,T)")
 		- fvm::laplacian(lbdaT, T, "laplacian(lbdaT,T)")
-		== - cpw*TSu - cpw*fvm::SuSp(TSp, T)
+		+ cpw*fvm::SuSp(TSp, T)
+		== - cpw*TSu 
 	);
 	
 //get the fixed temperature conditions

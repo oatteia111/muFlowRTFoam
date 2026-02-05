@@ -76,5 +76,14 @@ while (time>=tGwel) {output = getCbuffer("gwel",itGwel,cellsGwel0.size());itGwel
 cellsGwel = indexC(cellsGwel0,cellsGwelData) ;
 }
 
+// for mass balance
+std::vector<float> sqOGdiff(ph_gcomp);
+	for (int ig=0;ig<ph_gcomp;ig++)
+	{
+	std::string s=std::to_string(ig);
+	std::ofstream fich1(cur_dir+"/observation/budgetCg"+s+".txt");
+	fich1 << "time outGfix \n";
+	fich1.close();
+	}
 
 Info <<"end Cgifields " << endl;

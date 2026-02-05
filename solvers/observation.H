@@ -23,7 +23,7 @@ for (int io=0;io<nobs;io++)
 	if ((activateTransport+activateThermal>0)&&(obsTransIndx.size()>0))
 		{
 		if (obsTransIndx[0]==1) {obsTrans.push_back(C()[icello[io]]);} //Info<<"in obs store t "<<mesh.time().value()<<" C "<<C()[icello[io]]<<endl;
-		if (obsTransIndx[1]==1) {obsTrans.push_back(T()[icello[io]]);} Info<<"in obs store t "<<mesh.time().value()<<" T "<<T()[icello[io]]<<endl;
+		if (obsTransIndx[1]==1) {obsTrans.push_back(T()[icello[io]]);} //Info<<"in obs store t "<<mesh.time().value()<<" T "<<T()[icello[io]]<<endl;
 		}
 
 	if ((activateReaction==1)&&(obsChemIndx.size()>0))
@@ -40,7 +40,7 @@ for (int io=0;io<nobs;io++)
 	}
 oindex += 1;std::cout<<"oindex "<<oindex<<std::endl;
 
-std::vector<std::string> obsFlowNames = {"hp","sw","Uw"};
+std::vector<std::string> obsFlowNames = {"h","sw","Uw"};
 std::vector<std::string> obsTransNames = {"C","T"};
 int iv,iv1,ic,ig,nv;
 if (flagW==1) // write the files    
@@ -56,7 +56,7 @@ if (flagW==1) // write the files
 			for (iv=0;iv<3;iv++)
 				{
 				//Info <<"in owrite "<<io<<" "<<iv<<" "<<obsFlowIndx[iv]<<" "<<obsFlowNames[obsFlowIndx[iv]]<<endl;				
-				if (obsFlowIndx[iv]==1)
+				if (obsFlowIndx[iv]==1) // that variable must be printed
 					{
 					iv1+=1;
 					std::ofstream fich1(cur_dir+"/observation/obs_"+observ.headers[io]+"_"+obsFlowNames[iv]+".txt", std::ios::app);// Ouvrir le fichier en mode append

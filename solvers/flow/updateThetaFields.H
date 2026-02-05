@@ -1,6 +1,6 @@
 //- update saturation 
 	//Se =  pow(1.0+pow(-min(hp*alpha_vg,-1e-10),n_vg),-m_vg)-SMALL;
-	Se_tmp =  pow(1.0+pow(-min(hp_tmp*alpha_vg,-1e-10),n_vg),-m_vg)-SMALL;
+	Se_tmp =  max(min(pow(1.0+pow(-min(hp*alpha_vg,-1e-10),n_vg),-m_vg),1-1e-18),1e-18);//for picard hp -> hp_tmp
 	//Se =  neg(hp) *pow(1.0+pow(alpha_vg*mag(hp),n_vg),-m_vg) + pos(hp+VSMALL)*(1-SMALL);
 	sw = sw_min + (sw_max-sw_min)*Se_tmp;
 	//- Update effective saturation and capillary capacity (stor=Ch)

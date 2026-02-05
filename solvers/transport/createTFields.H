@@ -7,7 +7,7 @@ scalar dT=1e-9;scalar dT1=1e-9;
 Info<< "Reading field T\n" << endl;
 volScalarField T  // Temperature
 (
-    IOobject("T",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("T",dimTemperature,20.)
+    IOobject("T",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("T",dimTemperature,25.)
 );
 
 

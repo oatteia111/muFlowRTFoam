@@ -6,9 +6,11 @@ int ilay,nc,nc1;
 
 //Time locTime = Foam::autoPtr<Foam::Time>::New() 	;//runTime.New();
 //Foam::Time stdTime(Foam::Time::controlDictName, args); // DONT DO IT it does not converge!!!
-residu = 1e5;
-while (simple.loop(runTime))  //(abs(residu)>1e-6) 
+residu = 1e5;surfaceScalarField M1f = M0f;
+//while (simple.loop(runTime))  //(abs(residu)>1e-6) 
+for (int ii=0;ii<50;ii++)
 {
+double a = std::min(double(ii/20.),1.);
 Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 
 	/* if they are bc in Uw :-> removed from now one
@@ -53,6 +55,7 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 			}
 		 }
 	//Info <<"tolerance "<<Foam::tolerances::solverTolerance<<endl;
+	M1f = M0f*(1-a) + Mf *a;
 	// -------------- conditions  ---------------------- (can be simplified only the 1st time is needed)
 	float time = mesh.time().value(); //Info<<"chw size "<<cellsHw.size()<<" chfx size "<<cellsHfx.size()<<endl;//const Time&
 	//get the well discharge
@@ -113,9 +116,10 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	}
 
 	residu = hEqnStd.solve().initialResidual(); //Info << "h 5 " << h[5] << endl;
+	Info<<"ii "<<ii<<" a "<<a<<" myresidu "<<residu<<endl;
+	if ((ii>10)&&(residu<1e-6)) {break;}
 	//h.relax();
 	//residu = residu + average(hEqnStd.residual()());
-	Info<<"myresidu "<<residu<<endl;
 	phiw = hEqnStd.flux() ;
 	//phiw = - ((Mf * fvc::interpolate(fvc::grad(h)) ) & mesh.Sf() ); //phiG- 
 	Uw = fvc::reconstruct(phiw);
@@ -130,4 +134,59 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 //for (const auto &x : resid) {hresFile << x << "\n";}
 //hresFile.close();
 
+/*
+//Newton Rapson from chat gpt
+//in the 2nd eq opf uses the same format of the eq but tries ot find R
+volScalarField& h = mesh.lookupObjectRef<volScalarField>("h");
 
+scalar alpha = 0.5;      // relaxation Newton
+int maxNewtonIter = 20;
+
+for (int newtonIter=0; newtonIter<maxNewtonIter; newtonIter++)
+{
+    Info<< "Newton iter = " << newtonIter << endl;
+
+    // --- 1) Mettre à jour le coefficient non linéaire
+    surfaceScalarField Mf = computeMf(h);   // ta loi non linéaire
+
+    // --- 2) Construire l'équation pour h (résidu R(h))
+    fvScalarMatrix hEqn
+    (
+        -fvm::laplacian(Mf, h)
+        + fvm::Sp(hSp, h)
+        == hSu
+    );
+
+    // Résidu explicite : R = A(h)h - b(h)
+    volScalarField R = hEqn.A()*h - hEqn.H();
+
+    Info<< "Residual = " << gMax(mag(R)) << endl;
+
+    // --- 3) Construire l'équation Newton pour deltaH
+    // Approximation Jacobienne (picard/Newton simplifié)
+    fvScalarMatrix deltaHEqn
+    (
+        -fvm::laplacian(Mf, h)   // Jacobien approx
+        + fvm::Sp(hSp, h)
+    );
+
+    deltaHEqn.source() = -R;
+
+    // --- 4) Résoudre J * deltaH = -R
+    solve(deltaHEqn);
+
+    volScalarField deltaH(deltaHEqn.psi());
+
+    // --- 5) Update Newton
+    h += alpha*deltaH;
+
+    h.correctBoundaryConditions();
+
+    if (gMax(mag(deltaH)) < 1e-10)
+    {
+        Info<< "Newton converged"<<endl;
+        break;
+    }
+}
+
+*/

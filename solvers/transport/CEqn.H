@@ -37,7 +37,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			if (qHwel[i]<0) {CSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
 			//if (qHwel[i]<0) {CSu[i1] = -qHwel[i]/v*C[i1];}
 			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[i*4+2];} //the injected mass is the water flow x the conc
-			Info<<"wel "<< i<<" i1 " <<i1<<" q "<<qHwel[i]<<" conc "<<cellsCwelData[i*4+2]<<endl;
+			//Info<<"wel "<< i<<" i1 " <<i1<<" q "<<qHwel[i]<<" conc "<<cellsCwelData[i*4+2]<<endl;
 			}
 	}
 	// Hghb because Cghb may not be set here

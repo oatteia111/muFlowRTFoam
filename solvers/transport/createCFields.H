@@ -4,6 +4,7 @@ dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedS
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 dimensionedScalar Koc(transportProperties.lookupOrDefault("Koc",dimensionedScalar("Koc",dimVol/dimMass,0)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
+scalar activateAge(transportProperties.lookupOrDefault<scalar>("activateAge",0));
 double dC,mnC,mxC,dff,dC0,sC,sC1;
 const scalar dCmax = runTime.controlDict().lookupOrDefault("dCmax", 0.02);
 const scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.02);
@@ -43,6 +44,11 @@ volScalarField::Internal CSp
 		mesh,dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
 );
 
+volScalarField::Internal AgeSu
+(
+   IOobject("AgeSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+		mesh,dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
+);
 // -------------- conditions for concentration -------------
 // thre is chfix: conc for the cells where h is fixed and cfix: ccells for which only c is fixed
 labelList cellsChfix0; std::vector<float> cellsChfixData;float tChfix=0;int itChfix=0;

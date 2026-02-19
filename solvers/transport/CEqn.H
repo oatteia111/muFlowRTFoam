@@ -128,7 +128,7 @@ fvScalarMatrix CEqn
 		- fvm::laplacian(Deffw, C, "laplacian(Deffw,C)")
 		+ thetaw * fvm::Sp(lbdaw,C)
 		+ fvm::SuSp(CSp, C)
-		== - CSu
+		== - CSu + activateAge * AgeSu
 	);
 /*for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)

@@ -396,6 +396,7 @@ int main(int argc, char *argv[])
 		if (rewind==1) {runTime.setTime(oldTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
 		oldTime = mesh.time().value();
 		int flg = 0;Info<<"dts : min "<<minDeltaT<<" max "<<maxDeltaT<<" new "<<newDeltaT<<endl;
+		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
 		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
 		/*
 		if ((flagDeltaT==1)&&(itwstep<=wTimes.size())) {  // the previous time step showed that we reach now a change in BC condition

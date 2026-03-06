@@ -381,10 +381,10 @@ int getSelOutput(my_phq & freak)
 			//if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
 		}
 	nxyz = freak.data[0];std::cout<<"in phq selout nxyz "<<nxyz<<" for cell 0 and nxyz-2\n";
-	freak.nselect = ncol-6; //-nphase;
-	freak.spc.resize((freak.nselect)*nxyz,0);
 	std::vector<double> so(ncol*nxyz);
 	status = freak.PhreeqcRM_ptr->GetSelectedOutput(so);
+	freak.nselect = ncol-6; //-nphase;
+	freak.spc.resize((freak.nselect)*nxyz,0);
 	for (int j = 0; j < nxyz; j++)
 	{
 		if (freak.wsat[j]>0) {

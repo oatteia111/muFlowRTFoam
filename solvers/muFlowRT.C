@@ -72,7 +72,7 @@ std::vector<int> immobile;
 std::vector<float> wTimes;
 float atmPa=101325.;float pi=3.141592654;
 float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext;
-int i,j,iw,oindex,bindex;int rSteps=1;		     		  
+int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -200,6 +200,12 @@ int main(int argc, char *argv[])
 		}
 	//***first init of phreeqc
 	int a0= phqInit(freak); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
+	a0=getSelOutput(freak);
+	nsel = freak.nselect;std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
+	species.resize(nxyz*nsel);
+	for (size_t k;k<freak.spc.size();k++) {species[k]=freak.spc[k];} // put the starting concentrations
+
+	
 	//a0 = phqRun(freak);
 	
 	//################ writes the solutions to file + compnames
@@ -270,7 +276,6 @@ int main(int argc, char *argv[])
 		for (j=0;j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 		freak.setP(p_ph); //not possible to set pressure and volume
 		a0= phqRun(freak); //****PHQ RUN with equilibration with true gas phase
-		a0=getSelOutput(freak);
 		//(recalculate Vm) no, just to print
 		for (j=0;j<nxyz;j++)  {
 			//Gmtot = 0;
@@ -280,8 +285,6 @@ int main(int argc, char *argv[])
 			for (i=0;i<ph_gcomp;i++) {Info<<" "<<freak.gm[i*nxyz+j];} Info<<endl;
 			}
 		}
-		int nsel = freak.nselect;
-		species.resize(nxyz*nsel);
 	
 	iw = freak.iGwater;	
 	// set values of cells when restart
@@ -550,7 +553,7 @@ int main(int argc, char *argv[])
 				rewind=1;Info<<endl;continue;
 				} 
 			a0=getSelOutput(freak);
-			for (j=0; j<nxyz;j++) {for (i=0;i<nsel;i++) { if (freak.spec[j*nsel+i]<1e10) {species[j*nsel+i] = freak.spec[j*nsel+i];} } }
+			for (j=0; j<nxyz;j++) {for (i=0;i<nsel;i++) { if (freak.spc[i*nxyz+j]<1e10) {species[i*nxyz+j] = freak.spc[i*nxyz+j];} } }
 			
 			Info << "phreeqc done "<<endl;
 
@@ -653,8 +656,9 @@ int main(int argc, char *argv[])
 			phiw.write();phig.write();
 			std::ofstream outFile(cur_dir/runTime.timeName()/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
+			std::cout<<"write nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 			for (j=0;j<nxyz;j++)
-				{ for (i=0;i<freak.nselect;i++) {outFile << freak.spc[i*nxyz + j]<<" ";} outFile <<"\n"; }
+				{ for (i=0;i<nsel;i++) {outFile << species[i*nxyz + j]<<" ";} outFile <<"\n"; }
 			}
 			
 		if (flagW==1) {flagW=0;}

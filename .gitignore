@@ -11,3 +11,6 @@ solvers/Make/linux64GccDPInt32Opt/muFlowRT.o
 /solvers/Make
 /solvers/Make
 /solvers
+/solvers/Make
+solvers/Make/files
+/solvers/Make

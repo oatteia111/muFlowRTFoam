@@ -67,6 +67,7 @@ std::string cur_dir = get_current_dir();
 std::vector<double> a(12,0.);
 #include "phreeqc/initPhreeqc.H"
 std::vector<double> c_ph,gm_ph,g_ph,poro,t_ph,foc_ph,p_ph,gvol,wsat,ractive,solu_conc,gas_conc,solu_species,Vmol,Ggrd;
+std::vector<double> species;
 std::vector<int> immobile;
 std::vector<float> wTimes;
 float atmPa=101325.;float pi=3.141592654;
@@ -269,6 +270,7 @@ int main(int argc, char *argv[])
 		for (j=0;j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 		freak.setP(p_ph); //not possible to set pressure and volume
 		a0= phqRun(freak); //****PHQ RUN with equilibration with true gas phase
+		a0=getSelOutput(freak);
 		//(recalculate Vm) no, just to print
 		for (j=0;j<nxyz;j++)  {
 			//Gmtot = 0;
@@ -278,6 +280,8 @@ int main(int argc, char *argv[])
 			for (i=0;i<ph_gcomp;i++) {Info<<" "<<freak.gm[i*nxyz+j];} Info<<endl;
 			}
 		}
+		int nsel = freak.nselect;
+		species.resize(nxyz*nsel);
 	
 	iw = freak.iGwater;	
 	// set values of cells when restart
@@ -546,6 +550,8 @@ int main(int argc, char *argv[])
 				rewind=1;Info<<endl;continue;
 				} 
 			a0=getSelOutput(freak);
+			for (j=0; j<nxyz;j++) {for (i=0;i<nsel;i++) { if (freak.spec[j*nsel+i]<1e10) {species[j*nsel+i] = freak.spec[j*nsel+i];} } }
+			
 			Info << "phreeqc done "<<endl;
 
 			//auto finish = std::chrono::high_resolution_clock::now();

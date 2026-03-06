@@ -111,7 +111,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			}
 		for (size_t i=0; i<cellsCfix.size(); i++) 
 			{ 
-			i1=cellsCfix[i];v=mesh.V()[i1];CSu[i1] = -cellsCfixData[i*4+2]*1e3; CSp[i1] = 1e3;// high C conductance
+			i1=cellsCfix[i];v=mesh.V()[i1];CSu[i1] = -cellsCfixData[i*4+2]*1e5; CSp[i1] = 1e5;// high C conductance
 			//Info<<"cfix "<< i<<" i1 " <<i1<<" conc "<<cellsCfixData[i*4+2]<<" csu "<<CSu[i1]<<" csp "<<CSp[i1]<<endl;
 			}
 	}
@@ -125,6 +125,7 @@ fvScalarMatrix CEqn
 		//+ reactIndicator*fvc::ddt(C) // indic 0 : implicit, indic 1: explicit
 		+ Rf * C * fvc::ddt(thetaw) 
 		+ fvc::div(phiw, C, "div(phiw,C)") 
+		//- fvm::div(fvc::interpolate(Deffw) * fvc::grad(C)) 
 		- fvm::laplacian(Deffw, C, "laplacian(Deffw,C)")
 		+ thetaw * fvm::Sp(lbdaw,C)
 		+ fvm::SuSp(CSp, C)

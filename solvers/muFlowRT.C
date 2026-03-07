@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 	//***first init of phreeqc
 	int a0= phqInit(freak); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
 	a0=getSelOutput(freak);
-	nsel = freak.nselect;std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
+	nsel = freak.nselect;//std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 	species.resize(nxyz*nsel);
 	for (size_t k;k<freak.spc.size();k++) {species[k]=freak.spc[k];} // put the starting concentrations
 

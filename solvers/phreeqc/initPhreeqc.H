@@ -372,7 +372,7 @@ int getSelOutput(my_phq & freak)
 	//PhreeqcRM* phreeqc_rm = freak.PhreeqcRM_ptr;
 	//int n_user = freak.PhreeqcRM_ptr->GetNthSelectedOutputUserNumber(0);
 	//status = freak.PhreeqcRM_ptr->SetCurrentSelectedOutputUserNumber(n_user);
-	int ncol = freak.PhreeqcRM_ptr->GetSelectedOutputColumnCount();std::cout<<"in phq ncol "<<ncol<<"\n";
+	int ncol = freak.PhreeqcRM_ptr->GetSelectedOutputColumnCount();//std::cout<<"in phq ncol "<<ncol<<"\n";
 	std::vector<std::string> headings(ncol);
 	//int nphase=0;
 	for (int i = 0; i < ncol; i++)

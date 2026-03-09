@@ -510,11 +510,11 @@ int main(int argc, char *argv[])
 					int rj=ractive[j];
 					for (i=4; i<ph_ncomp; i++)
 					{
-						if (abs(c_ph[i*nxyz+j]-Cw[i]()[rj])/(c_ph[i*nxyz+j]+1e-20)<1e-5 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(c_ph[i*nxyz+j]-Cw[i]()[rj])/(c_ph[i*nxyz+j]+1e-20)<1e-8 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
 					} 
 					for (i=0; i<ph_gcomp; i++)
 					{
-						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-5 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-8 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
 					}
 				}
 			}

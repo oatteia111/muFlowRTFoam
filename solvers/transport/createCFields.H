@@ -22,13 +22,22 @@ volScalarField foc //organic matter content
 (
 	IOobject("foc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("foc",dimless,0),bcTypes
 );
-//volScalarField dgrain //grain diameter (mm), used for PFAs sorption
-//(IOobject("dgrain",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("dgrain",dimless,1e-2),bcTypes);
 volScalarField Rf
 (	IOobject("Rf",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("Rf",dimless,1),bcTypes);
-//Rf=eps*2;Info<< "Rf "<<Rf[0] <<"\n" << endl;
-//Rf = 1 + (1-eps)/eps*rhos*Koc*foc;
+
+std::vector<std::string> sorbDecStr;
+std::ifstream inputSorbDec{cur_dir+"/constant/options/sorptionDecay" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+sorbDecStr = {std::istream_iterator<std::string>{inputSorbDec}, {}};
+if (sorbDecStr.size()>0) {
+	Koc.value() = std::stod(sorbDecStr[3]);
+	lbdaw.value() = std::stod(sorbDecStr[5]);
+	Rf = 1 + (1-eps)/eps* rhos * Koc * foc; Info<<"Rf "<<Rf<<"\n";
+}
+
+//volScalarField dgrain //grain diameter (mm), used for PFAs sorption
+//(IOobject("dgrain",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("dgrain",dimless,1e-2),bcTypes);
 //scalar activateSorptionAW(transportProperties.lookupOrDefault<scalar>("activateSorptionAW",0));std::cout<<"AW "<<activateSorptionAW<<"\n";
+
 volTensorField Deffw(IOobject("Deffw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedTensor("Deffw",dimArea/dimTime,Zero) );
 
 // creating the internal Su and Sp fields to input temperature conditions inside the domain

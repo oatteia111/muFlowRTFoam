@@ -30,7 +30,7 @@ public:
 	}
 	volScalarField setRf(fvMesh & mesh,int & ic, volScalarField & Cwi)
 	{
-		//calculate the value of Rf depending on Aw and thus sw
+		//calculate the value of Rf depending on Aw and thus sw (PFAs)
 		double R=8.31; //R thermo constant in J.mol-1.K-1
 		volScalarField eps = mesh.objectRegistry::lookupObject<volScalarField>("eps");
 		volScalarField rhos = mesh.objectRegistry::lookupObject<volScalarField>("rhos");

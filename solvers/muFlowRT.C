@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 		//****************** set time step to stop at writeTimes
 		if (rewind==1) {runTime.setTime(oldTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
 		oldTime = mesh.time().value();
-		int flg = 0;Info<<"dts : min "<<minDeltaT<<" max "<<maxDeltaT<<" new "<<newDeltaT<<endl;
+		int flg = 0;Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
 		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
 		/*
@@ -413,20 +413,21 @@ int main(int argc, char *argv[])
 		*/
 		float dt1 = wtime - oldTime;  //to catch the writing time
 		float dt2 = tnext - oldTime; //to catch the time when BC change
-		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< "newdt "<<newDeltaT+dteps<<endl;
+		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT+dteps<<endl;
 		if ((dt1 <= dt2)&&(dt1<=newDeltaT+dteps)&&(dt1>0)) //write
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
 			flagW=1;flg=1;dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
-			newDeltaT /= 2.; tnext=runTime.endTime().value();
+			newDeltaT /= 2.;// tnext=runTime.endTime().value();
 			}
 		else if ((dt2 <= dt1)&&(dt2<= newDeltaT+dteps)&&(dt2>0)) //BC change
-			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
+			{runTime.setDeltaTNoAdjust(dt2);//tnext=runTime.endTime().value();
 			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;
 			flg=1;} //;tnext=runTime.endTime().value()
 		//Info<<" flg "<<flg<<endl;
 		else {runTime.setDeltaT(newDeltaT);} // (flg==0)  classical case
 		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
+		tnext=runTime.endTime().value();
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
 		Info<<"i time "<<itwstep<<" oldt "<<oldTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
 		runTime.read();

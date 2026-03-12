@@ -26,7 +26,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-		if (time>tCwel) {
+		if (time>=tCwel) {
 			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
 			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
 			tnext = min(tnext,tCwel);

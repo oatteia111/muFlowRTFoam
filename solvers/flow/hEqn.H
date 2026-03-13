@@ -64,7 +64,7 @@ time = mesh.time().value() ;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx
 //get the well discharge/recharge
 if (cellsHwel.size()>0)
 {
-	if (time>tHwel) {
+	if (time>=tHwel) {
 		output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
 		tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
 		tnext = min(tnext,tHwel);
@@ -77,7 +77,7 @@ if (cellsHwel.size()>0)
 //int ic0=10;
 if (cellsHghb.size()>0)
 {
-	if (time>tHghb) {
+	if (time>=tHghb) {
 		output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
 		tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
 		tnext = min(tnext,tHghb);
@@ -88,7 +88,7 @@ if (cellsHghb.size()>0)
 //----- get the riv conditions
 if (cellsHriv.size()>0)
 {
-	if (time>tHriv) {
+	if (time>=tHriv) {
 		output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
 		tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
 		tnext = min(tnext,tHriv);
@@ -100,7 +100,7 @@ if (cellsHriv.size()>0)
 //----- get the drn conditions
 if (cellsHdrn.size()>0)
 {
-	if (time>tHdrn) {
+	if (time>=tHdrn) {
 		output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
 		tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
 		tnext = min(tnext,tHdrn);
@@ -115,7 +115,7 @@ if (cellsHdrn.size()>0)
 //---- recharge conditions		
 if (cellsHrch.size()>0)
 {
-	if (time>tHrch) {
+	if (time>=tHrch) {
 		output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
 		tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 		tnext = min(tnext,tHrch);
@@ -136,7 +136,7 @@ if (cellsHrch.size()>0)
 //fixed head cells
 if (cellsHfix.size()>0)
 {
-	if (time>tHfix) {
+	if (time>=tHfix) {
 		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
 		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
 		tnext = min(tnext,tHfix);

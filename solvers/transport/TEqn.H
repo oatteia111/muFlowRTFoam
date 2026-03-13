@@ -16,7 +16,7 @@ float time = mesh.time().value(); //const Time&
 if (cellsHwel.size()>0)
 	{
 		//get the temp well data
-		if (time>tTwel) {
+		if (time>=tTwel) {
 			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
 			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
 			tnext = min(tnext,tTwel);
@@ -33,7 +33,7 @@ if (cellsHwel.size()>0)
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>tThfix) {
+		if (time>=tThfix) {
 			output = getCbuffer("thfix",itThfix,cellsThfix.size()); 
 			tThfix = output.t; cellsThfixData=output.d; itThfix +=1;
 			tnext = min(tnext,tThfix);

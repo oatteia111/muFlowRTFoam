@@ -7,7 +7,7 @@ sw.storePrevIter();
 	//get the well discharge
 	if (cellsHwel.size()>0)
 	{
-		if (time>tHwel) {
+		if (time>=tHwel) {
 			output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
 			tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
 			tnext = min(tnext,tHwel);
@@ -21,7 +21,7 @@ sw.storePrevIter();
 	//----- get the drn conditions
 	if (cellsHdrn.size()>0)
 	{
-		if (time>tHdrn) {
+		if (time>=tHdrn) {
 			output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
 			tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
 			tnext = min(tnext,tHdrn);
@@ -36,7 +36,7 @@ sw.storePrevIter();
 	//---- recharge conditions		
 	if (cellsHrch.size()>0)
 	{
-		if (time>tHrch) {
+		if (time>=tHrch) {
 			output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
 			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 			tnext = min(tnext,tHrch);

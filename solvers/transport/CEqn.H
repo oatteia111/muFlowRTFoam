@@ -43,7 +43,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	// Hghb because Cghb may not be set here
 	if (cellsHghb.size()>0)
 	{
-		if (time>tCghb) {
+		if (time>=tCghb) {
 			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
 			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
 			tnext = min(tnext,tCghb);
@@ -60,7 +60,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>tChfix) {
+		if (time>=tChfix) {
 			output = getCbuffer("chfix",itChfix,cellsChfix.size()); 
 			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;
 			tnext = min(tnext,tChfix);

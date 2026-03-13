@@ -16,7 +16,7 @@ Ggrd.resize(cellsGfix.size()*ph_gcomp,0);
 size_t i;
 if (cellsGwel.size()>0)
 	{
-	if (time>tGwel) {
+	if (time>=tGwel) {
 		output = getCbuffer("gwel",itGwel,cellsGwel.size()); 
 		tGwel = output.t; cellsGwelData=output.d; itGwel +=1;
 		}
@@ -26,7 +26,7 @@ if (cellsGwel.size()>0)
 // get fixed gas mixture 
 if (cellsGfix.size()>0)
 	{
-	if (time>tGfix) {
+	if (time>=tGfix) {
 		output = getCbuffer("gfix",itGfix,cellsGfix.size()); 
 		tGfix = output.t; cellsGfixData=output.d; itGfix +=1;
 		}

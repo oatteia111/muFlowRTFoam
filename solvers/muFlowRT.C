@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
 	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples);
 	plugPS.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	plugCgi.init(cur_dir,transportProperties,mesh,freak,listCouples);
-	int flagDeltaT;//newDeltaT = minDeltaT*10;
+	int flagBC;//newDeltaT = minDeltaT*10;
 	scalar reactStep = (wTimes[1]-wTimes[0])/rSteps; // length of the reaction step
 	
 	while (runTime.run())
@@ -402,32 +402,28 @@ int main(int argc, char *argv[])
 		//****************** set time step to stop at writeTimes
 		if (rewind==1) {runTime.setTime(oldTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
 		oldTime = mesh.time().value();
-		int flg = 0;Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
-		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
-		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
-		/*
-		if ((flagDeltaT==1)&&(itwstep<=wTimes.size())) {  // the previous time step showed that we reach now a change in BC condition
-			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100); // for unsat wtimes can be quite distant
-			flagDeltaT=0;
-			}
-		*/
 		float dt1 = wtime - oldTime;  //to catch the writing time
 		float dt2 = tnext - oldTime; //to catch the time when BC change
-		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT+dteps<<endl;
+		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT+dteps<<" flg BC "<<flagBC<<endl;
+		flagW = 0;		
+		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
+		if (flagBC>0) {newDeltaT = dt2/20;flagBC=0;}
+		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
+		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
+
 		if ((dt1 <= dt2)&&(dt1<=newDeltaT+dteps)&&(dt1>0)) //write
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
-			flagW=1;flg=1;dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
+			flagW=1;dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
 			newDeltaT /= 2.;// tnext=runTime.endTime().value();
 			}
-		else if ((dt2 <= dt1)&&(dt2<= newDeltaT+dteps)&&(dt2>0)) //BC change
-			{runTime.setDeltaTNoAdjust(dt2);//tnext=runTime.endTime().value();
-			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
-			//flagDeltaT=1;
-			flg=1;} //;tnext=runTime.endTime().value()
-		//Info<<" flg "<<flg<<endl;
-		else {runTime.setDeltaT(newDeltaT);} // (flg==0)  classical case
 		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-		tnext=runTime.endTime().value();
+		if ((dt2 <= dt1)&&(dt2<= newDeltaT+dteps)&&(dt2>0)) //BC change
+			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
+			//newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
+			//flagDeltaT=1;
+			flagBC=1;} //;tnext=runTime.endTime().value()
+		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
+		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
 		Info<<"i time "<<itwstep<<" oldt "<<oldTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
 		runTime.read();
@@ -494,7 +490,7 @@ int main(int argc, char *argv[])
 		tcnt++;
 		if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
 		if (rSteps>0) {if (rcnt>rSteps) {rcnt=1;} }
-
+		int flg =0;
 		//if (activateReaction==1 && tcnt==rSteps-1)
 		if (rSteps>0) {if (runTime.value() >= wTimes[itwstep-1]+reactStep*rcnt) flg=1;} // here the time to write is a portion of current time period
 		if (rSteps<0) {if (tcnt == -rSteps-1) flg=1;} // here the time is a number of flow/transport time steps
@@ -667,7 +663,7 @@ int main(int argc, char *argv[])
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"
 			<< nl << endl;
 
-		Info<< "End tstep\n" << endl;
+		Info<< "tnext "<<tnext<<" End tstep\n" << endl;
 
 	}
 	

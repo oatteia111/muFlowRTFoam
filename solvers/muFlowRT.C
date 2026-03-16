@@ -408,7 +408,7 @@ int main(int argc, char *argv[])
 		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" flg BC "<<flagBC<<endl;
 		flagW = 0;		
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
-		if (flagBC>0) {newDeltaT = dt2/20;flagBC=0;}
+		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;}
 		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 

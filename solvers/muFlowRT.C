@@ -186,7 +186,8 @@ int main(int argc, char *argv[])
 		int start = 5;
 		for (i=0;i<4;i++) {
 			if (ph_data[start] == -1) {start += nxyz+1;} else {start += 2;}
-			Info<<"i data "<<i<<" start "<<start<<" value "<<ph_data[start]<<endl;}
+			//Info<<"i data "<<i<<" start "<<start<<" value "<<ph_data[start]<<endl;
+			}
 		int igph = 0;
 		Info<<"before phqinit"<<endl;
 		for (int j=0;j<ncell;j++) {
@@ -404,20 +405,20 @@ int main(int argc, char *argv[])
 		oldTime = mesh.time().value();
 		float dt1 = wtime - oldTime;  //to catch the writing time
 		float dt2 = tnext - oldTime; //to catch the time when BC change
-		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT+dteps<<" flg BC "<<flagBC<<endl;
+		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" flg BC "<<flagBC<<endl;
 		flagW = 0;		
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
 		if (flagBC>0) {newDeltaT = dt2/20;flagBC=0;}
 		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
-		if ((dt1 <= dt2)&&(dt1<=newDeltaT+dteps)&&(dt1>0)) //write
+		if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
-			flagW=1;dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
-			newDeltaT /= 2.;// tnext=runTime.endTime().value();
+			flagW=1;//dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
+			// tnext=runTime.endTime().value();
 			}
 		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-		if ((dt2 <= dt1)&&(dt2<= newDeltaT+dteps)&&(dt2>0)) //BC change
+		if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change
 			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
 			//newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;

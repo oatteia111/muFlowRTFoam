@@ -86,7 +86,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	//recharge
 	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
-		if (time>tCrch) {
+		if (time>=tCrch) {
 			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
 			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
 			tnext = min(tnext,tCrch);

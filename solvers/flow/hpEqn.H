@@ -63,7 +63,7 @@ sw.storePrevIter();
 	//hp fixed
 	//std::cout<<"hfix size "<<cellsHfix.size()<<"\n";
 	fvScalarMatrix hpEqn
-	(stor*fvm::ddt(hp) - fvm::laplacian(Mf,hp) + fvc::div(phiGr) ==  hSu - fvm::SuSp(hSp,hp)); //
+	(stor*fvm::ddt(hp) - fvm::laplacian(Mf,hp) + fvc::div(phiGr) + fvm::SuSp(hSp,hp) ==  hSu ); //
 
 	if (cellsHfix.size()>0)
 	{

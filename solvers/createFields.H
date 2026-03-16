@@ -45,7 +45,7 @@ volScalarField sw (IOobject("sw",runTime.timeName(),mesh,IOobject::READ_IF_PRESE
 volScalarField sw1 = sw;
 volScalarField sw_tmp = sw;
 volScalarField phreeqcVm (IOobject("phreeqcVm",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phreeqcVm",dimless,24.5));
-volScalarField unity(IOobject("unity",runTime.constant(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("unity",dimless,1));
+volScalarField unity(IOobject("unity",runTime.constant(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("unity",dimless,1.));
 
 volScalarField a("a",unity);
 a.dimensions().reset(dimMass/dimVol); //for C

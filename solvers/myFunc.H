@@ -10,12 +10,12 @@ class dicFunc
 };
 
 //this is the calculation of the value of the multiplying factor from a function
-// it retursn a vector of multiplygin factors given the value of fvar
-// the frist paramaters is the reference
+// it returns a vector of multiplygin factors given the value of fvar
+// the first paramaters is the reference
 volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField fvar, float Xref, std::vector<float> fparms)
 {
 	//volScalarField resu; 
-	volScalarField fact=fvar*0;
+	volScalarField fact = fvar*0.0;
 	fact.dimensions().reset(dimless);
 	fvar.dimensions().reset(dimless);
 		/*int i;
@@ -24,19 +24,20 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 		if (ftype == "linear")
 			{
 			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
-			fact = 1.+ fparms[0]*(fvar-Xref);Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
+			fact = 1.+ fparms[0]*(fvar-Xref);
+			Info<<"in calc func, fvar "<<fvar[4]<<" fparm "<<fparms[0]<<" fact(4) "<<fact[4]<<endl;
 			}
 		if (ftype == "polynomial")
 			{
 			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
 			fact = 1.+ fparms[0]*(fvar-Xref) + fparms[1]*pow(fvar-Xref,2) ;
-			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
+			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(4) "<<fact[4]<<endl;
 			}
 		if (ftype == "exponential")
 			{
 			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
 			fact = 1.+ fparms[0]*exp(fparms[1]*(fvar-Xref)) ;
-			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(5) "<<fact[5]<<endl;
+			Info<<"in calc func, fvar "<<fvar[0]<<" fparm "<<fparms[0]<<" fact(4) "<<fact[4]<<endl;
 			}
 		if (ftype=="kozeny") // kozeny F=eps^3/(1-eps^2), with the initial being 
 			{

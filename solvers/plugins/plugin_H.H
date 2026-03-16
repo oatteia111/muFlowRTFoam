@@ -34,11 +34,10 @@ public:
 				forAll(eps(),i){eps[i]=eps0[i]-freak.deltaMvol[i]*0.037;} // !! this is valid only for calcite //if (i<5) {Info<<"dm "<<freak.deltaMvol[i]<<endl;}
 				X = eps*1;
 				} 
-			Info<<" X name "<<listCouples[i].Xvar<<" X(0) "<<X[0]<<endl;
 			if ((listCouples[i].Ykey=="rhow")||(listCouples[i].Ykey=="K"))
 				{fact *= calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
 			if (listCouples[i].Ykey=="muw") 
-				{fact /= calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
+				{fact = 1.0/calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
 		}
 		
 		return fact;

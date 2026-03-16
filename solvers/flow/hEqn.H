@@ -10,11 +10,8 @@ h.storePrevIter();//Info<<"flowtype "<<flowType<<endl;
 dryCells.clear();
 //for (i=0;i<150;i++) {Info << "cID " <<i<<" "<< mesh.C()[i] << endl;}
 
-// get the multiplying factors from plugin_H 
-volScalarField factM = plugH.corrM(mesh,freak);//Info<<"factM(0-2) "<<factM[0]<<" "<<factM[1] <<" "<<factM[2]<<endl;//" Mf "<<Mf<<" M0f "<<M0f<<endl;
-surfaceScalarField factMf = fvc::interpolate(factM,"factM");
-
 // -----------------  set the effective thickness for unconfined flow -------------------
+Mf = M0f*1;
 if (flowType == 2) 
 	{
 	for (ilay=0;ilay<nlay;ilay++) //find sw
@@ -39,15 +36,13 @@ if (flowType == 2)
 			scalar swm = (sw[oCell]*sw[nCell])/(odCface*sw[oCell]+ndCface*sw[nCell])*(ndCface+odCface);
 			Mf[iface] = M0f[iface]*swm;
 			}
-		else {Mf[iface] = M0f[iface];}
+		// else {Mf[iface] = M0f[iface];} done above
 		/*else //other faces if sw=sw_min Mf=Small
 			{
 			if ((sw[oCell]<sw_min[oCell]*1.1)&&(sw[nCell]<sw_min[nCell]*1.1)) {Mf[iface] = M0f[iface]*sw_min[oCell];}
 			}*/
 		}
 	}
-else 
-	{Mf = M0f*1;} //this is done because if not Mf is x each time by factM below
 
 //Info << "stor0 " << stor0 <<" stor(4) " << stor <<" stU "<<storU<<" stC "<<storC<< " eps " << eps[4]<<" thk " <<thk[4]<<" vol "<<mesh.V()[4]<<endl;
 forAll(stor(), celli) 
@@ -70,8 +65,8 @@ if (cellsHwel.size()>0)
 		tnext = min(tnext,tHwel);
 		}
 	for (i=0; i<cellsHwel.size(); i++)
-		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;}
-		//Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
+		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;
+		Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 } //Info<<"Hfw read ";
 //----- get the ghb conditions
 //int ic0=10;
@@ -152,13 +147,18 @@ if (cellsHfix.size()>0)
 
 // ***************** solving
 // linked to coupling
-Mf *=factMf; 
-Info<<"Mf(0-2) "<<Mf[0]<<" "<<Mf[1] <<" "<<Mf[2]<<endl;
+// get the multiplying factors from plugin_H 
+if (coupling ==1) {
+	volScalarField factM = plugH.corrM(mesh,freak);//Info<<"factM(0-2) "<<factM[0]<<" "<<factM[1] <<" "<<factM[2]<<endl;//" Mf "<<Mf<<" M0f "<<M0f<<endl;
+	surfaceScalarField factMf = fvc::interpolate(factM,"factM");
+	Mf *=factMf; 
+	Info<<"factM(0-5) ";for (i=0;i<6;i++) {Info<<factM[i]<<" ";} Info<<endl;
+	}
 fvScalarMatrix hEqn
 	( stor*fvm::ddt(h) - fvm::laplacian(Mf,h) + fvm::SuSp(hSp,h) == hSu  ); // + fvc::div(phiG) == b*fvOptions(sw,h) 
 
 residu = hEqn.solve().initialResidual(); 
-Info<<"h(0-2) "<<h[0]<<" "<<h[1] <<" "<<h[2]<<endl;
+Info<<"h(0-5) ";for (i=0;i<6;i++) {Info<<h[i]<<" ";} Info<<endl;
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
 Uw = fvc::reconstruct(phiw);

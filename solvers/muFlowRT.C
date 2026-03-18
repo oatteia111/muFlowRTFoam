@@ -490,7 +490,7 @@ int main(int argc, char *argv[])
 		//Info<<"runtime "<<runTime.value()-oldTime<<endl;
 		tcnt++;
 		if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
-		if (rSteps>0) {if (rcnt>rSteps) {rcnt=1;} }
+		if (rSteps>0) {if (rcnt>=rSteps) {rcnt=1;} }
 		int flg =0;
 		//if (activateReaction==1 && tcnt==rSteps-1)
 		if (rSteps>0) {if (runTime.value() >= wTimes[itwstep-1]+reactStep*rcnt) flg=1;} // here the time to write is a portion of current time period
@@ -526,7 +526,7 @@ int main(int argc, char *argv[])
 					gm_ph[i*nxyz+j] = max(Cg[i]()[j]*gvol[j],1e-16);// Cg in mol/Lgaz, gm in mol/RV
 					} //Cg in moles/L and Vm in L/mol
 				} 
-			//for (j=0;j<8;j++) {Info<<"p "<<p[j]<<" sw "<<sw[j]<<" gvol "<<gvol[j]<<" T "<<T[j]<<" Cg "; for (i=0; i<ph_gcomp;i++){Info<<Cg[i]()[j]<<" "<<gm_ph[i*nxyz+j]<<" ";} Info<<endl;}
+			for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<Cw[i]()[j]<<" ";} Info<<endl;}
 			Info<<" phqVm[0] "<<Vmol[0]<<" "<<endl;
 			//auto start = std::chrono::high_resolution_clock::now();
 			
@@ -545,6 +545,7 @@ int main(int argc, char *argv[])
 			freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 			Info << "running phreeqc dt "<<(runTime.value()-oldTimeReac)*tunits<<endl;
 			int a0= phqRun(freak);Info<<"end results "<<a0<<endl;
+			for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}
 			if (a0==-7) { // irm _fail : what to do
 				forAll(Cw,ic) { if (immobile[ic]==0) {Cw[ic]()=Cw[ic]().prevIter();} } // back to previous conc values
 				tcnt=rSteps-2;//insure that phreeqc will be run on next time step !!!!! oldTimeReac to be corrected
@@ -647,7 +648,7 @@ int main(int argc, char *argv[])
 		#include "observation.H"
 		#include "budget.H"
 		
-		if (flagW==1) {runTime.writeNow();tcnt=0;Info<<"l548, writing"<<endl;}
+		if (flagW==1) {runTime.writeNow();tcnt=0;rcnt=1;Info<<"l548, writing"<<endl;}
 		
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {

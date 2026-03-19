@@ -563,9 +563,10 @@ int main(int argc, char *argv[])
 			
 			forAll(Cw,ic) {
 				// if transfered as source term for mobile species, but immobile stay here
-				if (immobile[ic]==1) {
+				//if (immobile[ic]==1) 
+				//{
 					for (j=0;j<nxyz;j++) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} // transfer phq -> opf		
-				}
+				//}
 				
 				//for (j=0;j<nxyz;j++) {if (bcCwi[ractive[j]]==0) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} }// transfer phq -> opf		
 			}

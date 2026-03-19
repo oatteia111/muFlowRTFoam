@@ -119,14 +119,14 @@ for (ic=1; ic<ph_ncomp;ic++)
 		// we add phreeqc results as source term (during one tstep) : CiSu : M/time/Volume, as C=M/V -> Csu=(C_pqh-C_opf)/dt
 		// these results will be replaced by classical ones at well and hfix bc (no chem at wells)
 		
-		
+		/*
 		if (reactIndicator==1) {
 			for (j=0;j<nxyz;j++) {
 				CiSu[j] += (Cw[ic]()[ractive[j]] - freak.c[ic*nxyz+j])/float(runTime.deltaTValue())*thetaw[j];
 				//if (j<5) {Info<<j<< " Csu phq Cw, fk.c csu "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<CiSu[j]<<endl;}
 			}
 		}
-		
+		*/
 		
 		if (flowType<4)
 		{
@@ -138,7 +138,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 					if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 					else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
 					}
-				//Info<< ic << " Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
+				Info<< ic << " Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
 			} //Info<<"Cweli set"<<endl;
 			// conc at ghb places
 			if (cellsHghb.size()>0)

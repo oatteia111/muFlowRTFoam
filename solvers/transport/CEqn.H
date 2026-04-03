@@ -128,9 +128,8 @@ fvScalarMatrix CEqn
 		//- fvm::div(fvc::interpolate(Deffw) * fvc::grad(C)) 
 		- fvm::laplacian(Deffw, C, "laplacian(Deffw,C)")
 		+ thetaw * fvm::Sp(lbdaw,C)
-		+ thetaw * gammaw
 		+ fvm::SuSp(CSp, C)
-		== - CSu
+		== - CSu - thetaw * gamw
 	);
 /*for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)

@@ -35,11 +35,11 @@
 	//for (i=0;i<30;i++) {Info<<p[i*12+5]<<" "<<phiw[i*12+4]<<" "<<phiw[i*12+5]<<" "<<phiw[i*12+6]<<" "<<dphiw[i*12+5]<<endl;}
 	fvScalarMatrix SEqn
         (
-            //eps*fvm::ddt(sw) + fvc::div(phiw) == fSu
-            eps*fvm::ddt(sg) + fvc::div(phig) == pSu - fSu
+            eps*fvm::ddt(sw) + fvc::div(phiw) == fSu
+            //eps*fvm::ddt(sg) + fvc::div(phig) == pSu - fSu
            //eps*fvm::ddt(sw) - fvc::laplacian(Mwf,p) + fvm::laplacian(Mwf * dpcdSf,sw) == fSu
         );
-	sw = sw_max - sg;	
+	//sw = sw_max - sg;	
 	if (cellsFfix.size()>0)
 		{
 		if (time>tFfix) {

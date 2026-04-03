@@ -1,6 +1,7 @@
 dimensionedScalar alphaL(transportProperties.lookupOrDefault("alphaL",dimensionedScalar("alphaL",dimLength,0.0)));
 dimensionedScalar alphaT(transportProperties.lookupOrDefault("alphaT",dimensionedScalar("alphaT",dimLength,0.0)));
 dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedScalar("lbdaw",dimless/dimTime,0.0)));
+dimensionedScalar gammaw(transportProperties.lookupOrDefault("gammaw",dimensionedScalar("gammaw",dimensionSet(1,-3,-1,0,0,0,0),0.0)));
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
 dimensionedScalar Koc(transportProperties.lookupOrDefault("Koc",dimensionedScalar("Koc",dimVol/dimMass,0)));
 scalar transportSteady(transportProperties.lookupOrDefault<scalar>("transportSteady",0));
@@ -56,7 +57,7 @@ volScalarField::Internal CSp
 volScalarField::Internal AgeSu
 (
    IOobject("AgeSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
-		mesh,dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
+		mesh,dimensionedScalar("one",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 );
 // -------------- conditions for concentration -------------
 // thre is chfix: conc for the cells where h is fixed and cfix: ccells for which only c is fixed

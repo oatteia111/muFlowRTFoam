@@ -671,15 +671,6 @@ int main(int argc, char *argv[])
 	}
 	
 	runTime.writeNow();
-	/*
-	if (activateReaction==1) {
-		phiw.write();phig.write();
-		std::ofstream outFile(cur_dir/runTime.timeName()/"Species");
-		outFile.unsetf(std::ios::scientific);outFile.precision(6);
-		for (j=0;j<nxyz;j++)
-			{ for (i=0;i<freak.nselect;i++) {outFile << freak.spc[i*nxyz + j]<<" ";} outFile <<"\n"; }
-		}
-	*/
 	Info<<"Normal termination of OpenFoam"<<endl;
 	/*
 	#ifdef USE_MPI

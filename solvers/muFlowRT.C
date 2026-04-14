@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
 	std::vector<int>rinactive;
-	std::ifstream inputInactiveCells{cur_dir+"/constant/options/inactiveCells" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+	std::ifstream inputInactiveCells{cur_dir+"/constant/options/inactiveCells" };
 	inactiveCells = {std::istream_iterator<int>{inputInactiveCells}, {}};
 	fname=cur_dir/"phqfoam.txt";std::ifstream inputData{fname};
 	std::vector<int> ph_data{std::istream_iterator<int>{inputData}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
@@ -563,10 +563,10 @@ int main(int argc, char *argv[])
 			
 			forAll(Cw,ic) {
 				// if transfered as source term for mobile species, but immobile stay here
-				//if (immobile[ic]==1) 
-				//{
+				if (immobile[ic]==1) 
+				{
 					for (j=0;j<nxyz;j++) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} // transfer phq -> opf		
-				//}
+				}
 				
 				//for (j=0;j<nxyz;j++) {if (bcCwi[ractive[j]]==0) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} }// transfer phq -> opf		
 			}

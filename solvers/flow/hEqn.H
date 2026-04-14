@@ -7,7 +7,7 @@ double x;int ilay,nc,nc1;//Info<<"nlay "<<nlay<<" ncl "<<ncell_lay<<endl;//doubl
 double e=1e-5;
 //Info << "iter picard n "<< iterPicard << endl;
 h.storePrevIter();//Info<<"flowtype "<<flowType<<endl;
-dryCells.clear();
+dryCells.clear();dryFaces.clear();
 //for (i=0;i<150;i++) {Info << "cID " <<i<<" "<< mesh.C()[i] << endl;}
 
 // -----------------  set the effective thickness for unconfined flow -------------------
@@ -31,16 +31,18 @@ if (flowType == 2)
 		{
 		oCell = mesh.owner()[iface];odCface = mag(oCf[iface]-oC[oCell]);
 		nCell = mesh.neighbour()[iface];ndCface = mag(oCf[iface]-oC[nCell]);
+		//if (sw[oCell]<sw_min[oCell]*1.1) {dryFacesO.append(iface);} // owner is dry
+		//if (sw[nCell]<sw_min[nCell]*1.1) {dryFacesN.append(iface);} // nieghbour is dry
+		if ((sw[oCell]<sw_min[oCell]*1.1)||(sw[nCell]<sw_min[nCell]*1.1)) {dryFaces.append(iface);} //own or nghb is dry
 		if (abs(mesh.Sf()[iface].z())<mag(mesh.Sf()[iface])*1e-5)  //vertical faces
 			{
 			scalar swm = (sw[oCell]*sw[nCell])/(odCface*sw[oCell]+ndCface*sw[nCell])*(ndCface+odCface);
 			Mf[iface] = M0f[iface]*swm;
 			}
-		// else {Mf[iface] = M0f[iface];} done above
-		/*else //other faces if sw=sw_min Mf=Small
+		else //other faces if sw=sw_min Mf=Small
 			{
-			if ((sw[oCell]<sw_min[oCell]*1.1)&&(sw[nCell]<sw_min[nCell]*1.1)) {Mf[iface] = M0f[iface]*sw_min[oCell];}
-			}*/
+			if ((sw[oCell]<sw_min[oCell]*1.1)||(sw[nCell]<sw_min[nCell]*1.1)) {Mf[iface] = M0f[iface]*sw_min[oCell];}
+			}
 		}
 	}
 
@@ -65,8 +67,8 @@ if (cellsHwel.size()>0)
 		tnext = min(tnext,tHwel);
 		}
 	for (i=0; i<cellsHwel.size(); i++)
-		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;
-		Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
+		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;}
+		//Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 } //Info<<"Hfw read ";
 //----- get the ghb conditions
 //int ic0=10;
@@ -115,13 +117,16 @@ if (cellsHrch.size()>0)
 		tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
 		tnext = min(tnext,tHrch);
 		}
+	int ibl,Rblok,nRblok;
+	if (ncell_row>1) {Rblok= ncell_row;nRblok = ncell_col;} // case xsection
+	else {Rblok = ncell_lay;nRblok = nlay;} // 3d case
 	for (i=0; i<cellsHrch.size(); i++) 
 		{
 		i1 = cellsHrch[i];//Info<<" i "<<i<<" i1 "<<i1<<" nla "<<nlay<<" ncl "<<ncell_lay;
-		for (ilay=0;ilay<nlay;ilay++) { nc=i1-ilay*ncell_lay; if (sw[nc]>=sw_max[nc]) {break;} ;} //search for the first confined layer from the top
-		ilay1 = max(0, ilay-1);// ilay1 from top
-		nc = i1-ilay1*ncell_lay;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2] ;
-		//if(hSu[nc]!=0) {Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;}
+		for (ibl=0;ibl<nRblok;ibl++) { nc=i1-ibl*Rblok; if (sw[nc]>=sw_max[nc]) {break;} ;} //search for the first confined layer from the top
+		int ibl1 = max(0, ibl-1);// ilay1 from top
+		nc = i1-ibl1*Rblok;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2] ;
+		Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;
 		if (hSu[nc]==0) {
 			hSu[nc] = qHrch[i]/mesh.V()[nc]; 
 			} // injeciton of recharge in the lowest unconfined layer only if no fix cond here

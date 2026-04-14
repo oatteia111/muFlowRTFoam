@@ -31,13 +31,13 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
 			tnext = min(tnext,tCwel);
 			}
-		for (i=0; i<cellsCwel.size(); i++) 
+		for (i=0; i<cellsHwel.size(); i++) 
 			{ 
 			i1=cellsCwel[i];v=mesh.V()[i1];
 			if (qHwel[i]<0) {CSp[i1] = -qHwel[i]/v;} //in Sp term as discharge prop to local concentration, a positive Sp will make solution implicit
 			//if (qHwel[i]<0) {CSu[i1] = -qHwel[i]/v*C[i1];}
 			else {CSu[i1] = -qHwel[i]/v*cellsCwelData[i*4+2];} //the injected mass is the water flow x the conc
-			//Info<<"wel "<< i<<" i1 " <<i1<<" q "<<qHwel[i]<<" conc "<<cellsCwelData[i*4+2]<<endl;
+			//Info<<"wel "<< i<<" i1 " <<i1<<" v "<<v<<" q "<<qHwel[i]<<" conc "<<cellsCwelData[i*4+2]<<endl;
 			}
 	}
 	// Hghb because Cghb may not be set here
@@ -97,7 +97,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			if ((CSu[i1]==0)&&(qHrch[i]>0)) { //recharge occurs only where no ghb, riv or drains + rch<0=evapo and no solutes evporaiton
 				CSu[i1] = -qHrch[i]/v*cellsCrchData[i*4+2];
 				}
-			//Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
+			Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
 			} 
 	} //Info<<"Hrdh set"<<endl;
 	// fixed cells done with ~ghb with very high conductance
@@ -144,32 +144,54 @@ if (cellsCfix.size()>0)
 */
 //inactivate cells in the list inactiveCells (come from unconfined flow solver)
 
-/*
+
 //inactiveCells[4]=1;Info<<"inact ok"<<endl;
 if (inactiveCells.size()+dryCells.size()>0) 
 {
 	Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
 	labelHashSet inactiveCellsSet(inactiveCells);
-	labelList myList = dryCells.shrink();
-	labelHashSet dryCellsSet(myList);
-
-	forAll(CEqn.upper(),iface)
+	//labelHashSet dryCellsSet(drcList);
+	
+	forAll(mesh.owner(),iface)
 	{
-		if (inactiveCellsSet.found(CEqn.lduAddr().lowerAddr()[iface])||dryCellsSet.found(CEqn.lduAddr().lowerAddr()[iface]))
+		if ((inactiveCellsSet.found(CEqn.lduAddr().lowerAddr()[iface]))||(inactiveCellsSet.found(CEqn.lduAddr().upperAddr()[iface])))
 		{
-			CEqn.upper()[iface] = 0.0;CEqn.lower()[iface] = 0.0;//Info<<iface		
-		}
-		if (inactiveCellsSet.found(CEqn.lduAddr().upperAddr()[iface])||dryCellsSet.found(CEqn.lduAddr().upperAddr()[iface]))
-		{
-			CEqn.upper()[iface] = 0.0;CEqn.lower()[iface] = 0.0;		
+			Info<<"fcu "<<iface	<<" own "<<mesh.owner()[iface]<<" nghb "<<mesh.neighbour()[iface]<<" " <<CEqn.upper()[iface]<<" "<<CEqn.lower()[iface]<<endl;
+			CEqn.upper()[iface] = 0.0;CEqn.lower()[iface] = 0.0;
 		}
 	}
-
-	for (label cellI : inactiveCells) {CEqn.diag()[cellI] = 1.0;CSu[cellI] = 0;}
+	
+	/*
+	forAll( mesh.owner() , faceI ) {
+		Info<<"fac "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
+		}
+	
+	
+	labelList drfListO = dryFacesO.shrink(); // owner is up
+	for (label faceI : drfListO) {
+		Info<<"fc "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<endl;
+		CEqn.upper()[faceI] = 0.0;
+		}
+	labelList drfListN = dryFacesN.shrink(); // neighb is low
+	for (label faceI : drfListN) {
+		Info<<"fc "<<faceI<<" nghb "<<mesh.neighbour()[faceI]<<" own "<<mesh.owner()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
+		CEqn.lower()[faceI] = 0.0;
+		}
+	*/
+	labelList drfList = dryFaces.shrink(); // neighb is low
+	for (label faceI : drfList) {
+		//Info<<"fc "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
+		CEqn.lower()[faceI] = 0.0;CEqn.upper()[faceI] = 0.0;
+		}
+	for (label cellI : inactiveCells) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0;}
 	//for (label cellI : myList) {CEqn.diag()[cellI] = -1.0;CSu[cellI] = -C[cellI];}
-	for (label cellI : myList) {CEqn.diag()[cellI] = 1.0;CSu[cellI] = 0;}
+	labelList drcList = dryCells.shrink();
+	for (label cellI : drcList) {
+		//Info<<"cell "<<cellI<<" "<<CEqn.diag()[cellI]<<" "<<CSu[cellI]<<endl;
+		CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0;
+		}
 }
-*/
+
 CEqn.solve();
 
 //calculating dC, removing negative C and compensating mass
@@ -179,9 +201,9 @@ for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}
 for (i=0;i<ncell;i++) {
 	dff = mag(C()[i]-C.prevIter()[i]);
 	if (dff>dC) {dC=dff;imax=i;}
-	sC1+=C()[i];
+	//sC1+=C()[i];
 	} 
-	Info<<"cell "<<i1<<"dC "<<dC<<"mxC "<<mxC<<endl;
+	Info<<"cell "<<imax<<"dC "<<dC<<"mxC "<<mxC<<endl;
 //C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
 

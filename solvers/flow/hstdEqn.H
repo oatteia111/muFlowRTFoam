@@ -93,16 +93,19 @@ Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValu
 	float dv =0;	
 	if (cellsHrch.size()>0)
 	{
-		for (i=0; i<cellsHrch.size(); i++) 
-			{
-			i1 = cellsHrch[i];
-			for (ilay=0;ilay<nlay;ilay++) {nc=i1-ilay*ncell_lay; if (sw[nc]>sw_max[nc]) {break;} ;} //search for the first confined layer from the top
-			ilay1 = max(0, ilay-1); // ilay1 from top
-			nc = i1-ilay1*ncell_lay;
-			if (hSu[nc]==0) {
-				hSu[nc] += cellsHrchData[i*4+2]/mesh.V()[nc] ; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
-				}
-			} 
+	int ibl,Rblok,nRblok;
+	if (ncell_row>1) {Rblok= ncell_row;nRblok = ncell_col;} // case xsection
+	else {Rblok = ncell_lay;nRblok = nlay;} // 3d case
+	for (i=0; i<cellsHrch.size(); i++) 
+		{
+		i1 = cellsHrch[i];
+		for (ibl=0;ibl<nRblok;ibl++) { nc=i1-ibl*Rblok; if (sw[nc]>=sw_max[nc]) {break;} ;} //search for the first confined layer from the top
+		int ibl1 = max(0, ibl-1);// ilay1 from top
+		nc = i1-ibl1*Rblok;
+		if (hSu[nc]==0) {
+			hSu[nc] += cellsHrchData[i*4+2]/mesh.V()[nc] ; // injeciton of recharge in the lowest unconfined layer ) /mag(psi()[cells_[i]])
+			}
+		} 
 	} //Info<<"Hrch read "<<endl;
 
 	// ***************** solving

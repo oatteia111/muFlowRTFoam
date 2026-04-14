@@ -30,8 +30,9 @@ std::vector<std::string> sorbDecStr;
 std::ifstream inputSorbDec{cur_dir+"/constant/options/sorptionDecay" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 sorbDecStr = {std::istream_iterator<std::string>{inputSorbDec}, {}};
 if (sorbDecStr.size()>0) {
-	Koc.value() = std::stod(sorbDecStr[3]);
-	lbdaw.value() = std::stod(sorbDecStr[5]);
+	Koc.value() = std::stod(sorbDecStr[5]);
+	if (std::stod(sorbDecStr[3])==1) lbdaw.value() = std::stod(sorbDecStr[7]);
+	if (std::stod(sorbDecStr[3])==2) gammaw.value() = std::stod(sorbDecStr[7]);
 	Rf = 1 + (1-eps)/eps* rhos * Koc * foc; Info<<"Rf "<<Rf<<"\n";
 }
 

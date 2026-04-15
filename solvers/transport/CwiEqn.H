@@ -23,7 +23,7 @@ if (flowType<4)
 	std::cout<<"nb cell ghb "<<cellsSghb.size()<<" cond "<<condSghb.size()<<" it "<< itSghb<<" data "<<cellsSghbData.size()<<" bc "<<bcCwi.size() <<"\n";
 	if (cellsSghb.size()>0)
 		{
-		if (time>=tSghb) {
+		if (time>tSghb) {
 			output = getCbuffer("sghb",itSghb,cellsSghb.size()); 
 			tSghb = output.t; cellsSghbData=output.d; itSghb +=1;
 			tnext = min(tnext,tSghb);
@@ -35,7 +35,7 @@ if (flowType<4)
 	// get fixed solutions at h fix places
 	if (cellsShfix.size()>0)
 		{
-		if (time>=tShfix) {
+		if (time>tShfix) {
 			output = getCbuffer("shfix",itShfix,cellsShfix.size()); 
 			tShfix = output.t; cellsShfixData=output.d; itShfix +=1;
 			tnext = min(tnext,tShfix);
@@ -47,7 +47,7 @@ if (flowType<4)
 	//get the solution recharge data
 	if (cellsSrch.size()>0)
 		{
-		if (time>=tSrch) {
+		if (time>tSrch) {
 			output = getCbuffer("srch",itSrch,cellsSrch.size()); 
 			tSrch = output.t; cellsSrchData=output.d; itSrch +=1;
 			tnext = min(tnext,tSrch);
@@ -61,7 +61,7 @@ else
 {
 	if (cellsSpfix.size()>0)
 	{
-	if (time>=tSpfix) {
+	if (time>tSpfix) {
 		output = getCbuffer("spfix",itSpfix,cellsSpfix.size()); 
 		tSpfix = output.t; cellsSpfixData=output.d; itSpfix +=1;
 		tnext = min(tnext,tSpfix);
@@ -75,7 +75,7 @@ else
 // get fixed solutions 
 if (cellsSfix.size()>0)
 	{
-	if (time>=tSfix) {
+	if (time>tSfix) {
 		output = getCbuffer("sfix",itSfix,cellsSfix.size()); 
 		tSfix = output.t; cellsSfixData=output.d; itSfix +=1;
 		tnext = min(tnext,tSfix);
@@ -86,7 +86,7 @@ if (cellsSfix.size()>0)
 //get the solution well data
 if (cellsSwel.size()>0)
 	{
-	if (time>=tSwel) {
+	if (time>tSwel) {
 		output = getCbuffer("swel",itSwel,cellsSwel.size()); 
 		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
 		tnext = min(tnext,tSwel);
@@ -226,40 +226,31 @@ for (ic=1; ic<ph_ncomp;ic++)
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
 
-		//inactive cells
-		if (inactiveCells.size()+dryCells.size()>0) 
+if (inactiveCells.size()+dryCells.size()>0) 
+{
+		labelHashSet inactiveCellsSet(inactiveCells);
+		forAll(mesh.owner(),iface)
 		{
-			Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
-			labelHashSet inactiveCellsSet(inactiveCells);
-			labelList myList = dryCells.shrink();
-			labelHashSet dryCellsSet(myList);
-
-			if (ic==1) // for 1st comp we find ths places
+			if ((inactiveCellsSet.found(CwiEqn.lduAddr().lowerAddr()[iface]))||(inactiveCellsSet.found(CwiEqn.lduAddr().upperAddr()[iface])))
 			{
-			forAll(CwiEqn.upper(),iface)
-			{
-				if (inactiveCellsSet.found(CwiEqn.lduAddr().lowerAddr()[iface])||dryCellsSet.found(CwiEqn.lduAddr().lowerAddr()[iface]))
-				{
-					CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;//Info<<iface		
-					inactiveFaces.append(iface);
-				}
-				if (inactiveCellsSet.found(CwiEqn.lduAddr().upperAddr()[iface])||dryCellsSet.found(CwiEqn.lduAddr().upperAddr()[iface]))
-				{
-					CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;		
-					inactiveFaces.append(iface);
-				}
+				//Info<<"fcu "<<iface	<<" own "<<mesh.owner()[iface]<<" nghb "<<mesh.neighbour()[iface]<<" " <<CEqn.upper()[iface]<<" "<<CEqn.lower()[iface]<<endl;
+				CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;
 			}
-			}
-			else
-			{
-			forAll(inactiveFaces,iface)	
-				{CwiEqn.upper()[iface] = 0.0;CwiEqn.lower()[iface] = 0.0;}
-			}
-		for (label cellI : inactiveCells) {CwiEqn.diag()[cellI] = 1.0;CiSu[cellI] = 0;}
-		for (label cellI : myList) {CwiEqn.diag()[cellI] = 1.0;CiSu[cellI] = 0;}
-			
 		}
-
+		
+		labelList drfList = dryFaces.shrink(); // neighb is low
+		for (label faceI : drfList) {
+			//Info<<"fc "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
+			CwiEqn.lower()[faceI] = 0.0;CwiEqn.upper()[faceI] = 0.0;
+			}
+		for (label cellI : inactiveCells) {CwiEqn.diag()[cellI] = 1.0;CwiEqn.source()[cellI] = 0;}
+		//for (label cellI : myList) {CEqn.diag()[cellI] = -1.0;CSu[cellI] = -C[cellI];}
+		labelList drcList = dryCells.shrink();
+		for (label cellI : drcList) {
+			//Info<<"cell "<<cellI<<" "<<CEqn.diag()[cellI]<<" "<<CSu[cellI]<<endl;
+			CwiEqn.diag()[cellI] = 1.0;CwiEqn.source()[cellI] = 0;
+			}
+}
 		CwiEqn.solve();
 			
 		//for (j=0;j<nxyz;j++) {if (j<5) {Info<<j<< " Cw, "<<Cw[ic]()[ractive[j]]<<endl;}}

@@ -26,7 +26,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-		if (time>=tCwel) {
+		if (time>tCwel) {
 			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
 			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
 			tnext = min(tnext,tCwel);
@@ -43,7 +43,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	// Hghb because Cghb may not be set here
 	if (cellsHghb.size()>0)
 	{
-		if (time>=tCghb) {
+		if (time>tCghb) {
 			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
 			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
 			tnext = min(tnext,tCghb);
@@ -60,7 +60,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>=tChfix) {
+		if (time>tChfix) {
 			output = getCbuffer("chfix",itChfix,cellsChfix.size()); 
 			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;
 			tnext = min(tnext,tChfix);
@@ -72,7 +72,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			//if (qHfix[i]<0) {CSu[i1] = -qHfix[i]/v*C[i1];} // not using Sp
 			else {CSu[i1] = -qHfix[i]/v*cellsChfixData[i*4+2];}
 			}
-	} Info<<"Chfix set"<<endl;
+	} //Info<<"Chfix set"<<endl;
 	// for drain cells (only out), same as above, except that drains are constant in time
 	if (cellsHdrn.size()>0)
 	{
@@ -86,7 +86,7 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 	//recharge
 	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
-		if (time>=tCrch) {
+		if (time>tCrch) {
 			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
 			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
 			tnext = min(tnext,tCrch);
@@ -97,11 +97,11 @@ Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (al
 			if ((CSu[i1]==0)&&(qHrch[i]>0)) { //recharge occurs only where no ghb, riv or drains + rch<0=evapo and no solutes evporaiton
 				CSu[i1] = -qHrch[i]/v*cellsCrchData[i*4+2];
 				}
-			Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
+			//Info<<"rch "<< i<<" nc " <<clayRch[i]<<" q "<<qHrch[i]<<" conc "<<cellsCrchData[i*4+2]<<endl;
 			} 
 	} //Info<<"Hrdh set"<<endl;
-	// fixed cells done with ~ghb with very high conductance
 	
+	// fixed cells done with ~ghb with very high conductance
 	if (cellsCfix.size()>0)
 	{
 		if (time>tCfix) {
@@ -156,7 +156,7 @@ if (inactiveCells.size()+dryCells.size()>0)
 	{
 		if ((inactiveCellsSet.found(CEqn.lduAddr().lowerAddr()[iface]))||(inactiveCellsSet.found(CEqn.lduAddr().upperAddr()[iface])))
 		{
-			Info<<"fcu "<<iface	<<" own "<<mesh.owner()[iface]<<" nghb "<<mesh.neighbour()[iface]<<" " <<CEqn.upper()[iface]<<" "<<CEqn.lower()[iface]<<endl;
+			//Info<<"fcu "<<iface	<<" own "<<mesh.owner()[iface]<<" nghb "<<mesh.neighbour()[iface]<<" " <<CEqn.upper()[iface]<<" "<<CEqn.lower()[iface]<<endl;
 			CEqn.upper()[iface] = 0.0;CEqn.lower()[iface] = 0.0;
 		}
 	}

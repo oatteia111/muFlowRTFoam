@@ -47,3 +47,22 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 			}
 		return fact;
 };
+/*
+volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField fvar1, Foam::volScalarField fvar2, std::vector<float> fparms)
+{
+	//volScalarField resu; 
+	volScalarField fact = fvar*0.0;
+	fact.dimensions().reset(dimless);
+	fvar.dimensions().reset(dimless);
+		int i;
+		int n = fvar.size();//Info<<"in func n "<<n<<" type "<<ftype<<endl;
+		resu.resize(n);
+		if (ftype == "product")
+			{
+			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
+			fact = 1.+ fparms[0]*fvar1* fparms[1]*mag(fvar2);
+			Info<<"in calc func, fvar "<<fvar1[4]<<" "<<fvar2[4]<<" fparm "<<fparms[0]" "<<fparms[1]<<" fact(4) "<<fact[4]<<endl;
+			}
+		return fact;
+}
+*/

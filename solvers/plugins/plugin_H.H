@@ -38,6 +38,7 @@ public:
 				{fact *= calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
 			if (listCouples[i].Ykey=="muw") 
 				{fact = 1.0/calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
+			//if (listCouples[i].Ykey=="muShear") {fact = 1.0/calcFunc2(mesh,listCouples[i].type,X,Uw,listCouples[i].fparms);}
 		}
 		
 		return fact;

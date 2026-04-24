@@ -146,12 +146,10 @@ if (cellsCfix.size()>0)
 
 
 //inactiveCells[4]=1;Info<<"inact ok"<<endl;
+
+/*
 if (inactiveCells.size()+dryCells.size()>0) 
 {
-	Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
-	labelHashSet inactiveCellsSet(inactiveCells);
-	//labelHashSet dryCellsSet(drcList);
-	
 	forAll(mesh.owner(),iface)
 	{
 		if ((inactiveCellsSet.found(CEqn.lduAddr().lowerAddr()[iface]))||(inactiveCellsSet.found(CEqn.lduAddr().upperAddr()[iface])))
@@ -160,24 +158,8 @@ if (inactiveCells.size()+dryCells.size()>0)
 			CEqn.upper()[iface] = 0.0;CEqn.lower()[iface] = 0.0;
 		}
 	}
+}
 	
-	/*
-	forAll( mesh.owner() , faceI ) {
-		Info<<"fac "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
-		}
-	
-	
-	labelList drfListO = dryFacesO.shrink(); // owner is up
-	for (label faceI : drfListO) {
-		Info<<"fc "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<endl;
-		CEqn.upper()[faceI] = 0.0;
-		}
-	labelList drfListN = dryFacesN.shrink(); // neighb is low
-	for (label faceI : drfListN) {
-		Info<<"fc "<<faceI<<" nghb "<<mesh.neighbour()[faceI]<<" own "<<mesh.owner()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
-		CEqn.lower()[faceI] = 0.0;
-		}
-	*/
 	labelList drfList = dryFaces.shrink(); // neighb is low
 	for (label faceI : drfList) {
 		//Info<<"fc "<<faceI<<" own "<<mesh.owner()[faceI]<<" nghb "<<mesh.neighbour()[faceI]<<" "<<CEqn.upper()[faceI]<<" "<<CEqn.lower()[faceI]<<endl;
@@ -186,11 +168,46 @@ if (inactiveCells.size()+dryCells.size()>0)
 	for (label cellI : inactiveCells) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0;}
 	//for (label cellI : myList) {CEqn.diag()[cellI] = -1.0;CSu[cellI] = -C[cellI];}
 	labelList drcList = dryCells.shrink();
+	Info << "Symmetry check: "
+     << gMax(mag(CEqn.upper() - CEqn.lower())) << endl;
 	for (label cellI : drcList) {
 		//Info<<"cell "<<cellI<<" "<<CEqn.diag()[cellI]<<" "<<CSu[cellI]<<endl;
-		CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0;
+		CEqn.diag()[cellI] = 0.0;CEqn.source()[cellI] = 0;
 		}
+
+*/
+/*
+if (inactiveCells.size()+dryCells.size()>0) 
+{
+	Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
+	labelHashSet inactiveCellsSet(inactiveCells);
+	//labelHashSet dryCellsSet(drcList);
+
+	labelList drcList = dryCells.shrink();
+	//for (label cellI : drcList) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0.0;}
+	//for (label cellI : drcList) {Info<<" cell "<<cellI<<" diag "<<CEqn.diag()[cellI]<<endl;}
+	
+	//chat
+	forAll(dryFaces, i)
+	{
+		label faceI = dryFaces[i];
+		label owner = mesh.owner()[faceI];
+		label neigh = mesh.neighbour()[faceI];
+		// enlever contribution diagonale AVANT de couper
+		CEqn.diag()[owner] -= CEqn.upper()[faceI];
+		CEqn.diag()[neigh] -= CEqn.lower()[faceI];
+		//Info <<"face "<<faceI<<" own "<<mesh.owner()[faceI]<<" neigh "<<mesh.neighbour()[faceI]<<" up "<<CEqn.upper()[faceI]<<" low "<<CEqn.lower()[faceI]<<endl;
+		// couper le lien
+		CEqn.upper()[faceI] = 0.0;
+		CEqn.lower()[faceI] = 0.0;
+	}
+
+	//for (label cellI : drcList) {Info<<" cell "<<cellI<<" diag "<<CEqn.diag()[cellI]<<endl;}
+	for (label cellI : drcList) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0.0;}
 }
+
+	Info << "Symmetry check: "<< gMax(mag(CEqn.upper() - CEqn.lower())) << endl;
+*/
 
 CEqn.solve();
 

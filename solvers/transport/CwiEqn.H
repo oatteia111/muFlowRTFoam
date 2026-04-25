@@ -257,15 +257,21 @@ if (inactiveCells.size()+dryCells.size()>0)
 
 		//calculating dC, and time step (only for classical species)
 		if (ic>3) {
-			dC=0;mxC=0;dff=0;jmax=0;
-			for (j=0;j<nxyz;j++) {mxC=max(mxC,Cw[ic]()[ractive[j]]);} //Info<<"mxC "<<mxC<<endl;
+			a=a*0;dC=0;mxC=0;dff=0;jmax=0;sC=0;sC1=0;
+			for (j=0;j<nxyz;j++) 
+				{mxC=max(mxC,Cw[ic]()[ractive[j]]);
+				sC+=Cw[ic]()[ractive[j]]*eps[i]*mesh.V()[i];
+				} //Info<<"mxC "<<mxC<<endl;
+			Cw[ic]()[ractive[j]] = max(Cw[ic]()[ractive[j]],a[ractive[j]]);
 			for (j=0;j<nxyz;j++) if (bcCwi[j]==0) {
 				dff = mag(Cw[ic]()[ractive[j]]-Cw[ic]().prevIter()[ractive[j]]);
 				if (dff>dC) {dC=dff;jmax=j;}
+				sC1+=Cw[ic]()[ractive[j]]*eps[i]*mesh.V()[i];
 				} 
+			Cw[ic]() *= sC/(sC1+SMALL);
 			dC = dC/(mxC+SMALL);
 			dtForC = min(dtForC,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); 
-			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<endl;
+			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<" delta mass "<< sC/(sC1+SMALL)<<endl;
 		}
 	}
 if (ph_gcomp==0) {reactIndicator = 0.;}

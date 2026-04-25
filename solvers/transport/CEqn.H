@@ -208,7 +208,7 @@ if (inactiveCells.size()+dryCells.size()>0)
 CEqn.solve();
 
 //calculating dC, removing negative C and compensating mass
-a=a* 0;dC=0;mxC=0;double dff=0;int imax=0;
+a=a* 0;dC=0;mxC=0;sC=0;sC1=0;double dff=0;int imax=0;
 for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i]*eps[i]*mesh.V()[i];}
 C=max(C,a); // removing negative
 for (i=0;i<ncell;i++) {

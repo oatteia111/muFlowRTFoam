@@ -176,7 +176,7 @@ if (inactiveCells.size()+dryCells.size()>0)
 		}
 
 */
-/*
+
 if (inactiveCells.size()+dryCells.size()>0) 
 {
 	Info<<"in inact/dry Cells, nb inact "<<inactiveCells.size()<<" dry size "<<dryCells.size()<<endl;
@@ -184,7 +184,6 @@ if (inactiveCells.size()+dryCells.size()>0)
 	//labelHashSet dryCellsSet(drcList);
 
 	labelList drcList = dryCells.shrink();
-	//for (label cellI : drcList) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0.0;}
 	//for (label cellI : drcList) {Info<<" cell "<<cellI<<" diag "<<CEqn.diag()[cellI]<<endl;}
 	
 	//chat
@@ -206,23 +205,20 @@ if (inactiveCells.size()+dryCells.size()>0)
 	for (label cellI : drcList) {CEqn.diag()[cellI] = 1.0;CEqn.source()[cellI] = 0.0;}
 }
 
-	Info << "Symmetry check: "<< gMax(mag(CEqn.upper() - CEqn.lower())) << endl;
-*/
-
 CEqn.solve();
 
 //calculating dC, removing negative C and compensating mass
 a=a* 0;dC=0;mxC=0;double dff=0;int imax=0;
-for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i];}
-//C=max(C,a); // removing negative
+for (i=0;i<ncell;i++) {mxC=max(mxC,C()[i]);sC+=C()[i]*eps[i]*mesh.V()[i];}
+C=max(C,a); // removing negative
 for (i=0;i<ncell;i++) {
 	dff = mag(C()[i]-C.prevIter()[i]);
 	if (dff>dC) {dC=dff;imax=i;}
-	//sC1+=C()[i];
+	sC1+=C()[i]*eps[i]*mesh.V()[i];
 	} 
-	Info<<"cell "<<imax<<"dC "<<dC<<"mxC "<<mxC<<endl;
-//C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
-dC = dC/(mxC+SMALL);Info<<"dC "<<dC<<endl;
+Info<<"cell "<<imax<<"dC "<<dC<<"mxC "<<mxC<<" delta mass "<< sC/(sC1+SMALL)<<endl;
+C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
+dC = dC/(mxC+SMALL);//Info<<"dC "<<dC<<endl;
 
 //Info<<" dC "<<dC<<endl;
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 

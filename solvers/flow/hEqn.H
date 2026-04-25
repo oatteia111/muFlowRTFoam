@@ -126,7 +126,7 @@ if (cellsHrch.size()>0)
 		for (ibl=0;ibl<nRblok;ibl++) { nc=i1-ibl*Rblok; if (sw[nc]>=sw_max[nc]) {break;} ;} //search for the first confined layer from the top
 		int ibl1 = max(0, ibl-1);// ilay1 from top
 		nc = i1-ibl1*Rblok;clayRch[i] = nc;qHrch[i] = cellsHrchData[i*4+2] ;
-		Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;
+		//Info<<"rch i i1 "<<i<<" "<<i1<<" nc "<<nc<<" h(nc) "<<h()[nc]<<" sw[nc] "<<sw[nc]<<" sw_min "<<sw_min[nc]<<" data "<<cellsHrchData[2+(icount+i)*4+2]<<endl;
 		if (hSu[nc]==0) {
 			hSu[nc] = qHrch[i]/mesh.V()[nc]; 
 			} // injeciton of recharge in the lowest unconfined layer only if no fix cond here

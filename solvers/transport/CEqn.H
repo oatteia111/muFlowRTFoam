@@ -6,6 +6,7 @@ dimensionedScalar USMALL("",dimLength/dimTime,1e-36);
 //else {thetaw = eps*sw;}
 thetaw=eps*sw;
 Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL);//Info<<"Deffw "<<Deffw<<endl;
+Info<<" dw0 "<<Dw0<<" def(15) "<<Deffw[15]<<endl;
 //forAll(Deffw(), i)  { if (sw[i]<sw_min[i]*1.5) {Deffw[i] *=1e2;} }; 
 
 /*forAll(Deffw.boundaryField(),patchi)
@@ -216,7 +217,7 @@ for (i=0;i<ncell;i++) {
 	if (dff>dC) {dC=dff;imax=i;}
 	sC1+=C()[i]*eps[i]*mesh.V()[i];
 	} 
-Info<<"cell "<<imax<<"dC "<<dC<<"mxC "<<mxC<<" delta mass "<< sC/(sC1+SMALL)<<endl;
+Info<<"cell "<<imax<<" dC "<<dC<<" mxC "<<mxC<<" mass "<<sC<<" delta mass "<< sC/(sC1+SMALL)<<endl;
 C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
 dC = dC/(mxC+SMALL);//Info<<"dC "<<dC<<endl;
 
@@ -224,5 +225,5 @@ dC = dC/(mxC+SMALL);//Info<<"dC "<<dC<<endl;
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
 //if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
-Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
+Info<< "dt "<<runTime.deltaTValue()<<" newdt "<<newDeltaT<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 newDeltaT = min(dtForC, newDeltaT);

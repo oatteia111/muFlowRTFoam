@@ -4,7 +4,8 @@ dimensionedScalar USMALL("",dimLength/dimTime,1e-36);
 // if (flowType==2) {thetaw = sw;} else {thetaw = eps*sw;}  // marche pas
 thetaw = eps*sw;
 //Deffw = (alphaT * mag(Ut))*tensor::I + (alphaL-alphaT) * (Ut*Ut)/(mag(Ut)+USMALL);
-Deffw = (alphaT * mag(Uw))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL) + Dw0 * pow(thetaw,3.33)/pow(eps,2.)*tensor::I;
+Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL);//Info<<"Deffw "<<Deffw<<endl;
+Info<<" dw0 "<<Dw0<<" def(15) "<<Deffw[15]<<endl;
 //Deffw = Dw0 * pow(thetaw,3.33)/pow(eps,2.)*tensor::I;
 //forAll(Deffw(), i)  { if (sw[i]<sw_min[i]*1.5) {Deffw[i].zz()=0;} }; 
 
@@ -68,7 +69,7 @@ else
 		}
 	for (i=0; i<cellsSpfix.size(); i++) 
 		{condSpfix[i] = static_cast<int>(cellsSpfixData[i*4+2]);i1=cellsSpfix[i];bcCwi[i1]=1;}
-	Info<<" tSpfix "<<tSpfix<<" cond 0 "<<condSpfix[0]<<endl;
+	//Info<<" tSpfix "<<tSpfix<<" cond 0 "<<condSpfix[0]<<endl;
 	}
 }
 
@@ -93,7 +94,7 @@ if (cellsSwel.size()>0)
 		}
 	for (i=0; i<cellsSwel.size(); i++) 
 		{condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);i1=cellsSwel[i];bcCwi[i1]=1;}
-	Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
+	//Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
 	}
 
 float dC=0;dtForC=1e12;
@@ -136,7 +137,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 					i1=cellsHwel[i];v=mesh.V()[i1];unity[i1]=0;
 					if (qHwel[i]<0) {CiSp[i1] = -qHwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 					else { CiSu[i1] = -qHwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
-					Info<< ic << " i1 "<<i1<<" v "<<v<<" Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
+					//Info<< ic << " i1 "<<i1<<" v "<<v<<" Csu wel "<<solu_conc[condSwel[0]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;
 					}
 			} //Info<<"Cweli set"<<endl;
 			// conc at ghb places
@@ -268,7 +269,7 @@ if (inactiveCells.size()+dryCells.size()>0)
 				if (dff>dC) {dC=dff;jmax=j;}
 				sC1+=Cw[ic]()[ractive[j]]*eps[i]*mesh.V()[i];
 				} 
-			Cw[ic]() *= sC/(sC1+SMALL);
+			//Cw[ic]() *= sC/(sC1+SMALL);
 			dC = dC/(mxC+SMALL);
 			dtForC = min(dtForC,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); 
 			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<" delta mass "<< sC/(sC1+SMALL)<<endl;

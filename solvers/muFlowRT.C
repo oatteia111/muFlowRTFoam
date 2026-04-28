@@ -405,11 +405,11 @@ int main(int argc, char *argv[])
 		oldTime = mesh.time().value();
 		float dt1 = wtime - oldTime;  //to catch the writing time
 		float dt2 = tnext - oldTime; //to catch the time when BC change
-		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" flg BC "<<flagBC<<endl;
+		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" maxdt "<< maxDeltaT<<" flg BC "<<flagBC<<endl;
 		flagW = 0;		
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
 		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;}
-		newDeltaT= min(max(newDeltaT,minDeltaT),maxDeltaT);
+		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
 		if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write
@@ -508,11 +508,11 @@ int main(int argc, char *argv[])
 					int rj=ractive[j];
 					for (i=4; i<ph_ncomp; i++)
 					{
-						if (abs(c_ph[i*nxyz+j]-Cw[i]()[rj])/(c_ph[i*nxyz+j]+1e-20)<1e-8 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(c_ph[i*nxyz+j]-Cw[i]()[rj])/(c_ph[i*nxyz+j]+1e-20)<1e-10 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
 					} 
 					for (i=0; i<ph_gcomp; i++)
 					{
-						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-8 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-10 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
 					}
 				}
 			}

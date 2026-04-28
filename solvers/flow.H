@@ -123,7 +123,7 @@ else if (flowType != 0) // flowType=0 no flow
 {
    Info <<"in simple flow "<<endl;
    #include "flow/hEqn.H"
-	newDeltaT = min(maxDeltaT, 1.5*runTime.deltaTValue());
+	newDeltaT = min(maxDeltaT, 1.4*newDeltaT);
 }
 Info<<" deltaTFact " <<deltaTFact<<" maxDeltaT "<<maxDeltaT<<" newdeltat "<<newDeltaT<<endl;
 

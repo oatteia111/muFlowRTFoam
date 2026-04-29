@@ -119,7 +119,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 		// --------------------- internal conditions ------------------------
 		// we add phreeqc results as source term (during one tstep) : CiSu : M/time/Volume, as C=M/V -> Csu=(C_pqh-C_opf)/dt
 		// these results will be replaced by classical ones at well and hfix bc (no chem at wells)
-		
+		Cw[ic]().storePrevIter();
 		
 		if (reactIndicator==1) {
 			for (j=0;j<nxyz;j++) {
@@ -227,8 +227,8 @@ for (ic=1; ic<ph_ncomp;ic++)
 
 		for (i=0; i<cellsSfix.size(); i++) {CwiEqn.setReference(cellsSfix[i],solu_conc[condSfix[i]*ph_ncomp+ic]);}
 
-if (inactiveCells.size()+dryCells.size()>0) 
-{
+	if (inactiveCells.size()+dryCells.size()>0) 
+	{
 		labelHashSet inactiveCellsSet(inactiveCells);
 		forAll(mesh.owner(),iface)
 		{
@@ -251,7 +251,7 @@ if (inactiveCells.size()+dryCells.size()>0)
 			//Info<<"cell "<<cellI<<" "<<CEqn.diag()[cellI]<<" "<<CSu[cellI]<<endl;
 			CwiEqn.diag()[cellI] = 1.0;CwiEqn.source()[cellI] = 0;
 			}
-}
+	}
 		CwiEqn.solve();
 			
 		//for (j=0;j<nxyz;j++) {if (j<5) {Info<<j<< " Cw, "<<Cw[ic]()[ractive[j]]<<endl;}}

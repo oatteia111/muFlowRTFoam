@@ -505,14 +505,15 @@ int main(int argc, char *argv[])
 			std::vector<double> rchange(nxyz,1.);
 			if (ncell>1000) {
 				for (j=0; j<nxyz;j++) {
+					rchange[j]=0.;
 					int rj=ractive[j];
 					for (i=4; i<ph_ncomp; i++)
 					{
-						if (abs(c_ph[i*nxyz+j]-Cw[i]()[rj])/(c_ph[i*nxyz+j]+1e-20)<1e-10 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(Cw[i]().prevIter()[rj]-Cw[i]()[rj])/(Cw[i]()[rj]+1e-20)>1e-10) {rchange[j] = 1.;}
 					} 
 					for (i=0; i<ph_gcomp; i++)
 					{
-						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-10 || sw[rj]<sw_min[rj]) {rchange[j] = 0.;} else {rchange[j] = 1.;}
+						if (abs(gm_ph[i*nxyz+j]-Cg[i]()[rj])/(gm_ph[i*nxyz+j]+1e-20)<1e-10 || sw[rj]<sw_min[rj]*1.01) {rchange[j] = 0.;} else {rchange[j] = 1.;}
 					}
 				}
 			}

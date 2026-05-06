@@ -1,6 +1,9 @@
 dimensionedScalar cpw(transportProperties.lookupOrDefault("cpw",dimensionedScalar("cpw",dimensionSet(0,2,-2,-1,0,0,0),4182)));
 dimensionedScalar lbdaTw(transportProperties.lookupOrDefault("lbdaTw",dimensionedScalar("lbdaTw",dimensionSet(1,1,-3,-1,0,0,0),0.6)));
 scalar activateThermal(transportProperties.lookupOrDefault<scalar>("activateThermal",0));
+const scalar dTmax = runTime.controlDict().lookupOrDefault("dTmax", 0.02);
+double mxT,sT,dtForT;
+
 scalar dT=1e-9;scalar dT1=1e-9;
 
 //NB (dimensionType MASS , LENGTH , TIME , TEMPERATURE ,MOLES , CURRENT , LUMINOUS_INTENSITY)

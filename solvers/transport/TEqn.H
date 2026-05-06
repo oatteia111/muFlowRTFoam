@@ -113,7 +113,21 @@ if (cellsTfix.size()>0)
 TEqn.solve();
 
 //calculating dT
-for (i=0;i<ncell;i++) {dT= max(dT,T()[i]-T.prevIter()[i]);}
+a=a* 0;dT=0;mxT=0;sT=0;double dff=0;int imax=0;
+for (i=0;i<ncell;i++) {mxT=max(mxT,T()[i]);sT+=T()[i]*eps[i]*mesh.V()[i];}
+//C=max(C,a); // removing negative
+for (i=0;i<ncell;i++) {
+	dff = mag(T()[i]-T.prevIter()[i]);
+	if (dff>dT) {dT=dff;imax=i;}
+	//sC1+=C()[i]*eps[i]*mesh.V()[i];
+	} 
+Info<<"cell "<<imax<<" dC "<<dT<<" mxT "<<mxT<<" mass "<<sT<<endl;
+//C *= sC/(sC1+SMALL); // removing negative value increase artifially the total
+dT = dT/(mxT+SMALL);//Info<<"dC "<<dC<<endl;
 
+//Info<<" dC "<<dC<<endl;
+dtForT = dTmax/(max(dT,0)+SMALL)*runTime.deltaTValue(); 
+//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
-
+Info<< "dt "<<runTime.deltaTValue()<<" newdt "<<newDeltaT<<" dT "<<dT<<" dtForT " << dtForT << endl; 
+newDeltaT = min(dtForT, newDeltaT);

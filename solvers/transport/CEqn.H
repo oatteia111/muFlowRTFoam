@@ -223,7 +223,6 @@ dC = dC/(mxC+SMALL);//Info<<"dC "<<dC<<endl;
 
 //Info<<" dC "<<dC<<endl;
 dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue(); 
-//if (activateThermal==1) {dtForC = min(dtForC,dTmax/(max(dT1,0)+SMALL)*runTime.deltaTValue());}
 
 Info<< "dt "<<runTime.deltaTValue()<<" newdt "<<newDeltaT<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 newDeltaT = min(dtForC, newDeltaT);

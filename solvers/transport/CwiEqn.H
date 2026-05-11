@@ -45,7 +45,7 @@ if (flowType<4)
 			{condShfix[i] = static_cast<int>(cellsShfixData[i*4+2]);i1=cellsShfix[i];bcCwi[i1]=1;}
 		Info<<" tShfix "<<tShfix<<" cond 0 "<<condShfix[0]<<endl;
 		}
-	//get the solution recharge data
+	//get the solution recharge data (here only solution given in rch zone)
 	if (cellsSrch.size()>0)
 		{
 		if (time>tSrch) {
@@ -106,7 +106,7 @@ inactiveFaces.clear();
 for (j=0;j<nxyz;j++) {Cw[0]()[j]=solu_conc[0];}  // water is alwas set to 55.34 from solution 0
 for (ic=1; ic<ph_ncomp;ic++)
     {
-		//Info<<"immob ic "<<immobile[ic]<<endl;
+		//Info<<"ic immob "<<immobile[ic]<<endl;
 		volScalarField& Cwi = Cw[ic]();
 		word nameCi ("Cw" + name(ic));
 		if (immobile[ic]==1) {continue;}
@@ -206,7 +206,7 @@ for (ic=1; ic<ph_ncomp;ic++)
 					i1=cellsPwel[i];v=mesh.V()[i1];unity[i1]=0;Info<<"qPwel "<<qPwel[i]<<"\n";
 					if (qPwel[i]<=0) {CiSp[i1] = -qPwel[i]*(1+1e-6)/v;} //in Sp term as discharge prop to local concentration
 					else {CiSu[i1] = -qFwel[i]/v*solu_conc[condSwel[i]*ph_ncomp+ic]; } 
-					if (i==0) {Info<<i<< " Csu wel "<<solu_conc[condSwel[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;}
+					//if (i==0) {Info<<i<< " Csu wel "<<solu_conc[condSwel[i]*ph_ncomp+ic]<<" "<<CiSu[i1]<<" "<<Cwi[i1]<<endl;}
 					}
 			} //Info<<"Cweli set"<<endl;
 
@@ -258,21 +258,15 @@ for (ic=1; ic<ph_ncomp;ic++)
 
 		//calculating dC, and time step (only for classical species)
 		if (ic>3) {
-			a=a*0;dC=0;mxC=0;dff=0;jmax=0;sC=0;sC1=0;
-			for (j=0;j<nxyz;j++) 
-				{mxC=max(mxC,Cw[ic]()[ractive[j]]);
-				sC+=Cw[ic]()[ractive[j]]*eps[i]*mesh.V()[i];
-				} //Info<<"mxC "<<mxC<<endl;
-			Cw[ic]()[ractive[j]] = max(Cw[ic]()[ractive[j]],a[ractive[j]]);
+			dC=0;mxC=0;dff=0;jmax=0;
+			for (j=0;j<nxyz;j++) {mxC=max(mxC,Cw[ic]()[ractive[j]]);} //Info<<"mxC "<<mxC<<endl;
 			for (j=0;j<nxyz;j++) if (bcCwi[j]==0) {
 				dff = mag(Cw[ic]()[ractive[j]]-Cw[ic]().prevIter()[ractive[j]]);
 				if (dff>dC) {dC=dff;jmax=j;}
-				sC1+=Cw[ic]()[ractive[j]]*eps[i]*mesh.V()[i];
 				} 
-			//Cw[ic]() *= sC/(sC1+SMALL);
 			dC = dC/(mxC+SMALL);
 			dtForC = min(dtForC,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); 
-			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<" delta mass "<< sC/(sC1+SMALL)<<endl;
+			Info<<"dC "<<dC<<" mxC " << mxC<<" dtForC "<<dtForC<<" jmax "<<jmax<<" ract(j) "<<ractive[jmax]<<" Csu "<<CiSu[jmax]<<endl;
 		}
 	}
 if (ph_gcomp==0) {reactIndicator = 0.;}

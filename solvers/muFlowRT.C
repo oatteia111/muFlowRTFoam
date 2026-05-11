@@ -71,7 +71,7 @@ std::vector<double> species;
 std::vector<int> immobile;
 std::vector<float> wTimes;
 float atmPa=101325.;float pi=3.141592654;
-float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext;
+float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext,dure;
 int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -527,15 +527,15 @@ int main(int argc, char *argv[])
 					gm_ph[i*nxyz+j] = max(Cg[i]()[j]*gvol[j],1e-16);// Cg in mol/Lgaz, gm in mol/RV
 					} //Cg in moles/L and Vm in L/mol
 				} 
-			for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<Cw[i]()[j]<<" ";} Info<<endl;}
-			Info<<" phqVm[0] "<<Vmol[0]<<" "<<endl;
-			//auto start = std::chrono::high_resolution_clock::now();
+			//for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<Cw[i]()[j]<<" ";} Info<<endl;}
+			//Info<<" phqVm[0] "<<Vmol[0]<<" "<<endl;
+			auto start = std::chrono::high_resolution_clock::now();
 			
 			//################# RUN PHREEQC   ################
 			// set saturations using rchange
 			t_ph.resize(nxyz); p_ph.resize(nxyz);// showul dnot be necessary but seems required???
-			Info<<"rchange ";
-			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T()[j];if(j<10) {Info<<" "<<rchange[j];} } Info<<endl;
+			//Info<<"rchange ";
+			for (j=0; j<nxyz;j++) {rchange[j] *= sw[j];t_ph[j]=T()[j]; } //if(j<10) {Info<<" "<<rchange[j];} } Info<<endl;
 			//for (j=0; j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 			if (ph_gcomp>0) {freak.setGvol(gvol);} // set gas volume in phreeqc
 			freak.setWsat(rchange); // rchange for the calculation domain, with 0 outside, sw saturation
@@ -545,8 +545,8 @@ int main(int argc, char *argv[])
 			//freak.setP(p_ph);//transfer pressure to freak
 			freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
 			Info << "running phreeqc dt "<<(runTime.value()-oldTimeReac)*tunits<<endl;
-			int a0= phqRun(freak);Info<<"end results "<<a0<<endl;
-			for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}
+			int a0= phqRun(freak);//Info<<"end results "<<a0<<endl;
+			//for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}
 			if (a0==-7) { // irm _fail : what to do
 				forAll(Cw,ic) { if (immobile[ic]==0) {Cw[ic]()=Cw[ic]().prevIter();} } // back to previous conc values
 				tcnt=rSteps-2;//insure that phreeqc will be run on next time step !!!!! oldTimeReac to be corrected
@@ -557,8 +557,8 @@ int main(int argc, char *argv[])
 			
 			Info << "phreeqc done "<<endl;
 
-			//auto finish = std::chrono::high_resolution_clock::now();
-			//std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();
+			auto finish = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> dt = finish - start;dure = dure+dt.count();std::cout<<"dure"<<dure<<"\n";
 			
 			// #############  transfer back to C 
 			
@@ -593,7 +593,7 @@ int main(int argc, char *argv[])
 							//Info<<"ic, j "<<ic<<" "<<j<<" c "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<dff<<" "<<dC<<endl;
 							}
 						dC = dC/(mxC-mnC+SMALL);
-						dtForChem = min(dtForChem,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); Info<<"ic "<<ic<<" dC "<<dC<<" dtForChem "<<dtForChem<<endl;
+						dtForChem = min(dtForChem,dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue()); //Info<<"ic "<<ic<<" dC "<<dC<<" dtForChem "<<dtForChem<<endl;
 					} 
 				Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC "<<dtForC<<" dtForChem " << dtForChem << endl; 
 				newDeltaT = min(dtForChem, newDeltaT);

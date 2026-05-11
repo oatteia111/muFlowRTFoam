@@ -99,7 +99,7 @@ int phqInit(my_phq & freak)
 				
 		std::vector<double> rv(nxyz, 1.);
 		status = phreeqc_rm->SetRepresentativeVolume(rv);   // RV is one dm3 of medium
-		std::cout<<"poro size "<<freak.poro.size()<<"\n";
+		//std::cout<<"poro size "<<freak.poro.size()<<"\n";
 		status = phreeqc_rm->SetPorosity(freak.poro);
 		freak.deltaMvol.resize(nxyz,0.);
 
@@ -152,7 +152,7 @@ int phqInit(my_phq & freak)
 				icnt++; 
 				for (int j=0;j<nxyz;j++) {
 					ic1[i*nxyz+j] = freak.data[icnt];
-					if ((j==0)||(j==nxyz-2)) {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
+					//if ((j==0)||(j==nxyz-2)) {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
 					}
 				}
 			else 		
@@ -161,7 +161,7 @@ int phqInit(my_phq & freak)
 					{
 					icnt++;ic1[i*nxyz+j] = freak.data[icnt]; 
 					mx = std::max(mx,freak.data[icnt]);
-					if ((j==0)||(j==nxyz-2))  {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
+					//if ((j==0)||(j==nxyz-2))  {std::cout << i << " cell "<< j << " " << freak.data[icnt]<< "\n";} 
 					}
 				}
 			if (i==1) {freak.nphase=mx;}
@@ -198,24 +198,25 @@ int phqInit(my_phq & freak)
 		//set boundary condition
 		std::vector<int> bc1;
 		bc1.resize(ph_nsolu,0);
-		for (i=0;i<ph_nsolu;i++) {bc1[i]=i;std::cout<<"in phq bc "<<i<<"\n";}
+		for (i=0;i<ph_nsolu;i++) {bc1[i]=i;}//std::cout<<"in phq bc "<<i<<"\n";}
 		status = phreeqc_rm->InitialPhreeqc2Concentrations(freak.bc_conc, bc1);
-		std::cout<<" ek "<<freak.EK<<"\n";
+		//std::cout<<" ek "<<freak.EK<<"\n";
 		if (freak.EK>0) {
 			int nspc = phreeqc_rm->GetSpeciesCount(); std::cout<<"phq eK nspc "<<nspc<<"\n";
 			freak.nspc = nspc;
 			const std::vector<std::string> &spcNames = phreeqc_rm->GetSpeciesNames();
-			for (i=0;i<freak.nspc;i++) {std::cout<<" "<<spcNames[i];} std::cout<<"\n";
+			//for (i=0;i<freak.nspc;i++) {std::cout<<" "<<spcNames[i];} std::cout<<"\n";
 			const std::vector <double> &z = phreeqc_rm->GetSpeciesZ();
-			freak.z = z;for (i=0;i<nspc;i++) {std::cout<<z[i]<<"\n";}
+			freak.z = z;
+			//for (i=0;i<nspc;i++) {std::cout<<z[i]<<"\n";}
 			std::vector<double> c(nxyz*nspc,0.);freak.c = c;
 			status = phreeqc_rm->GetSpeciesConcentrations(freak.c);
 			status = phreeqc_rm->InitialPhreeqc2SpeciesConcentrations(freak.bc_species, bc1);
-			std::cout<<"phq spc \n"; 
-			for (j=0;j<nxyz;j++){for (i=0;i<nspc;i++) {if (freak.z[i]!=0){std::cout<<freak.c[i*nxyz+j]<<" ";}} std::cout<<"\n";}
+			//std::cout<<"phq spc \n"; 
+			//for (j=0;j<nxyz;j++){for (i=0;i<nspc;i++) {if (freak.z[i]!=0){std::cout<<freak.c[i*nxyz+j]<<" ";}} std::cout<<"\n";}
 			const std::vector <double> &diff25 = phreeqc_rm->GetSpeciesD25();
 			freak.diff25 = diff25; 
-			std::cout<<"phq eK diff25 0 ";for (i=0;i<nspc;i++) {std::cout<<" "<<diff25[i]<<"\n";}
+			//std::cout<<"phq eK diff25 0 ";for (i=0;i<nspc;i++) {std::cout<<" "<<diff25[i]<<"\n";}
 		}
 		if (ph_gcomp>0) {
 			status = phreeqc_rm->GetSaturation(freak.wsat);
@@ -226,10 +227,10 @@ int phqInit(my_phq & freak)
 			//std::cout << "c 1-4 ";for (int i=0; i<4;i++){std::cout<< freak.c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			//std::cout << "c 5-9 ";for (int i=4; i<8;i++){std::cout<< freak.c[i*nxyz+1]<<" ";} std::cout<<"\n";
 			//std::cout<<"Vm "<<freak.gvol[0]/freak.gm[0]<<" "<<freak.gvol[0]/freak.gm[1]<<"\n"; // false
-		std::cout<<"gvol "; for (j=0;j<5;j++){std::cout<<freak.gvol[j]<<" ";}std::cout<<"\n";
-		std::cout<<"gm "; for (j=0;j<5;j++){ for (i=0;i<ph_gcomp;i++) {std::cout<<freak.gm[i*nxyz+j]<<" ";} std::cout<<"\n";}
+		//std::cout<<"gvol "; for (j=0;j<5;j++){std::cout<<freak.gvol[j]<<" ";}std::cout<<"\n";
+		//std::cout<<"gm "; for (j=0;j<5;j++){ for (i=0;i<ph_gcomp;i++) {std::cout<<freak.gm[i*nxyz+j]<<" ";} std::cout<<"\n";}
 			for (i=0;i<gcomp.size();i++) { if (gcomp[i]=="H2O(g)") {freak.iGwater = i;} }
-			std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+0]<<" ";} std::cout<<"\n";
+			//std::cout << "c 0 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+0]<<" ";} std::cout<<"\n";
 		}
 	//std::cout << "c 1 ";for (int i=0; i<ph_ncomp;i++){std::cout<< freak.c[i*nxyz+1]<<" ";} std::cout<<"\n";
 	std::cout <<"end phq init "<<"\n";
@@ -308,9 +309,9 @@ int phqRun(my_phq & freak)
 		{
 		status = freak.PhreeqcRM_ptr->SetSaturation(freak.wsat);
 		}
-	std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
+	//std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
 	status = freak.PhreeqcRM_ptr->GetSaturation(freak.wsat);
-	std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
+	//std::cout<<"phq wsat[-2] "<<freak.wsat[nxyz-2];
 
 	if (freak.EK) {status = freak.PhreeqcRM_ptr->SpeciesConcentrations2Module(freak.c);}
 	else {status = freak.PhreeqcRM_ptr->SetConcentrations(freak.c);}
@@ -380,7 +381,7 @@ int getSelOutput(my_phq & freak)
 			status = freak.PhreeqcRM_ptr->GetSelectedOutputHeading(i,headings[i]);
 			//if (headings[i].substr(0,2)=="d_")  {nphase +=1;}
 		}
-	nxyz = freak.data[0];std::cout<<"in phq selout nxyz "<<nxyz<<" for cell 0 and nxyz-2\n";
+	nxyz = freak.data[0];//std::cout<<"in phq selout nxyz "<<nxyz<<" for cell 0 and nxyz-2\n";
 	std::vector<double> so(ncol*nxyz);
 	status = freak.PhreeqcRM_ptr->GetSelectedOutput(so);
 	freak.nselect = ncol-6; //-nphase;
@@ -392,7 +393,7 @@ int getSelOutput(my_phq & freak)
 			{
 				if (headings[i].substr(0,2)=="d_") {freak.deltaMvol[j]+=so[i*nxyz + j];}
 				freak.spc[(i-6)*nxyz + j] = so[i*nxyz + j];
-				if ((j==0)||(j==nxyz-2)) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
+				//if ((j==0)||(j==nxyz-2)) {std::cout<< "selout sp "<< i << " : " << so[i*nxyz + j] << "\n";}
 					//}
 			}
 		}

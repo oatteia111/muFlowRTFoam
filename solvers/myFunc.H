@@ -47,22 +47,21 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 			}
 		return fact;
 };
-/*
-volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField fvar1, Foam::volScalarField fvar2, std::vector<float> fparms)
+
+volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField fvar1, Foam::volScalarField fvar2, std::vector<float> fparms,float tunits)
 {
-	//volScalarField resu; 
-	volScalarField fact = fvar*0.0;
+	//here we use two variables and fixed factors to start; 
+	volScalarField fact = fvar1*0.0;
 	fact.dimensions().reset(dimless);
-	fvar.dimensions().reset(dimless);
-		int i;
-		int n = fvar.size();//Info<<"in func n "<<n<<" type "<<ftype<<endl;
-		resu.resize(n);
-		if (ftype == "product")
-			{
-			//for (i=0;i<n;i++) {resu[i] = 1+ fparms[1]*(fvar()[i]-fparms[0]);}
-			fact = 1.+ fparms[0]*fvar1* fparms[1]*mag(fvar2);
-			Info<<"in calc func, fvar "<<fvar1[4]<<" "<<fvar2[4]<<" fparm "<<fparms[0]" "<<fparms[1]<<" fact(4) "<<fact[4]<<endl;
-			}
-		return fact;
+	fvar1.dimensions().reset(dimless);
+	fvar2.dimensions().reset(dimless);
+	if (ftype == "product")
+		{
+		//fvar1 is conc and fvar2 is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
+		volScalarField gamm = 2.4* fvar2/tunits/2.57e-6; 
+		fact = pow(fvar1/2., 1.5)*(0.06+pow(gamm/2.5,-0.85))*400;
+		fact = max(min(fact,5e4),1.);
+		Info<<"in calc func2, fvar1,2(100,4) "<<fvar1[4]<<" "<<fvar2[100]<<" "<<fvar2[4]<<" gam(4) "<<gamm[4]<<" fac(4) "<<fact[4]<<endl;
+		}
+	return fact;
 }
-*/

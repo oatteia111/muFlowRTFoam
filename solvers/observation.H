@@ -72,7 +72,7 @@ if (flagW==1) // write the files
 				if (obsTransIndx[iv]==1)
 					{
 					iv1 +=1;
-					std::ofstream fich2(cur_dir+"/observation/obs_"+observ.headers[io]+"_"+obsTransNames[iv]+".txt", std::ios::app);// Ouvrir le fichier en mode append
+					std::ofstream fich2(cur_dir+"/observation/obs_"+observ.headers[io]+"#0_"+obsTransNames[iv]+".txt", std::ios::app);// Ouvrir le fichier en mode append
 					Info<<"nobs trans "<<nobs<<" nv "<<nv<<" iv "<<iv<<" iv1 "<<iv1<<endl;
 					for (i=0;i<oindex;i++) {fich2 << obsTrans[i*(nobs*nv+1)] <<" "<< obsTrans[i*(nobs*nv+1)+io*nv+iv1] << "\n";}
 					fich2.close();

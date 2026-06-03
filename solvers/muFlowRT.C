@@ -71,7 +71,7 @@ std::vector<double> species;
 std::vector<int> immobile;
 std::vector<float> wTimes;
 float atmPa=101325.;float pi=3.141592654;
-float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext,dure;
+float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext,dure,tunits;
 int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -87,9 +87,6 @@ using namespace Foam;//utilisteias and plugins declaration
 int main(int argc, char *argv[])
 {
 	my_phq freak; 
-	plugin_H plugH;
-	plugin_PS plugPS;
-	plugin_Cgi plugCgi;
 
 	//init openFoam
     #include "setRootCase.H"
@@ -111,8 +108,9 @@ int main(int argc, char *argv[])
 	// reading files times
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };
 	wTimes = {std::istream_iterator<float>{inputwTimes}, {}};Info<<" wt0 "<<wTimes[0]<<endl;
-	int tunits=1;float lunits=1.;
-	std::vector<int> tu={1,60,3600,86400,3153600};tunits=tu[wTimes[0]]; // we need time units to send time to phrq in seconds and for pressure units
+		
+	float tunits=1; float lunits=1.;
+	std::vector<float> tu={1,60,3600,86400,3153600};tunits = tu[wTimes[0]]; // we need time units to send time to phrq in seconds and for pressure units
 	wTimes[0] = 0; // required to calculate the reactive time sptes for the 1st time step 
 	std::vector<float> lu={0.01,1,1000,0.325};lunits = lu[lg_units]; // we need length units for atmPa (lunit sis in transportproperties
 	atmPa = atmPa*tunits*tunits/lunits;
@@ -120,6 +118,10 @@ int main(int argc, char *argv[])
 	std::cout<<" tunits "<<tunits<<" atmpa "<<atmPa<<"\n";
 	#include "flow/create2phaseFields.H"
 	
+	plugin_H plugH;
+	plugin_PS plugPS;
+	plugin_Cgi plugCgi;
+
 	//########################## observations 
 	//remove all files in the folder observation
 	if (mesh.time().value()==0) {fname = cur_dir+"/observation"; if (fexists(fname)) {deleteFilesInDirectory(fname);} }
@@ -392,7 +394,7 @@ int main(int argc, char *argv[])
 	//---------------------------------------------------------------------------------
 	
 	//###########################  plugins
-	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples);
+	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples,tunits);
 	plugPS.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	plugCgi.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	int flagBC;//newDeltaT = minDeltaT*10;
@@ -412,13 +414,13 @@ int main(int argc, char *argv[])
 		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
-		if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write
+		if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write, 2/6 remov &&(dt2<dt1)
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
 			flagW=1;//dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
 			// tnext=runTime.endTime().value();
 			}
 		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-		if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change
+		if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change //2/6 remov &&(dt2<dt1)
 			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
 			//newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;
@@ -509,7 +511,8 @@ int main(int argc, char *argv[])
 					int rj=ractive[j];
 					for (i=4; i<ph_ncomp; i++)
 					{
-						if (abs(Cw[i]().prevIter()[rj]-Cw[i]()[rj])/(Cw[i]()[rj]+1e-20)>1e-10) {rchange[j] = 1.;}
+						//if (abs(Cw[i]().prevIter()[rj]-Cw[i]()[rj])/(Cw[i]()[rj]+1e-20)>1e-10) {rchange[j] = 1.;}
+						if (Cw[i]()[rj]>1e-12) {rchange[j] = 1.;}
 					} 
 					for (i=0; i<ph_gcomp; i++)
 					{

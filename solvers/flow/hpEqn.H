@@ -84,7 +84,8 @@ sw.storePrevIter();
 	residu = hpEqn.solve().initialResidual(); //initial residual does not seem to include hSu??
 
 //phiw =  phiGr - ((Mf * fvc::interpolate(fvc::grad(hp)) ) & mesh.Sf() ) ;//WRONG
-phiw ==  phiGr - (Mf * fvc::snGrad(hp)) * mesh.magSf();//fvc::interpolate(sw) *
+phiw =  phiGr - (Mf * fvc::snGrad(hp)) * mesh.magSf();//fvc::interpolate(sw) *
+
 Uw = fvc::reconstruct(phiw);
 //phiw=hpEqn.flux();
 //Info<<"Mf(end) "<<Mf[ncell-1]<<" phiw " <<phiw[ncell-1]<<endl;

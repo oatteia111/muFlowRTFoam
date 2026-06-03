@@ -123,7 +123,6 @@ C.storePrevIter();//Info<<"c 10740 avt "<<C()[10740]<<endl;
 fvScalarMatrix CEqn
 	(
 		Rf * thetaw * fvm::ddt(C) 
-		//+ reactIndicator*fvc::ddt(C) // indic 0 : implicit, indic 1: explicit
 		+ Rf * C * fvc::ddt(thetaw) 
 		+ fvc::div(phiw, C, "div(phiw,C)") 
 		//- fvm::div(fvc::interpolate(Deffw) * fvc::grad(C)) 

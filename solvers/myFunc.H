@@ -48,20 +48,25 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 		return fact;
 };
 
-volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField fvar1, Foam::volScalarField fvar2,float Xref, std::vector<float> fparms,float tunits)
+volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField C, Foam::volScalarField U,float Xref, std::vector<float> fparms,float tunits)
 {
 	//here we use two variables and fixed factors to start; 
-	volScalarField fact = fvar1*0.0;
+	volScalarField fact = C*0.0;
 	fact.dimensions().reset(dimless);
-	fvar1.dimensions().reset(dimless);
-	fvar2.dimensions().reset(dimless);
+	C.dimensions().reset(dimless);
+	U.dimensions().reset(dimless);
 	if (ftype == "product")
 		{
-		//fvar1 is conc and fvar2 is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
-		volScalarField gamm = 2.4* fvar2/tunits/2.57e-6; 
-		fact = pow(fvar1/Xref, 1.5)*(0.06+pow(gamm/2.5,-0.85))*400;
+		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
+		volScalarField gamm = 2.4* max(U,0.)/tunits/2.57e-6; 
+		volScalarField T0 = 0.367*max(C-0.483*Xref,0.);
+		volScalarField kC = 4.54e-5+3.26e-3*C/Xref + 5.97e-2*pow(C/Xref,2);
+		volScalarField nC = 0.6127-0.1608*log(1+max(C,1e-20)/Xref/6.27);
+		volScalarField muInf = 9.76e-4+1.6e-3*C/Xref;
+		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
+		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco
 		fact = max(min(fact,5e4),1.);
-		Info<<"in calc func2, fvar1,2(100,4) "<<fvar1[4]<<" "<<fvar2[100]<<" "<<fvar2[4]<<" gam(4) "<<gamm[4]<<" fac(4) "<<fact[4]<<endl;
+		Info<<"in calc func2, C,2(100,4*lay) "<<C[2948]<<" "<<U[2948]<<" "<<U[4]<<" gam(4) "<<gamm[4]<<" fac(4) "<<fact[4]<<endl;
 		}
 	return fact;
 }

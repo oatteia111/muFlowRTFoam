@@ -44,6 +44,7 @@ if (flowType == 3) // unsaturated
 	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;sw_tmp=sw1;sw=sw1;rewind=1;}//hp_tmp=hp1;hp=hp1;rewind=1;}
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
+	#include "flow/updateThetaFields.H"
     }
 	
 	else 

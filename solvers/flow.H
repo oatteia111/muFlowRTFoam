@@ -1,5 +1,4 @@
 scalar CFLUse = -1;
-scalar deltaTFact = 1;
 scalar maxDeltaTFact = -1;
 //scalar CoNum = 0.0;
 //scalar meanCoNum = 0.0;
@@ -38,7 +37,7 @@ if (flowType == 3) // unsaturated
 		residu0 = residu;
 		//hp_tmp = hp;
 		if (iterPicard == maxIterPicard)
-			{ runTime.setTime(oldTime,tstep); break; }
+			{ runTime.setTime(presentTime,tstep); break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
 	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;sw_tmp=sw1;sw=sw1;rewind=1;}//hp_tmp=hp1;hp=hp1;rewind=1;}

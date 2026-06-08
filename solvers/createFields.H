@@ -36,7 +36,8 @@ volScalarField eps (IOobject("eps",runTime.timeName(),mesh,IOobject::READ_IF_PRE
 //volScalarField eps (IOobject("eps",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("eps",dimless,0.3));
 volScalarField eps0("eps0",eps*1);
 volScalarField h (IOobject("h",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("h",dimLength,0.));
-//volScalarField eps0("h0",h);
+volScalarField h1 = h;
+volScalarField h_tmp = h;
 volScalarField zbot(IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("zbot",dimLength,0.));
 volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1.));
 volScalarField p (IOobject("p",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325.));

@@ -185,7 +185,7 @@ while (resPicard > tolPicard)
 	resPicard = gMax((mag(JE-JE_tmp))->internalField());
 	JE_tmp = JE;
 	if (iterPicard == maxIterPicard)
-		{ runTime.setTime(oldTime,tstep); break; }
+		{ runTime.setTime(presentTime,tstep); break; }
 	}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
 	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;JE_tmp=JE1;JE=JE1;rewind=1;}

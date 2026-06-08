@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
 	
 	#include "readCoupling.H"
 	
+	scalar deltaTFact = 1;
 	// reading files times
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };
 	wTimes = {std::istream_iterator<float>{inputwTimes}, {}};Info<<" wt0 "<<wTimes[0]<<endl;
@@ -339,7 +340,7 @@ int main(int argc, char *argv[])
 	time=mesh.time().value();
 	if (time<dt0) {runTime.setTime(dt0,0);} // not to have time=0, it hsould be  dt0
 	int tstep=0;int itwstep = 1;int tcnt = 0;int rcnt = 0;float wtime=wTimes[itwstep];int flagW=0; // first tstep is 1 (first vlaue is tunits)
-	float oldTime,oldTimeReac;float newDeltaT=dt0;float dteps=(wTimes[2]-wTimes[1])/1e5;int rewind=0;
+	float presentTime,oldTimeReac;float newDeltaT=dt0;float dteps=(wTimes[2]-wTimes[1])/1e5;int rewind=0;
 	//search time step for restart (if start time is higher than first write time
 	while (time>wTimes[itwstep]) {itwstep+=1;} 
 	//restart for solid species in phreeqc (get minerals from species file, equilibrate surface and exchange)
@@ -403,32 +404,37 @@ int main(int argc, char *argv[])
 	while (runTime.run())
     {
 		//****************** set time step to stop at writeTimes
-		if (rewind==1) {runTime.setTime(oldTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
-		oldTime = mesh.time().value();
-		float dt1 = wtime - oldTime;  //to catch the writing time
-		float dt2 = tnext - oldTime; //to catch the time when BC change
-		Info<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" maxdt "<< maxDeltaT<<" flg BC "<<flagBC<<endl;
+		if (rewind==1) {runTime.setTime(presentTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
+		presentTime = mesh.time().value();
+		float dt1 = wtime - presentTime;  //to catch the writing time
+		float dt2 = tnext - presentTime; //to catch the time when BC change
+		Info<<"t "<<presentTime<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" maxdt "<< maxDeltaT<<" flg BC "<<flagBC<<endl;
 		flagW = 0;		
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
-		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;}
+		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;} // usefull?
 		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
-		if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write, 2/6 remov &&(dt2<dt1)
+		if ((dt1<= newDeltaT*(1+1e-5))&&(dt1==dt2)) //both BC and W
+			{newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
+			runTime.setDeltaTNoAdjust(dt1);tnext=runTime.endTime().value();
+			itwstep+=1;wtime=wTimes[itwstep];
+			flagBC=1;flagW=1;} 
+		else if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write, 2/6 remov &&(dt2<dt1)
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
-			flagW=1;//dteps=(wTimes[itwstep+1]-wTimes[itwstep])/1e4;
-			// tnext=runTime.endTime().value();
+			newDeltaT = dt1*0.99;
+			flagW=1;
 			}
-		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-		if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change //2/6 remov &&(dt2<dt1)
+		else if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change //2/6 remov &&(dt2<dt1)
 			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
-			//newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
+			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;
 			flagBC=1;} //;tnext=runTime.endTime().value()
+		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
 		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
-		Info<<"i time "<<itwstep<<" oldt "<<oldTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
+		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
 		runTime.read();
 		runTime++;tstep++;
 		float dt = runTime.deltaTValue();
@@ -436,60 +442,75 @@ int main(int argc, char *argv[])
 		//if (mesh.time().value()==wtime) {flagW=1;}
 		Info <<"time = "<< mesh.time().value() <<" deltaT = " <<  dt << " tnext "<<tnext<<" newdeltaT "<<newDeltaT<<" reactStep "<<reactStep<<endl;
 		
-		//***********************  solve transient flow   *******************************
-		if (flowType>0) {
-			#include "flow.H"
+		//***********************  solve coupling case (we assume all coupling require h/C loop) *******************************
+		if (coupling ==1) // we assume Picard
+			{
+			iterPicard = 0; resPicard = 1000.;float residu0 = 1000;deltaTFact = 1.;
+			h1 = h;
+			while (resPicard > tolPicard)
+				{
+				iterPicard++;
+				h = h_tmp; 
+				#include "flow.H"
+				#include "transport/CEqn.H"
+				resPicard = gMax((mag(h-h_tmp))->internalField());
+				if (residu>residu0) {h  = h*0.75 + h.prevIter()*0.25;}//relax nb residu is calc in hEqn
+				h_tmp = h;
+				residu0 = residu;
+				if (iterPicard == maxIterPicard)
+					{ runTime.setTime(presentTime,tstep); break; }
+				}  // end picard iter
+			Info << "Picard nb iterations : "<<iterPicard<<endl;
+			if (iterPicard == maxIterPicard) {deltaTFact = 0.2;h_tmp=h1;h=h1;rewind=1;}
+			else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
+			newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
+			if (iterPicard>1) {
+				#include "flow.H"
+				}
 			}
-		if (rewind==1) {continue;} //for case picard has failed on flow
-		//Info<<"p after flow ";for (int j=0; j<nxyz;j++) {Info<<p[j]/atmPa<<" ";};Info<<endl;
-		//Info<<"sw after flow ";for (int j=0; j<nxyz;j++) {Info<<sw[j]<<" ";};Info<<endl;
-		if (ph_gcomp>0) {
-			gvol.resize(nxyz);
-			for (j=0; j<nxyz;j++) {gvol[j]=max(eps[j]*(1-sw[j]),1e-4);} 
+
+		//***********************  solve transient flow   *******************************
+		if ((coupling ==0)&&(flowType>0) )
+			{
+			#include "flow.H"
+			if (rewind==1) {continue;} //for case picard has failed on flow
+			if (ph_gcomp>0) 
+				{
+				gvol.resize(nxyz);
+				for (j=0; j<nxyz;j++) {gvol[j]=max(eps[j]*(1-sw[j]),1e-4);} 
+				}
 			}
 		
 		//***************  solve Transport  *************************
 		//float sumT=0;float sumPF=0;float sumPFa=0;
 
-		if (activateThermal==1) {
+		if ((coupling ==0)&&(activateThermal==1))
+			{
 			#include "transport/TEqn.H"
 			}
 					
-		if (activateEK==1) {
+		if ((coupling ==0)&&(activateEK==1)) 
+			{
 			#include "EK/NernstPlanck.H"
 			}
-		else
-		{
-		if (activateTransport==1) {
-			if (activateReaction==0) {
-				#include "transport/CEqn.H"
-				}
-			
-			else {
-				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
-				//in case of ractive reset all aout of reactive to iniital
-				//Info<<"Cw mid "<<Cw[7]()[int(ncell/2)]<<endl;
-				#include "transport/CwiEqn.H"
-				//Info<<"Cw mid "<<Cw[7]()[int(ncell/2)]<<endl;
-
-				if (ph_gcomp>0) {
-					forAll(Cg,i) {Cg[i]().storePrevIter();}
-					#include "transport/CgiEqn.H"
-					}
-				}
-			
-			} // end activate transport
-		}
 		
-		/*print gases 
-		if (ph_gcomp>0) { // there are gases only when reaction is present, the freak.g transmit pressures in bars
-			Info<<"gvol, Cgs "<<endl;
-			for (j=0; j<15;j++) {Info<<gvol[j]<<" "; forAll(Cg,i) {Info<<Cg[i]()[j]<<" ";} Info<<endl;}
-		}*/
-
+		if ((coupling ==0)&&(activateEK==0) && (activateTransport==1) && (activateReaction==0))
+			{
+			#include "transport/CEqn.H"
+			}
+			
+		if ((coupling ==0)&&(activateEK==0) && (activateTransport==1) && (activateReaction==1))
+			{
+			forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
+			#include "transport/CwiEqn.H"
+			if (ph_gcomp>0) {
+				forAll(Cg,i) {Cg[i]().storePrevIter();}
+				#include "transport/CgiEqn.H"
+				}
+			}
+			
 		//***************  solve reaction  *************************
 		// find where the transported conc have changed to calculate only there
-		//Info<<"runtime "<<runTime.value()-oldTime<<endl;
 		tcnt++;
 		if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
 		if (rSteps>0) {if (rcnt>=rSteps) {rcnt=1;} }
@@ -546,7 +567,7 @@ int main(int argc, char *argv[])
 			freak.setGm(gm_ph);//transfer gm_ph to freak
 			if (activateThermal==1) {freak.setTemp(t_ph);}
 			//freak.setP(p_ph);//transfer pressure to freak
-			freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<oldTime<<endl;//the calculation time shall include all time since las phreeqc run
+			freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<presentTime<<endl;//the calculation time shall include all time since las phreeqc run
 			Info << "running phreeqc dt "<<(runTime.value()-oldTimeReac)*tunits<<endl;
 			int a0= phqRun(freak);//Info<<"end results "<<a0<<endl;
 			//for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}

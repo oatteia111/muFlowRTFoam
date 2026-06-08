@@ -55,18 +55,43 @@ volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField 
 	fact.dimensions().reset(dimless);
 	C.dimensions().reset(dimless);
 	U.dimensions().reset(dimless);
-	if (ftype == "product")
+	if (ftype == "T0_muInf") // antonio
 		{
 		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
-		volScalarField gamm = 2.4* min(max(U/tunits,0.),1e-8)/2.57e-6; 
+		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
 		volScalarField T0 = 0.367*max(C-0.483*Xref,0.);
 		volScalarField kC = 4.54e-5+3.26e-3*C/Xref + 5.97e-2*pow(C/Xref,2);
 		volScalarField nC = 0.6127-0.1608*log(1+max(C,1e-20)/Xref/6.27);
 		volScalarField muInf = 9.76e-4+1.6e-3*C/Xref;
 		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
 		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco
-		fact = max(min(fact,1e4/Xref),1.);
-		Info<<"in calc func2, C,U(wel) "<<C[2948]<<" "<<U[2948]<<" gam(wel) "<<gamm[2948]<<" fac(wel) "<<fact[2948]<<endl;
+		fact = max(min(fact,1e4),1.);
+		Info<<"in calc func2 Xref T0, kC, nC, muInf "<<Xref<<" "<<T0[4]<<" "<<kC[4]<<" "<<nC[4]<<" "<<muInf[4]<<endl;
+		Info<<"C,U(wel) "<<C[4]<<" "<<U[4]<<" gam(wel) "<<gamm[4]<<" fac(wel) "<<fact[4]<<endl;
+		}
+	if (ftype == "T0_modif") // antonio modified
+		{
+		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
+		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
+		volScalarField T0 = 0.367*max(C-0.483*Xref,0.);
+		volScalarField kC = 4e-5 + 2e-2*C/Xref + 0.015*pow(C/Xref,2);
+		volScalarField nC = 0.25 + 0.1 *log(1+max(C,1e-20)/Xref/0.1);
+		volScalarField muInf = 9.8e-4 + 6e-3*C/Xref;
+		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
+		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco
+		fact = max(min(fact,2e3),1.);
+		Info<<"in calc func2 Xref T0, kC, nC, muInf "<<Xref<<" "<<T0[4]<<" "<<kC[4]<<" "<<nC[4]<<" "<<muInf[4]<<endl;
+		Info<<"C,U(wel) "<<C[4]<<" "<<U[4]<<" gam(wel) "<<gamm[4]<<" fac(wel) "<<fact[4]<<endl;
+		}
+	if (ftype == "dble_power") // olivier
+		{
+		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
+		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
+		volScalarField fG = min(50.,0.06 + 0.4*pow(gamm/2.5,-0.85));
+		fact = fG*pow(max(C/Xref/2,0.), 1.5)/0.001;
+		fact = max(min(fact,1e4),1.);
+		Info<<"in calc xref, fG "<<Xref<<" "<<fG[4]<<endl;
+		Info<<"C,U(wel) "<<C[4]<<" "<<U[4]<<" gam(wel) "<<gamm[4]<<" fac(wel) "<<fact[4]<<endl;
 		}
 	return fact;
 }

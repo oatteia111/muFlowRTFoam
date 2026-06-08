@@ -29,9 +29,9 @@ transport/createCwiFields.H \
 transport/createCgiFields.H \
 flow/hstdEqn.H \
 flow.H \
+transport/CEqn.H \
 transport/TEqn.H \
 EK/NernstPlanck.H \
-transport/CEqn.H \
 transport/CwiEqn.H \
 transport/CgiEqn.H \
 observation.H \
@@ -836,9 +836,9 @@ transport/createCwiFields.H :
 transport/createCgiFields.H :
 flow/hstdEqn.H :
 flow.H :
+transport/CEqn.H :
 transport/TEqn.H :
 EK/NernstPlanck.H :
-transport/CEqn.H :
 transport/CwiEqn.H :
 transport/CgiEqn.H :
 observation.H :

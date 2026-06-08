@@ -74,8 +74,8 @@ volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField 
 		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
 		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
 		volScalarField T0 = 0.367*max(C-0.483*Xref,0.);
-		volScalarField kC = 4e-5 + 2e-2*C/Xref + 0.015*pow(C/Xref,2);
-		volScalarField nC = 0.25 + 0.1 *log(1+max(C,1e-20)/Xref/0.1);
+		volScalarField kC = fparms[0] + fparms[1]*C/Xref + fparms[2]*pow(C/Xref,2);
+		volScalarField nC = fparms[3] + fparms[4] *log(1+max(C,1e-20)/Xref/fparms[5]);
 		volScalarField muInf = 9.8e-4 + 6e-3*C/Xref;
 		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
 		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco

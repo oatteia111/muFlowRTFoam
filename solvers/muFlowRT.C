@@ -420,12 +420,12 @@ int main(int argc, char *argv[])
 			runTime.setDeltaTNoAdjust(dt1);tnext=runTime.endTime().value();
 			itwstep+=1;wtime=wTimes[itwstep];
 			flagBC=1;flagW=1;} 
-		else if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)) //write, 2/6 remov &&(dt2<dt1)
+		else if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)&&(dt1<dt2)) //write, 9/6 readd < 
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
 			newDeltaT = dt1*0.99;
 			flagW=1;
 			}
-		else if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)) //BC change //2/6 remov &&(dt2<dt1)
+		else if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)&&(dt2<dt1)) //BC change //9/6 readd < 
 			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
 			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;

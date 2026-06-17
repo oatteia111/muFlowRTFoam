@@ -157,7 +157,16 @@ if (coupling ==1) {
 	volScalarField factM = plugH.corrM(mesh,freak);//Info<<"factM(0-2) "<<factM[0]<<" "<<factM[1] <<" "<<factM[2]<<endl;//" Mf "<<Mf<<" M0f "<<M0f<<endl;
 	surfaceScalarField factMf = fvc::interpolate(factM,"factM");
 	Mf *=factMf; 
-	Info<<"factM(0-5) ";for (i=0;i<6;i++) {Info<<factM[i]<<" ";} Info<<endl;
+	Info<<"flg, factM(0-5) "<<flagW;
+	for (i=0;i<6;i++) {Info<<factM[i]<<" ";} Info<<endl;
+	if (flagW==1) {
+		std::cout<<"in write cpl fact "<<"\n";
+		std::ofstream outFact(cur_dir/runTime.timeName()/"factM");
+		outFact.unsetf(std::ios::scientific);outFact.precision(6);
+		for (j=0;j<ncell;j++) {outFact<<factM[j]<<"\n";}
+		outFact << std::endl;
+		outFact.close();
+		}
 	}
 fvScalarMatrix hEqn
 	( stor*fvm::ddt(h) - fvm::laplacian(Mf,h) + fvm::SuSp(hSp,h) == hSu  ); // + fvc::div(phiG) == b*fvOptions(sw,h) 

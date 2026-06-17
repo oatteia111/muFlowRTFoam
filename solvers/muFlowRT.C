@@ -415,7 +415,11 @@ int main(int argc, char *argv[])
 		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
 		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
-		if ((dt1<= newDeltaT*(1+1e-5))&&(dt1==dt2)) //both BC and W
+		if ((dt1==0)||(dt2==0)) {
+			if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
+			if (dt2==0) {tnext=runTime.endTime().value();}
+		    }
+		else if ((dt1<= newDeltaT*(1+1e-5))&&(dt1==dt2)) //both BC and W
 			{newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			runTime.setDeltaTNoAdjust(dt1);tnext=runTime.endTime().value();
 			itwstep+=1;wtime=wTimes[itwstep];
@@ -430,7 +434,6 @@ int main(int argc, char *argv[])
 			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;
 			flagBC=1;} //;tnext=runTime.endTime().value()
-		if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
 		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
@@ -535,7 +538,7 @@ int main(int argc, char *argv[])
 			for (j=0;j<nxyz;j++)
 				{ for (i=0;i<nsel;i++) {outFile << species[i*nxyz + j]<<" ";} outFile <<"\n"; }
 			}
-			
+
 		if (flagW==1) {flagW=0;}
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"

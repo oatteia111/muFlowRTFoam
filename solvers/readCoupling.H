@@ -18,6 +18,8 @@ if (fexists(fname))
 
 	while(std::getline(if0,line))
 		{
+		//to remove line with only white spaces
+		if (line.empty()) {continue;}
 		dicFunc data;
 		std::istringstream il0(line);
 		il0 >> Ykey;data.setYkey(Ykey);// name of the y var

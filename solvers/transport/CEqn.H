@@ -225,3 +225,4 @@ dtForC = dCmax/(max(dC,0)+SMALL)*runTime.deltaTValue();
 
 Info<< "dt "<<runTime.deltaTValue()<<" newdt "<<newDeltaT<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 newDeltaT = min(dtForC, newDeltaT);
+

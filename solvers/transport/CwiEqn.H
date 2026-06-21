@@ -273,6 +273,7 @@ if (ph_gcomp==0) {reactIndicator = 0.;}
 Info<< "dt "<<runTime.deltaTValue()<<" dC "<<dC<<" dtForC " << dtForC << endl; 
 //for (ic=0;ic<ph_ncomp-4;ic++) {Info<<ic<<" "<<sumC0[ic]<<" "<<sumC[ic]<<" "<<sumC[ic]-sumC0[ic]<<endl;}
 newDeltaT = max(minDeltaT,min(dtForC, newDeltaT));
+
 		/*sumT=0;sumPF=0;sumPFa=0;
 		for (j=0; j<nxyz;j++) {
 			float c0=Cw[6]()[j];//if (j<2) {std::cout << "c0 1 "<<c0<<" ";}

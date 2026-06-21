@@ -339,8 +339,8 @@ int main(int argc, char *argv[])
 	runTime.setDeltaT(dt0);runTime.setTime(st,0);
 	time=mesh.time().value();
 	if (time<dt0) {runTime.setTime(dt0,0);} // not to have time=0, it hsould be  dt0
-	int tstep=0;int itwstep = 1;int tcnt = 0;int rcnt = 0;float wtime=wTimes[itwstep];int flagW=0; // first tstep is 1 (first vlaue is tunits)
-	float presentTime,oldTimeReac;float newDeltaT=dt0;float dteps=(wTimes[2]-wTimes[1])/1e5;int rewind=0;
+	int tstep,tcnt,rcnt,iflowStep;int itwstep = 1;float wtime=wTimes[itwstep];int flagW=0; // first tstep is 1 (first vlaue is tunits)
+	float presentTime,oldTimeReac,oldTimeTransp,nextTimeTransp;float newDeltaT=dt0;float dteps=(wTimes[2]-wTimes[1])/1e5;int rewind=0;
 	//search time step for restart (if start time is higher than first write time
 	while (time>wTimes[itwstep]) {itwstep+=1;} 
 	//restart for solid species in phreeqc (get minerals from species file, equilibrate surface and exchange)
@@ -445,6 +445,13 @@ int main(int argc, char *argv[])
 		//if (mesh.time().value()==wtime) {flagW=1;}
 		Info <<"time = "<< mesh.time().value() <<" deltaT = " <<  dt << " tnext "<<tnext<<" newdeltaT "<<newDeltaT<<" reactStep "<<reactStep<<endl;
 		
+		//tsteps for reactions
+		if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
+		if (rSteps>0) {if (rcnt>=rSteps) {rcnt=1;} }
+		int flgR =0;
+		if (rSteps>0) {if (runTime.value() >= wTimes[itwstep-1]+reactStep*rcnt) flgR=1;} // here the time to write is a portion of current time period
+		if (rSteps<0) {if (tcnt == -rSteps-1) flgR=1;} // here the time is a number of flow/transport time steps
+		Info<<"for react tcnt "<<tcnt<<" wtime "<<wTimes[itwstep-1]<<" lim "<<wTimes[itwstep-1]+reactStep*rcnt<<" rstep "<<rSteps<<" tcnt "<<tcnt<<" rcnt "<<rcnt<<" flgR "<<flgR<<endl;
 		//***********************  solve coupling case (we assume all coupling require h/C loop) *******************************
 		if (coupling ==1) // we assume Picard
 			{
@@ -455,7 +462,7 @@ int main(int argc, char *argv[])
 				iterPicard++;
 				h = h_tmp; 
 				#include "flow/hEqn.H"
-				if (activateReaction==0) {
+				if (activateReaction==0){
 					#include "transport/CEqn.H"
 				}
 				else {
@@ -470,7 +477,8 @@ int main(int argc, char *argv[])
 					{ runTime.setTime(presentTime,tstep); break; }
 				}  // end picard iter
 			Info << "Picard nb iterations : "<<iterPicard<<endl;
-			if (activateReaction==1) {
+			tcnt++;
+			if ((activateReaction==1)&&(flgR==1)) {
 				#include "phreeqc/calcReaction.H"
 			}
 			if (iterPicard == maxIterPicard) {deltaTFact = 0.2;h_tmp=h1;h=h1;rewind=1;}
@@ -484,6 +492,7 @@ int main(int argc, char *argv[])
 		//***********************  solve transient flow   *******************************
 		if ((coupling ==0)&&(flowType>0) )
 			{
+			iflowStep++;
 			#include "flow.H"
 			if (rewind==1) {continue;} //for case picard has failed on flow
 			if (ph_gcomp>0) 
@@ -493,7 +502,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		
-		//***************  solve Transport  *************************
+		//***************  solve Transport & reaction (no coupling) *************************
 		//float sumT=0;float sumPF=0;float sumPFa=0;
 
 		if ((coupling ==0)&&(activateThermal==1))
@@ -507,21 +516,31 @@ int main(int argc, char *argv[])
 			}
 		
 		if ((coupling ==0)&&(activateEK==0) && (activateTransport==1)) {
-			if (activateReaction==0) {
-				#include "transport/CEqn.H"
-				}
-			else {
-				forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
-				#include "transport/CwiEqn.H"
-				if (ph_gcomp>0) {
-					forAll(Cg,i) {Cg[i]().storePrevIter();}
-					#include "transport/CgiEqn.H"
+			//if ((mesh.time().value()>=nextTimeTransp)||(iflowStep>20)) {
+				if (activateReaction==0) {
+					#include "transport/CEqn.H"
 					}
-				#include "phreeqc/calcReaction.H"
+				else {
+					forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
+					#include "transport/CwiEqn.H"
+					if (ph_gcomp>0) {
+						forAll(Cg,i) {Cg[i]().storePrevIter();}
+						#include "transport/CgiEqn.H"
+						}
+					if (flgR) {
+						#include "phreeqc/calcReaction.H"
+						}
+					}
+				tcnt++;
+				/* for variable transp steps
+				iflowStep = 0;
+				nextTimeTransp = mesh.time().value()+min(dtForC/2.,maxDeltaT);
+				oldTimeTransp = runTime.value()*1;
+				std::cout<<"end trsp, pres "<<mesh.time().value()<<" next "<<nextTimeTransp<<"\n";
+				*/
 				}
-			}
+			//}
 			
-		//***************  solve reaction  *************************
 		//bool ts = runTime.write();
 		//write
 		#include "observation.H"

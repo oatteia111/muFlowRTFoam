@@ -75,8 +75,8 @@ volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField 
 		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
 		volScalarField T0 = fparms[0]*max(C-fparms[1]*Xref,0.);
 		volScalarField kC = fparms[2] + fparms[3]*C/Xref + fparms[4]*pow(C/Xref,2);
-		volScalarField nC = fparms[5] +C*0;//+ fparms[4] *log(1+max(C,1e-20)/Xref/fparms[5]);
-		volScalarField muInf = fparms[6] + fparms[7]*C/Xref;
+		volScalarField nC = fparms[5] + fparms[6] *log(1+max(C,1e-20)/Xref/fparms[7]);
+		volScalarField muInf = fparms[8] + fparms[9]*C/Xref;
 		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
 		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco
 		fact = max(min(fact,2e3),1.);

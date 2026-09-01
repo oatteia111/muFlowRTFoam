@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
 		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
 		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;} // usefull?
 		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
-		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<" oldtReac "<<oldTimeReac<<endl;
+		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<endl;
 
 		if ((dt1==0)||(dt2==0)) {
 			if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
@@ -452,18 +452,20 @@ int main(int argc, char *argv[])
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
 		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
-<<<<<<< Updated upstream
-		runTime.read();
-		runTime++;tstep++;tcnt++;
-=======
 		//runTime.read(); //removed in v13
 		runTime++;tstep++;
->>>>>>> Stashed changes
 		float dt = runTime.deltaTValue();
 		scalar reactStep = (wTimes[itwstep]-wTimes[itwstep-1])/rSteps; // length of the reaction step
 		//if (mesh.time().value()==wtime) {flagW=1;}
 		Info <<"time = "<< mesh.time().value() <<" deltaT = " <<  dt << " tnext "<<tnext<<" newdeltaT "<<newDeltaT<<" reactStep "<<reactStep<<endl;
 		
+		//tsteps for reactions
+		if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
+		if (rSteps>0) {if (rcnt>=rSteps) {rcnt=1;} }
+		int flgR =0;
+		if (rSteps>0) {if (runTime.value() >= wTimes[itwstep-1]+reactStep*rcnt) flgR=1;} // here the time to write is a portion of current time period
+		if (rSteps<0) {if (tcnt == -rSteps-1) flgR=1;} // here the time is a number of flow/transport time steps
+		Info<<"for react tcnt "<<tcnt<<" wtime "<<wTimes[itwstep-1]<<" lim "<<wTimes[itwstep-1]+reactStep*rcnt<<" rstep "<<rSteps<<" tcnt "<<tcnt<<" rcnt "<<rcnt<<" flgR "<<flgR<<endl;
 		//***********************  solve coupling case (we assume all coupling require h/C loop) *******************************
 		if (coupling ==1) // we assume Picard
 			{
@@ -489,7 +491,8 @@ int main(int argc, char *argv[])
 					{ runTime.setTime(presentTime,tstep); break; }
 				}  // end picard iter
 			Info << "Picard nb iterations : "<<iterPicard<<endl;
-			if (activateReaction==1) {
+			tcnt++;
+			if ((activateReaction==1)&&(flgR==1)) {
 				#include "phreeqc/calcReaction.H"
 			}
 			if (iterPicard == maxIterPicard) {deltaTFact = 0.2;h_tmp=h1;h=h1;rewind=1;}
@@ -531,15 +534,18 @@ int main(int argc, char *argv[])
 				if (activateReaction==0) {
 					#include "transport/CEqn.H"
 					}
-				else { //reaction occurs
+				else {
 					forAll(Cw,i) {Cw[i]().storePrevIter();} // for cells outside calculation
 					#include "transport/CwiEqn.H"
 					if (ph_gcomp>0) {
 						forAll(Cg,i) {Cg[i]().storePrevIter();}
 						#include "transport/CgiEqn.H"
 						}
-					#include "phreeqc/calcReaction.H"
+					if (flgR) {
+						#include "phreeqc/calcReaction.H"
+						}
 					}
+				tcnt++;
 				/* for variable transp steps
 				iflowStep = 0;
 				nextTimeTransp = mesh.time().value()+min(dtForC/2.,maxDeltaT);
@@ -554,14 +560,12 @@ int main(int argc, char *argv[])
 		#include "observation.H"
 		#include "budget.H"
 		
-		if (flagW==1) {runTime.writeNow();Info<<"l548, writing"<<endl;
-			if (rSteps>0) {tcnt=0;rcnt=1;}
-			}
+		if (flagW==1) {runTime.writeNow();tcnt=0;rcnt=1;Info<<"l548, writing"<<endl;}
 		
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/runTime.timeName()/"Species");
+			std::ofstream outFile(cur_dir/runTime.timeName(runTime.value())/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			std::cout<<"write nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 			for (j=0;j<nxyz;j++)

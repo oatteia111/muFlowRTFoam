@@ -6,7 +6,7 @@ Info<< "Reading field Deffw if present\n" << endl;
 volTensorField Deffw
 (
     IOobject
-    ("Deffw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),
+    ("Deffw",runTime.timeName(runTime.value()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),
     mesh,
 	dimensionedTensor("",dimArea/dimTime,Zero) 
 );
@@ -30,7 +30,7 @@ forAll (ECw, i)
 		(
 			new volScalarField
 			(
-			 IOobject(nameCi,runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
+			 IOobject(nameCi,runTime.timeName(runTime.value()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
 			 mesh,
 			 dimensionedScalar("",dimMoles/dimVolume,0.), //freak.solu_conc[i]
 			 bcTypes

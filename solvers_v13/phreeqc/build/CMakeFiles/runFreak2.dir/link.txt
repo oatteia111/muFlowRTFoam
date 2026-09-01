@@ -1,0 +1,1 @@
+/usr/bin/c++ -rdynamic CMakeFiles/runFreak2.dir/runFreak2.cpp.o -o runFreak2  -ldl -lm -lphreeqcrm 

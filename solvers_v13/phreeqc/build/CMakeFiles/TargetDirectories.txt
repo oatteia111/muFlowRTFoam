@@ -1,0 +1,3 @@
+/home/oatteia/muFlowRT/solvers/phreeqc/build/CMakeFiles/runFreak2.dir
+/home/oatteia/muFlowRT/solvers/phreeqc/build/CMakeFiles/edit_cache.dir
+/home/oatteia/muFlowRT/solvers/phreeqc/build/CMakeFiles/rebuild_cache.dir

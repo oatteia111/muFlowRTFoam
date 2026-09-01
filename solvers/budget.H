@@ -96,8 +96,7 @@ if (flagW==1) // write the files
 		fich1<<"\n";
 		}
 	fich1.close();
-	sqIHfix=0;sqIHwel=0;sqIHdrn=0;sqIHghb=0;sqIHrch=0;
-	sqOHfix=0;sqOHwel=0;sqOHdrn=0;sqOHghb=0;sqOHrch=0;
+	//sqIHfix=0;sqIHwel=0;sqIHdrn=0;sqIHghb=0;sqIHrch=0;sqOHfix=0;sqOHwel=0;sqOHdrn=0;sqOHghb=0;sqOHrch=0;
 	//transport
 	if ((activateTransport==1)&&(activateReaction==0))
 		{
@@ -109,8 +108,7 @@ if (flagW==1) // write the files
 			fich1<<"\n";
 			}
 		fich1.close();
-		sqICfix=0;sqICwel=0;sqICdrn=0;sqICghb=0;sqICrch=0;
-		sqOCfix=0;sqOCwel=0;sqOCdrn=0;sqOCghb=0;sqOCrch=0;
+		//sqICfix=0;sqICwel=0;sqICdrn=0;sqICghb=0;sqICrch=0;sqOCfix=0;sqOCwel=0;sqOCdrn=0;sqOCghb=0;sqOCrch=0;
 		}
 	//thermal
 	if (activateThermal==1)
@@ -122,8 +120,7 @@ if (flagW==1) // write the files
 			fich1<<"\n";
 			}
 		fich1.close();
-		sqITfix=0;sqITwel=0;sqITdrn=0;sqITghb=0;sqITrch=0;
-		sqOTfix=0;sqOTwel=0;sqOTdrn=0;sqOTghb=0;sqOTrch=0;
+		//sqITfix=0;sqITwel=0;sqITdrn=0;sqITghb=0;sqITrch=0;sqOTfix=0;sqOTwel=0;sqOTdrn=0;sqOTghb=0;sqOTrch=0;
 	}
 	if (activateReaction==1)
 	{
@@ -138,8 +135,7 @@ if (flagW==1) // write the files
 				fich1<<"\n";
 				}
 			fich1.close();
-			sqISfix[ic]=0;sqISwel[ic]=0;sqISdrn[ic]=0;sqISghb[ic]=0,sqISrch[ic]=0;
-			sqOSfix[ic]=0;sqOSwel[ic]=0;sqOSdrn[ic]=0;sqOSghb[ic]=0,sqOSrch[ic]=0;
+			//sqISfix[ic]=0;sqISwel[ic]=0;sqISdrn[ic]=0;sqISghb[ic]=0,sqISrch[ic]=0;sqOSfix[ic]=0;sqOSwel[ic]=0;sqOSdrn[ic]=0;sqOSghb[ic]=0,sqOSrch[ic]=0;
 			}
 		int ng = ph_gcomp;//std::cout<<"bud gcomp "<<ng<<" size budGas "<<budGas.size()<<"\n";
 		for (int ig=0;ig<ph_gcomp;ig++)
@@ -152,7 +148,7 @@ if (flagW==1) // write the files
 				fich1<<budFlow[ib*11]<<" "<<budGas[ib*ng+ig]<<"\n";  // budFlow is time
 				}
 			fich1.close();
-			sqOGdiff[ig]=0;
+			//sqOGdiff[ig]=0;
 			}
 	}
 	bindex=0;budFlow.resize(0);budC.resize(0);budT.resize(0);budSolu.resize(0);budGas.resize(0);

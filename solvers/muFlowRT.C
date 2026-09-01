@@ -452,13 +452,9 @@ int main(int argc, char *argv[])
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
 		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
-<<<<<<< Updated upstream
-		runTime.read();
+		runTime.read(); //needs to be removed in v13
 		runTime++;tstep++;tcnt++;
-=======
-		//runTime.read(); //removed in v13
-		runTime++;tstep++;
->>>>>>> Stashed changes
+
 		float dt = runTime.deltaTValue();
 		scalar reactStep = (wTimes[itwstep]-wTimes[itwstep-1])/rSteps; // length of the reaction step
 		//if (mesh.time().value()==wtime) {flagW=1;}

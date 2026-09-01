@@ -5,9 +5,14 @@ dimensionedScalar USMALL("",dimLength/dimTime,1e-36);
 thetaw = eps*sw;
 //Deffw = (alphaT * mag(Ut))*tensor::I + (alphaL-alphaT) * (Ut*Ut)/(mag(Ut)+USMALL);
 //Deffw = (alphaT * mag(Uw) + Dw0* pow(thetaw,3.333) /pow(eps,2.))*tensor::I + (alphaL-alphaT) * (Uw*Uw)/(mag(Uw)+USMALL);//Info<<"Deffw "<<Deffw<<endl;
-Deffw = (sqr(Uw) & alpha_tens1 + Uw.component(1)*Uw.component(1) * alpha_tens2 + Uw.component(2)*Uw.component(2) * alpha_tens3)/mag(Uw);
+//Deffw = (sqr(Uw) & alpha_tens1 + Uw.component(1)*Uw.component(1) * alpha_tens2 + Uw.component(2)*Uw.component(2) * alpha_tens3)/mag(Uw);
+volScalarField Uw_y = Uw.component(1);
+volScalarField Uw_z =  Uw.component(2);
+//!!! in eq below if a&b not in parentheses, there is a pb of dimensions !!!
+Deffw = ((sqr(Uw) & alpha_tens1) + sqr(Uw_y) * alpha_tens2 + sqr(Uw_z)* alpha_tens3)/(mag(Uw)+USMALL);
+Deffw = Deffw + Dw0* pow(thetaw,3.333) /pow(eps,2.)*tensor::I;
 
-Info<<" dw0 "<<Dw0<<" def(15) "<<Deffw[15]<<endl;
+//Info<<" dw0 "<<Dw0<<" def(15) "<<Deffw[15]<<endl;
 //Deffw = Dw0 * pow(thetaw,3.33)/pow(eps,2.)*tensor::I;
 //forAll(Deffw(), i)  { if (sw[i]<sw_min[i]*1.5) {Deffw[i].zz()=0;} }; 
 

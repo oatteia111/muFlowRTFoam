@@ -6,7 +6,7 @@ Info << "Reading unsat properties\n" << endl;
 //dimensionedScalar alpha_vg(transportProperties.lookupOrDefault("alpha_vg",dimensionedScalar("alpha_vg",dimless/dimLength,10.0)));
 volScalarField hp
 (
-    IOobject("hp",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("hp",dimLength,0)
+    IOobject("hp",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("hp",dimLength,0)
 );
 volScalarField hp1=hp;
 volScalarField hp_tmp=hp;

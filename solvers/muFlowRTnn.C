@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 		runTime.read();
 		// #include "transport/setDeltaTtrsp.H"
 		runTime++;
-		Info << "time = " << mesh.time().name() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << mesh.time().timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		outTime << mesh.time().value()/86400.<<" ";
 		// *********** here provide change of density and viscosity if required
 		
@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
 		if (ts && flowType==4) {phiGr.write();}
 		if (ts && activateReaction==1) {
 			phiw.write();phig.write();flag1step=1;
-			std::ofstream outFile(cur_dir/ mesh.time().name() /"Species");
+			std::ofstream outFile(cur_dir/ mesh.time().timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (const auto &x : freak.spc) outFile << x << "\n";
 		}

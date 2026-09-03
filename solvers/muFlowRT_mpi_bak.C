@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 		if (istep==0) {runTime++;}  // needed to find the values below
 		runTime.read();
 		//verify if delatT too long for next write time
-		Info << "time = " << mesh.time().name() << "  iTwrite " <<  itWrite <<" tw "<<writetimes[itWrite]<<  endl;
+		Info << "time = " << mesh.time().timeName() << "  iTwrite " <<  itWrite <<" tw "<<writetimes[itWrite]<<  endl;
 		if (itWrite<writetimes.size()) {
 			if (flgWrite==1) {
 				runTime.setDeltaT((oldDeltaT+runTime.deltaTValue())/2.);flgWrite=0;
@@ -308,9 +308,9 @@ int main(int argc, char *argv[])
 				}
 			else {oldDeltaT = runTime.deltaTValue();flgWrite=0;} //normal tstep, keep track of dt to avoid too short tstep after printing
 			}
-		Info << "time = " << mesh.time().name() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
+		Info << "time = " << mesh.time().timeName() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
 		runTime++;
-		Info << "time = " << mesh.time().name() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
+		Info << "time = " << mesh.time().timeName() << "  deltaT = " <<  runTime.deltaTValue() << " flgWrite "<<flgWrite<<endl;
 		
 		// *********** here provide change of density and viscosity if required
 		
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
 		if ((activateReaction==1)&&(ts || flgWrite))
 			{
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/ mesh.time().name() /"Species");
+			std::ofstream outFile(cur_dir/ mesh.time().timeName() /"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (const auto &x : freak.spc) outFile << x << "\n";
 			/*//start write species file in columns

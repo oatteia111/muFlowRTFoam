@@ -8,15 +8,15 @@ dimensionedScalar lbdas(transportProperties.lookupOrDefault("lbdas",dimensionedS
 
 volScalarField C1w
 (
-    IOobject("C1w",mesh.time().name(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
+    IOobject("C1w",mesh.time().timeName(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
 );
 volScalarField C1g
 (
-    IOobject("C1g",mesh.time().name(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
+    IOobject("C1g",mesh.time().timeName(), mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
 );
 volScalarField C1s
 (
-    IOobject("C1s",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
+    IOobject("C1s",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/dimVolume,0) 
 );
 
 volScalarField Defft ("Defft", unity*1e-10);
@@ -26,11 +26,11 @@ volScalarField thet1 ("thet1", unity);
 
 volScalarField massTransfer_g
 (
-    IOobject("massTransfer_g",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/(dimVolume*dimTime),0.) 
+    IOobject("massTransfer_g",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/(dimVolume*dimTime),0.) 
 );
 volScalarField massTransfer_s
 (
-    IOobject("massTransfer_s",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/(dimVolume*dimTime),0.) 
+    IOobject("massTransfer_s",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimMass/(dimVolume*dimTime),0.) 
 );
 
 // -------------- conditions for concentration -------------

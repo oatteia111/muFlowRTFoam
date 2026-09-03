@@ -560,7 +560,7 @@ int main(int argc, char *argv[])
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/mesh.time().name()/"Species");
+			std::ofstream outFile(cur_dir/mesh.time().timeName()/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			std::cout<<"write nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 			for (j=0;j<nxyz;j++)

@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     {
 		#include "setDeltaT.H"
 		runTime++;
-		Info << "time = " << mesh.time().timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << mesh.time().value() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************

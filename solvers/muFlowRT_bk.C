@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 		// #include "transport/setDeltaTtrsp.H"
 		runTime++;tstep++;
 		//if (mesh.time().value()==wtime) {flagW=1;}
-		Info << "time = " << mesh.time().timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << mesh.time().value() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
@@ -493,7 +493,7 @@ int main(int argc, char *argv[])
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/mesh.time().timeName()/"Species");
+			std::ofstream outFile(cur_dir/name(mesh.time().value())/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			for (j=0;j<nxyz;j++)
 				{

@@ -161,7 +161,7 @@ if (coupling ==1) {
 	for (i=0;i<6;i++) {Info<<factM[i]<<" ";} Info<<endl;
 	if (flagW==1) {
 		std::cout<<"in write cpl fact "<<"\n";
-		std::ofstream outFact(cur_dir/mesh.time().timeName()/"factM");
+		std::ofstream outFact(cur_dir/name(mesh.time().value())/"factM");
 		outFact.unsetf(std::ios::scientific);outFact.precision(6);
 		for (j=0;j<ncell;j++) {outFact<<factM[j]<<"\n";}
 		outFact << std::endl;

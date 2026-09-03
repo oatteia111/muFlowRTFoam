@@ -11,7 +11,7 @@ dimensionedScalar rhog(transportProperties.lookupOrDefault("rhog",dimensionedSca
 dimensionedScalar mug(transportProperties.lookupOrDefault("mug",dimensionedScalar("mug",dimensionSet(1,-1,-1,0,0,0,0),1e-5)));
 volVectorField Ug
 (
-    IOobject("Ug",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Ug",dimLength/dimTime,vector::zero)
+    IOobject("Ug",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Ug",dimLength/dimTime,vector::zero)
 );
 surfaceScalarField phig ("phig",phiw*0);
 //Info<<"sw "<<sw<<endl;
@@ -35,7 +35,7 @@ volScalarField comp_g(IOobject("comp_g",runTime.constant(),mesh,IOobject::READ_I
 
 volScalarField krg ("krg", pow(1-Se,0.5) * pow(1-pow(Se,1/m_vg),2*m_vg) );//Info<<"krg "<<krg<<endl;
 volScalarField Seg = Se;
-volScalarField sg (IOobject("sg",mesh.time().timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sg",dimless,0));
+volScalarField sg (IOobject("sg",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sg",dimless,0));
 surfaceScalarField krgf ("krgf",fvc::interpolate(krg,"krg"));//Info<<"krgf "<<krgf<<endl;
 volScalarField pc(IOobject("pc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("pc",dimensionSet(1,-1,-2,0,0,0,0),1.));
 pc==pc0*pow(pow(Se+VSMALL,-1./m_vg)-1,1./n_vg);//Info<<"pc "<<pc<<endl;
@@ -91,13 +91,13 @@ Info<<"end Mf"<<endl;
 // Su
 volScalarField::Internal pSu
 (
-   IOobject("pSu",mesh.time().timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("pSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
 );
 volScalarField::Internal fSu
 (
-   IOobject("fSu",mesh.time().timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("fSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) // the overall eq in in m3.s-1
 );

@@ -7,9 +7,9 @@ scalar diffusionEqn(transportProperties.lookupOrDefault<scalar>("diffusionEqn",0
 
 Info<< "Reading field factDg if present\n" << endl;
 volTensorField Deffg
-(IOobject("Deffg",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedTensor("",dimArea/dimTime,Zero) );
+(IOobject("Deffg",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedTensor("",dimArea/dimTime,Zero) );
 
-volScalarField factDg( IOobject("factDg",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimless,1.) );
+volScalarField factDg( IOobject("factDg",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("",dimless,1.) );
 
 Info <<"in Cgfield nxyz "<<nxyz<< " g comp "<<ph_gcomp << " factDg "<<factDg[0]<<" "<<factDg[1]<<endl;
 
@@ -36,7 +36,7 @@ forAll (Cg, i)
 		(
 			new volScalarField
 			(
-			 IOobject(nameCi,runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
+			 IOobject(nameCi,mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
 			 mesh,
 			 dimensionedScalar("",dimMass/dimVolume,0.), //freak.solu_conc[i]
 			 bcTypes
@@ -46,14 +46,14 @@ forAll (Cg, i)
 // creating the internal Su and Sp fields to input conditions inside the domain
 volScalarField::Internal GiSu
 (
-   IOobject("GiSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("GiSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 );
 
 volScalarField::Internal GiSp
 (
-   IOobject("GiSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("GiSp",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
 );

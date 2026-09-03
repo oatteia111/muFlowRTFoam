@@ -29,7 +29,7 @@ while (simple.loop(runTime))
 		);
 	//Cw.storePrevIter();
 	fvOptions.constrain(CwEqnStd);
-	//Info<<"Cw time "<<runTime.timeName()<<" sum resid "<<sum(CwEqnStd.residual())<<endl;
+	//Info<<"Cw time "<<mesh.time().name()<<" sum resid "<<sum(CwEqnStd.residual())<<endl;
 	CwEqnStd.solve();
 	//Info <<"resid "<<CwEqnStd.residual()()[67171]<<endl;//.value()<<endl;
 	//fvOptions.correct(Cw);

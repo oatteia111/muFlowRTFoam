@@ -8,28 +8,28 @@ const dimensionedScalar FK( "FaradayConstant", (eK*AK).dimensions(),(eK*AK).valu
 const dimensionedScalar  Rgas ("gasConstant",dimensionSet(1,2,-2,-1,-1,0,0),8.31446  ); // ok valid for units and value
 
 dimensionedScalar D25("D25", dimensionSet(0,2,-1,0,0,0,0), 1e-12);
-//volScalarField D25(IOobject("D25",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("D25", dimensionSet(0,2,-1,0,0,0,0), 1e-12));
+//volScalarField D25(IOobject("D25",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("D25", dimensionSet(0,2,-1,0,0,0,0), 1e-12));
 dimensionedVector extraE (transportProperties.lookupOrDefault<dimensionedVector>("extraEField", dimensionedVector("0", dimensionSet(1, 1, -3, 0, 0, -1, 0), vector::zero)));
 scalar relPerm (transportProperties.lookupOrDefault<scalar>( "dielectricConstant", 80. )); //water relative permittivity (seems seawater is 81)
 dimensionedScalar TK(transportProperties.lookupOrDefault("tempKelvin",dimensionedScalar("tempKelvin",dimTemperature,298)));
 
-volScalarField JE(IOobject("JE",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("JE",dimensionSet(1,-2,-1,0,0,0,0),0.));
+volScalarField JE(IOobject("JE",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("JE",dimensionSet(1,-2,-1,0,0,0,0),0.));
 volScalarField JEpos = JE;
 volScalarField JEneg = JE;
-volScalarField fJE(IOobject("fJE",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("fJE",dimless,0.));
+volScalarField fJE(IOobject("fJE",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("fJE",dimless,0.));
 volScalarField fJE1 = fJE;
 volScalarField JE1 = JE;
 volScalarField JE_tmp = JE;
 volScalarField cf = D25 * FK / (Rgas*TK)*eps;
 volScalarField psiE
 (
-    IOobject("psiE",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
+    IOobject("psiE",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
 	mesh,
 	dimensionedScalar("psiE",dimensionSet(1,2,-3,0,0,-1,0),0)  //this is in volts=kg.m^2/(A.s^3)
 );
 volScalarField psiI
 (
-    IOobject("psiI",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
+    IOobject("psiI",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
 	mesh,
 	dimensionedScalar("psiI",dimensionSet(1,2,-3,0,0,-1,0),0),
 	bcTypes

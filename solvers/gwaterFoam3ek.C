@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     {
 		#include "setDeltaT.H"
 		runTime++;
-		Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+		Info << "time = " << mesh.time().name() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 		// *********** here provide change of density and viscosity if required
 		
 		//***********************  solve transient flow   *******************************
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 		//write species
 		if (ts ) {
 			phiw.write();
-			std::ofstream outFile(cur_dir/ runTime.timeName() /"Species");
+			std::ofstream outFile(cur_dir/ mesh.time().name() /"Species");
 			for (const auto &x : freak.spc) outFile << x << "\n";
 		}
 		

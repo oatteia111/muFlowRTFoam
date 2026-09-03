@@ -11,7 +11,7 @@ residu = 1e5;surfaceScalarField M1f = M0f;
 for (int ii=0;ii<50;ii++)
 {
 double a = std::min(double(ii/20.),1.);
-Info << "time = " << runTime.timeName() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
+Info << "time = " << mesh.time().name() <<  "  deltaT = " <<  runTime.deltaTValue() << endl;
 
 	/* if they are bc in Uw :-> removed from now one
 	Uw.correctBoundaryConditions();

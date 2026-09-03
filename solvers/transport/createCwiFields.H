@@ -6,7 +6,7 @@
 volTensorField Deffw
 (
     IOobject
-    ("Deffw",runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),
+    ("Deffw",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),
     mesh,
 	dimensionedTensor("",dimArea/dimTime,Zero) 
 );
@@ -42,7 +42,7 @@ forAll (Cw, i)
 		(
 			new volScalarField
 			(
-			 IOobject(nameCi,runTime.timeName(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
+			 IOobject(nameCi,mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),
 			 mesh,
 			 dimensionedScalar("",dimMass/dimVolume,0.), //freak.solu_conc[i]
 			 bcTypes
@@ -53,14 +53,14 @@ forAll (Cw, i)
 // creating the internal Su and Sp fields to input conditions inside the domain
 volScalarField::Internal CiSu
 (
-   IOobject("CiSu",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("CiSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 );
 
 volScalarField::Internal CiSp
 (
-   IOobject("CiSp",runTime.timeName(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("CiSp",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
 );

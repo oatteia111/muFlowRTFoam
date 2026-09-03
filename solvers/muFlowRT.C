@@ -51,7 +51,7 @@ Developers
 #include "Time.H"
 #include "argList.H"
 #include "fvPatchFields.H"
-
+#include "foamVersion.H"
 
 #include "fvSchemes.H"
 //#include "incompressiblePhase.H"
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 	
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();
-	dimensionedScalar et = runTime.endTime();
+	//dimensionedScalar et = runTime.endTime();
 	float dt0 = mesh.time().deltaTValue();
 	scalar residu;//float dt0=wtime/50.;Info<<"wtime 0 "<<wtime<<" dt "<<dt0<<endl;
 	if ((flowStartSteady==1)&&(flowType>0)&&(flowType<=2))
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		}
 	// ###################  starting timer ######################
 	Info <<"st time "<<st<<endl;
-	runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
+	//runTime.setEndTime(et); Info<<"end "<<runTime.endTime()<<endl;
 	runTime.runTimeModifiable();
 	Info <<"dt "<<dt0<<endl;
 	
@@ -431,11 +431,11 @@ int main(int argc, char *argv[])
 
 		if ((dt1==0)||(dt2==0)) {
 			if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-			if (dt2==0) {tnext=runTime.endTime().value();}
+			if (dt2==0) {tnext=readScalar(runTime.controlDict().lookup("endTime"));}
 		    }
 		else if ((dt1<= newDeltaT*(1+1e-5))&&(dt1==dt2)) //both BC and W
 			{newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
-			runTime.setDeltaTNoAdjust(dt1);tnext=runTime.endTime().value();
+			runTime.setDeltaTNoAdjust(dt1);tnext=readScalar(runTime.controlDict().lookup("endTime"));
 			itwstep+=1;wtime=wTimes[itwstep];
 			flagBC=1;flagW=1;} 
 		else if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)&&(dt1<dt2)) //write, 9/6 readd < 
@@ -444,15 +444,18 @@ int main(int argc, char *argv[])
 			flagW=1;
 			}
 		else if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)&&(dt2<dt1)) //BC change //9/6 readd < 
-			{runTime.setDeltaTNoAdjust(dt2);tnext=runTime.endTime().value();
+			{runTime.setDeltaTNoAdjust(dt2);tnext=readScalar(runTime.controlDict().lookup("endTime"));
 			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;
-			flagBC=1;} //;tnext=runTime.endTime().value()
+			flagBC=1;} //;tnext=readScalar(runTime.controlDict().lookup("endTime"))
 		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
 		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
-		runTime.read(); //needs to be removed in v13
+		#if defined(OPENFOAM) && (OPENFOAM <= 100)
+			// Ce code est lu et compilé UNIQUEMENT sur OpenFOAM v10 (ou inférieur)
+			runTime.read();
+		#endif
 		runTime++;tstep++;tcnt++;
 
 		float dt = runTime.deltaTValue();
@@ -557,7 +560,7 @@ int main(int argc, char *argv[])
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/runTime.timeName()/"Species");
+			std::ofstream outFile(cur_dir/mesh.time().name()/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			std::cout<<"write nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 			for (j=0;j<nxyz;j++)

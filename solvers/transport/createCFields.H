@@ -17,14 +17,14 @@ scalar reactIndicator = 0; // indicator for reaction; 0 crank; 1 euler
 Info<< "Reading field C\n" << endl;
 wordList bcTypes (Kh.boundaryField().size(),zeroGradientFvPatchScalarField::typeName);
 volScalarField rhos(IOobject("rhos",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("rhos",dimMass/dimVolume,2650),bcTypes);
-volScalarField C(IOobject("C",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("C",dimMass/dimVolume,0),bcTypes);
+volScalarField C(IOobject("C",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("C",dimMass/dimVolume,0),bcTypes);
 
 volScalarField foc //organic matter content
 (
 	IOobject("foc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("foc",dimless,0),bcTypes
 );
 volScalarField Rf
-(	IOobject("Rf",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("Rf",dimless,1),bcTypes);
+(	IOobject("Rf",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("Rf",dimless,1),bcTypes);
 
 std::vector<std::string> sorbDecStr;
 std::ifstream inputSorbDec{cur_dir+"/constant/options/sorptionDecay" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
@@ -49,30 +49,30 @@ alpha_tens2.value().yy()= 0.;
 dimensionedTensor alpha_tens3("alpha_tens3",dimLength, aaTV * tensor::I);
 alpha_tens3.value().zz()= 0.;
 Info<<"alp tensors "<<alpha_tens1<<" "<<alpha_tens2<<" "<<alpha_tens3;
-volTensorField Deffw(IOobject("Deffw",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedTensor("Deffw",dimArea/dimTime,Zero) );
+volTensorField Deffw(IOobject("Deffw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedTensor("Deffw",dimArea/dimTime,Zero) );
 
 // creating the internal Su and Sp fields to input temperature conditions inside the domain
 volScalarField::Internal CSu
 (
-   IOobject("CSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("CSu",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 );
 
 volScalarField::Internal gamw
 (
-   IOobject("gamw",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("gamw",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,dimensionedScalar("one",dimensionSet(1,-3,-1,0,0,0,0),gammaw.value()) 
 );
 
 volScalarField::Internal CSp
 (
-   IOobject("CSp",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("CSp",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0) 
 );
 
 volScalarField::Internal AgeSu
 (
-   IOobject("AgeSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("AgeSu",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,dimensionedScalar("one",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 );
 // -------------- conditions for concentration -------------

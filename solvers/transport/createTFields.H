@@ -10,7 +10,7 @@ scalar dT=1e-9;scalar dT1=1e-9;
 Info<< "Reading field T\n" << endl;
 volScalarField T  // Temperature
 (
-    IOobject("T",mesh.time().name(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("T",dimTemperature,25.)
+    IOobject("T",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("T",dimTemperature,25.)
 );
 
 
@@ -30,7 +30,7 @@ volScalarField lbdaT = sw*eps*lbdaTw + (1-eps)*lbdaTs;
 // creating the internal Su and Sp fields to input temperature conditions inside the domain
 volScalarField::Internal TSu
 (
-   IOobject("TSu",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("TSu",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(1,-3,-1,1,0,0,0),0.0) // the overall eq in in K.s-1 but rhow is included in Tsu
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false
@@ -38,7 +38,7 @@ volScalarField::Internal TSu
 
 volScalarField::Internal TSp
 (
-   IOobject("TSp",mesh.time().name(),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
+   IOobject("TSp",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),
 		mesh,
 		dimensionedScalar("zero",dimensionSet(1,-3,-1,0,0,0,0),0.0) 
 		//dimensioned<scalar>("zero",eqn.dimensions()/dimVolume/psi.dimensions(),0.0), false

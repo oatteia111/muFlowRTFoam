@@ -101,7 +101,13 @@ using namespace Foam;//utilisteias and plugins declaration
 int main(int argc, char *argv[])
 {
 	my_phq freak; 
-
+	
+	#if OPENFOAM >= 230000
+		#define TIME_NAME(t) (t).name()
+	#else
+		#define TIME_NAME(t) (t).timeName()
+	#endif
+	
 	//init openFoam
 	#include "setRootCase.H"
     #include "createTime.H"

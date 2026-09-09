@@ -1,3 +1,0 @@
-muFlowRT.C
-
-EXE = $(FOAM_USER_APPBIN)/muFlowRT

@@ -1,6 +1,6 @@
 dimensionedScalar alphaL(transportProperties.lookupOrDefault("alphaL",dimensionedScalar("alphaL",dimLength,0.0)));
 dimensionedScalar alphaT(transportProperties.lookupOrDefault("alphaT",dimensionedScalar("alphaT",dimLength,0.0)));
-dimensionedScalar alphaTV(transportProperties.lookupOrDefault("alphaTV",dimensionedScalar("alphaTV",dimLength,0.0)));
+dimensionedScalar alphaTZ(transportProperties.lookupOrDefault("alphaTZ",dimensionedScalar("alphaTZ",dimLength,0.0)));
 dimensionedScalar lbdaw(transportProperties.lookupOrDefault("lbdaw",dimensionedScalar("lbdaw",dimless/dimTime,0.0)));
 dimensionedScalar gammaw(transportProperties.lookupOrDefault("gammaw",dimensionedScalar("gammaw",dimensionSet(1,-3,-1,0,0,0,0),0.0)));
 dimensionedScalar Dw0(transportProperties.lookupOrDefault("Dw0",dimensionedScalar("Dw0",dimArea/dimTime,1e-10)));
@@ -42,13 +42,17 @@ if (sorbDecStr.size()>0) {
 // create tensors for verical dispersivity
 scalar aaL = alphaL.value();
 scalar aaT = alphaT.value();
-scalar aaTV = alphaTV.value();
-dimensionedTensor alpha_tens1("alpha_tens1",dimLength,tensor(aaL,aaL-aaT,aaL-aaTV, aaL-aaT,aaL,aaL-aaTV, aaL-aaTV,aaL-aaTV,aaL));
+scalar aaTV = alphaTZ.value();
+dimensionedTensor alpha_tens0("alpha_tens0",dimLength,tensor(aaL,aaL-aaT,aaL-aaTV, aaL-aaT,aaL,aaL-aaTV, aaL-aaTV,aaL-aaTV,aaL));
+dimensionedTensor alpha_tens1("alpha_tens1",dimLength, aaT * tensor::I);
+alpha_tens1.value().xx()= 0.;
+alpha_tens1.value().zz()= aaTV;
 dimensionedTensor alpha_tens2("alpha_tens2",dimLength, aaT * tensor::I);
 alpha_tens2.value().yy()= 0.;
+alpha_tens2.value().zz()= aaTV;
 dimensionedTensor alpha_tens3("alpha_tens3",dimLength, aaTV * tensor::I);
 alpha_tens3.value().zz()= 0.;
-Info<<"alp tensors "<<alpha_tens1<<" "<<alpha_tens2<<" "<<alpha_tens3;
+Info<<"alp tensors "<<alpha_tens0<<" "<<alpha_tens1<<" "<<alpha_tens2<<" "<<alpha_tens3;
 volTensorField Deffw(IOobject("Deffw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedTensor("Deffw",dimArea/dimTime,Zero) );
 
 // creating the internal Su and Sp fields to input temperature conditions inside the domain

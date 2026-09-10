@@ -51,7 +51,6 @@ Developers
 #include "Time.H"
 #include "argList.H"
 #include "fvPatchFields.H"
-#include "foamVersion.H"
 
 #include "fvSchemes.H"
 //#include "incompressiblePhase.H"
@@ -100,15 +99,15 @@ using namespace Foam;//utilisteias and plugins declaration
 
 int main(int argc, char *argv[])
 {
-	my_phq freak; 
-	
-	#if OPENFOAM >= 230000
-		#define TIME_NAME(t) (t).name()
-	#else
-		#define TIME_NAME(t) (t).timeName()
-	#endif
+	my_phq freak;
 	
 	//init openFoam
+	#include "foamVersion.H"
+#if defined(WM_PROJECT_VERSION_NUMBER) &&  WM_PROJECT_VERSION_NUMBER >= 10
+    #define TIME_NAME(t) (t).name()
+#else
+    #define TIME_NAME(t) (t).timeName()
+#endif
 	#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -124,7 +123,6 @@ int main(int argc, char *argv[])
 	#include "EK/createEKFields.H"
 	
 	#include "readCoupling.H"
-	
 	scalar deltaTFact = 1;
 	// reading files times
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };

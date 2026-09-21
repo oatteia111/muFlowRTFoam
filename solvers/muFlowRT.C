@@ -92,9 +92,6 @@ int i,j,iw,oindex,bindex,nsel;int rSteps=1;
 using namespace Foam;//utilisteias and plugins declaration
 #include "utilities.h" // for reading binary reading tables..
 #include "myFunc.H"
-#include "plugins/plugin_H.H" //variables to be modified before the H equation
-#include "plugins/plugin_PS.H"
-#include "plugins/plugin_Cgi.H"
 // #include "transport/adaptiveReactiveDdtScheme.H" // new ddt solver to switch, bof added to matrix direclty
 
 int main(int argc, char *argv[])
@@ -103,11 +100,11 @@ int main(int argc, char *argv[])
 	
 	//init openFoam
 	#include "foamVersion.H"
-#if defined(WM_PROJECT_VERSION_NUMBER) &&  WM_PROJECT_VERSION_NUMBER >= 10
+ //#if defined(WM_PROJECT_VERSION_NUMBER) &&  WM_PROJECT_VERSION_NUMBER >= 10
     #define TIME_NAME(t) (t).name()
-#else
-    #define TIME_NAME(t) (t).timeName()
-#endif
+//#else
+//    #define TIME_NAME(t) (t).timeName()
+// #endif
 	#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -136,6 +133,10 @@ int main(int argc, char *argv[])
 	//cps = cps*tunits*tunits;cpw = cpw*tunits*tunits;lbdaTw = lbdaTw*tunits*tunits*tunits;lbdaTs = lbdaTs*tunits*tunits*tunits; // already mutilplied in input
 	std::cout<<" tunits "<<tunits<<" atmpa "<<atmPa<<"\n";
 	#include "flow/create2phaseFields.H"
+	
+#include "plugins/plugin_H.H" //variables to be modified before the H equation
+#include "plugins/plugin_PS.H"
+#include "plugins/plugin_Cgi.H"
 	
 	plugin_H plugH;
 	plugin_PS plugPS;
@@ -221,8 +222,8 @@ int main(int argc, char *argv[])
 		freak.setGm(gm_ph);//freak.setP(p_ph);
 		}
 	//***first init of phreeqc
-	int a0= phqInit(freak); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
-	a0=getSelOutput(freak);
+	int a0= freak.phqInit(freak); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
+	a0=freak.getSelOutput(freak);
 	nsel = freak.nselect;//std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 	species.resize(nxyz*nsel);
 	for (size_t k;k<freak.spc.size();k++) {species[k]=freak.spc[k];} // put the starting concentrations
@@ -297,7 +298,7 @@ int main(int argc, char *argv[])
 		p_ph.resize(nxyz);
 		for (j=0;j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 		freak.setP(p_ph); //not possible to set pressure and volume
-		a0= phqRun(freak); //****PHQ RUN with equilibration with true gas phase
+		a0= freak.phqRun(freak); //****PHQ RUN with equilibration with true gas phase
 		//(recalculate Vm) no, just to print
 		for (j=0;j<nxyz;j++)  {
 			//Gmtot = 0;
@@ -369,12 +370,12 @@ int main(int argc, char *argv[])
 		forAll(Cw,i) {for (j=0; j<nxyz;j++) {c_ph[i*nxyz+j] = Cw[i]()[ractive[j]];} };std::cout<<"conc read "<<Cw[4]()[233]<<"\n";
 		if (ph_gcomp>0)
 			 forAll(Cg,i) {for (j=0; j<nxyz;j++) {g_ph[i*nxyz+j] = Cg[i]()[ractive[j]];} };//std::cout<<"conc read "<<Cw[4]()[233]<<"\n";				 																														
-		int a0 = phqRestart(freak, ph_data,std::to_string(int(time)),c_ph,g_ph); // I did not find a way to send Cw -> dimensoin error?
+		int a0 = freak.phqRestart(freak, ph_data,std::to_string(int(time)),c_ph,g_ph); // I did not find a way to send Cw -> dimensoin error?
 		fname=cur_dir/"phqfoam1.txt";std::ifstream inputData1{fname};
 		std::vector<int> ph_data{std::istream_iterator<int>{inputData1}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
 		freak.setData(ph_data);
 		freak.setChemFile(cur_dir/"initChem1.pqi"); //Info << "initCh read " << endl;
-		a0=phqInit(freak);
+		a0=freak.phqInit(freak);
 		forAll(Cw,i) {for (j=0; j<nxyz;j++) {Cw[i]()[ractive[j]]=freak.c[i*nxyz+j];} };std::cout<<"conc read "<<Cw[4]()[233]<<"\n";
 		itwstep+=1;
 		std::cout<<"end restart "<< Cw[4]()[0]<<" \n";

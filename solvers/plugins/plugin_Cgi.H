@@ -17,7 +17,7 @@ public:
 		if (fexists(fname))
 			{
 			outTable table = readTable(fname);int ncol = table.ncol;std::cout<<"gcomp size "<<freak.gcomp.size()<<" ncol "<<ncol<<'\n';
-			for (i=0;i<table.nrow;i++) {
+			for (int i=0;i<table.nrow;i++) {
 				int ic = std::find(freak.gcomp.begin(),freak.gcomp.end(),table.headers[i])-freak.gcomp.begin(); //find the position of str in compn
 				this->lbdagi[ic]=table.data[i*ncol];std::cout<<"head "<<table.headers[i]<<" "<<this->lbdagi[ic]<<"\n";
 				}

@@ -55,14 +55,14 @@ if (flgR==1)
 	//freak.setP(p_ph);//transfer pressure to freak
 	freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<presentTime<<endl;//the calculation time shall include all time since las phreeqc run
 	Info << "running phreeqc dt "<<(runTime.value()-oldTimeReac)*tunits<<endl;
-	int a0= phqRun(freak);//Info<<"end results "<<a0<<endl;
+	int a0= freak.phqRun(freak);//Info<<"end results "<<a0<<endl;
 	//for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}
 	if (a0==-7) { // irm _fail : what to do
 		forAll(Cw,ic) { if (immobile[ic]==0) {Cw[ic]()=Cw[ic]().prevIter();} } // back to previous conc values
 		tcnt=rSteps-2;//insure that phreeqc will be run on next time step !!!!! oldTimeReac to be corrected
 		rewind=1;Info<<endl;continue;
 		} 
-	a0=getSelOutput(freak);
+	a0=freak.getSelOutput(freak);
 	for (j=0; j<nxyz;j++) {for (i=0;i<nsel;i++) { if (freak.spc[i*nxyz+j]<1e10) {species[i*nxyz+j] = freak.spc[i*nxyz+j];} } }
 
 	Info << "phreeqc done "<<endl;

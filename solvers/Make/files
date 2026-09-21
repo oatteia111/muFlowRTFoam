@@ -1,3 +1,4 @@
 muFlowRT.C
+phreeqc/initPhreeqc.C
 
 EXE = $(FOAM_USER_APPBIN)/muFlowRT

@@ -1,0 +1,33 @@
+ma structure
+le .C
+
+my_phq::my_phq()
+{
+	PhreeqcRM *PhreeqcRM_ptr;
+#ifdef USE_MPI
+	MPI_Comm rm_commxx;
+#endif
+	void setDB(std::string db){this->DB = db;}
+}
+// Exemple pour une méthode
+int my_phq::phqInit(my_phq & freak)
+{ ... }
+
+
+le .H
+#ifndef initPhreeqc_H
+#define initPhreeqc_H
+class PhreeqcRM; // Déclaration anticipée magique pour Windows
+int nxyz,ph_ncomp,ph_nspc,ph_gcomp,ph_nsolu;
+class my_phq
+{
+public :
+    my_phq(); // Juste un point-virgule, pas d'accolades avec du code
+
+	PhreeqcRM *PhreeqcRM_ptr;
+	std::string DB;
+
+	void setDB(std::string db){this->DB = db;}
+	
+    int phqInit(my_phq & freak);
+};

@@ -13,7 +13,7 @@
 #include <string>
 #include <chrono> 
 
-// PLUS AUCUN INCLUDE PHREEQC ICI (évite le bug Windows)
+// no includes here for windows bug
 
 class PhreeqcRM; // Déclaration anticipée magique pour Windows
 

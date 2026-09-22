@@ -8,6 +8,7 @@ SYS_INC = \
 		
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
+	-L/c/OF13/phreeqcrm-3.8.6-17100/build \
     -lfiniteVolume \
 	-lmeshTools \
-	-lphreeqcrm
+	-lPhreeqcRM

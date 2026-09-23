@@ -18,7 +18,6 @@
 class PhreeqcRM; // Déclaration anticipée magique pour Windows
 
 //int nthreads = 3;
-int nxyz,ph_ncomp,ph_nspc,ph_gcomp,ph_nsolu;
 
 ////////////////////// start phreeqc
 class my_phq
@@ -56,7 +55,7 @@ public :
 	std::vector<double> z;
 	std::vector<std::string> spcNames;
 
-	void setDB(const std::string& db);
+	void setDB(std::string db){this->DB = DB;}
 	void setData(std::vector<int> data){this->data = data;}
 	void setChemFile(std::string chfile){this->ChemFile = chfile;}
 	void setC(std::vector<double> c){this->c = c;}

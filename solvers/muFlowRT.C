@@ -42,6 +42,7 @@ Developers
 #include <sstream>
 #include <string>
 #include <chrono>  // for high_resolution_clock
+#include "partage.h"
 // #include "fvCFD.H" fro version 8-10, has disappeared now
 #include "fvMesh.H"
 #include "fvc.H"
@@ -65,10 +66,8 @@ Developers
 #include "simpleControl.H"
 #include "cellSet.H"
 
-//////////////////// find local dir
-#include <unistd.h>
-#define GetCurrentDir getcwd
-
+// static allows to have ade finiotn ofr muFlow and another for phreeqc
+#include <unistd.h> 
 std::string get_current_dir() {
    char buff[FILENAME_MAX]; //create string buffer to hold path
    GetCurrentDir( buff, FILENAME_MAX );
@@ -86,6 +85,7 @@ std::vector<float> wTimes;
 float atmPa=101325.;float pi=3.141592654;
 float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext,dure,tunits;
 int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
+int nxyz, ph_ncomp, ph_nspc, ph_gcomp, ph_nsolu; 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -100,11 +100,11 @@ int main(int argc, char *argv[])
 	
 	//init openFoam
 	#include "foamVersion.H"
- //#if defined(WM_PROJECT_VERSION_NUMBER) &&  WM_PROJECT_VERSION_NUMBER >= 10
-    #define TIME_NAME(t) (t).name()
-//#else
-//    #define TIME_NAME(t) (t).timeName()
-// #endif
+#if defined(WM_PROJECT_VERSION_NUMBER) &&  WM_PROJECT_VERSION_NUMBER >= 10
+  #define TIME_NAME(t) (t).name()
+#else
+  #define TIME_NAME(t) (t).timeName()
+#endif
 	#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
@@ -456,6 +456,7 @@ int main(int argc, char *argv[])
 		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
 		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
 		//Info <<"newDeltaT "<<newDeltaT<<endl;
+		if (itwstep>=wTimes.size()) {itwstep-=1;wtime=wTimes[itwstep];}
 		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
 		#if defined(OPENFOAM) && (OPENFOAM <= 100)
 			// Ce code est lu et compilé UNIQUEMENT sur OpenFOAM v10 (ou inférieur)

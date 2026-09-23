@@ -11,45 +11,19 @@
 #include <string>
 #include <chrono> 
 
-#define GetCurrentDir getcwd
-
-std::string get_current_dir() {
-   char buff[FILENAME_MAX]; //create string buffer to hold path
-   GetCurrentDir( buff, FILENAME_MAX );
-   std::string current_working_dir(buff);
-   return current_working_dir;
-}
-std::string cur_dir = get_current_dir();
+#include "partage.h"
 
 double my_basic_callback(double x1, double x2, const char *str, void *cookie);
 void register_basic_callback(void *cookie);
 
 my_phq::my_phq()
 {
-	PhreeqcRM *PhreeqcRM_ptr;
+	PhreeqcRM_ptr = NULL; //*PhreeqcRM_ptr;
 #ifdef USE_MPI
 	MPI_Comm rm_commxx;
 #endif
 
-/*
-	void setDB(std::string db){this->DB = db;}
-	void setData(std::vector<int> data){this->data = data;}
-	void setChemFile(std::string chfile){this->ChemFile = chfile;}
-	void setC(std::vector<double> c){this->c = c;}
-	void setG(std::vector<double> g){this->g = g;}
-	void setGm(std::vector<double> gm){this->gm = gm;}
-	void setTemp(std::vector<double> temp){this->temp = temp;}
-	void setP(std::vector<double> p){this->p = p;}
-	void setSpc(std::vector<double> spc){this->spc = spc;}
-	void setTstep(double tstep){this->tstep = tstep;}
-	void setPoro(std::vector<double> poro){this->poro = poro;}
-	void setWsat(std::vector<double> wsat){this->wsat = wsat;}
-	void setGvol(std::vector<double> gvol){this->gvol = gvol;}
-	void setFoc(std::vector<double> foc){this->foc = foc;}
-	void setNwat(int){this->iGwater = iGwater;}
-*/
 }
-void my_phq::setDB(const std::string& db){this->DB = db;}
 
 // Exemple pour une méthode
 int my_phq::phqInit(my_phq & freak)

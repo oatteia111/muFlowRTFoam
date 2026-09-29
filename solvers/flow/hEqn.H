@@ -67,8 +67,8 @@ if (cellsHwel.size()>0)
 		tnext = min(tnext,tHwel);
 		}
 	for (i=0; i<cellsHwel.size(); i++)
-		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;}
-		//Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
+		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;//}
+		Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 } //Info<<"Hfw read ";
 //----- get the ghb conditions
 //int ic0=10;

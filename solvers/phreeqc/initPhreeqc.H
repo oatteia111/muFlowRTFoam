@@ -71,15 +71,19 @@ public :
 	void setFoc(std::vector<double> foc){this->foc = foc;}
 	void setNwat(int){this->iGwater = iGwater;}
 
-    int phqInit(my_phq & freak);
-	int phqRun(my_phq & freak);
-	int getSelOutput(my_phq & freak);
+    int phqInit(); //my_phq & freak
+	int phqRun(); //my_phq & freak
+	int getSelOutput(); //my_phq & freak
 	int phqTest(std::string time) ;
-	int phqRestart(my_phq freak, std::vector<int> & ph_data, std::string time,std::vector<double> c_ph,std::vector<double> g_ph) ;
+	int phqRestart(std::vector<int> & ph_data, std::string time,std::vector<double> c_ph,std::vector<double> g_ph) ;
 	void register_basic_callback(void *cookie);
 	static double my_basic_callback(double x1, double x2, const char *str, void *cookie);
 
+/*
 private:
     PhreeqcRM* phreeqc_instance; // Si vous utilisez un pointeur, c'est direct.
+*/
 };
+
+extern my_phq freak;
 #endif

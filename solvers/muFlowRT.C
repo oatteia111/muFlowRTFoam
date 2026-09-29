@@ -42,7 +42,6 @@ Developers
 #include <sstream>
 #include <string>
 #include <chrono>  // for high_resolution_clock
-#include "partage.h"
 // #include "fvCFD.H" fro version 8-10, has disappeared now
 #include "fvMesh.H"
 #include "fvc.H"
@@ -66,6 +65,9 @@ Developers
 #include "simpleControl.H"
 #include "cellSet.H"
 
+#include "phreeqc/initPhreeqc.H"
+#include "partage.h"
+
 // static allows to have ade finiotn ofr muFlow and another for phreeqc
 #include <unistd.h> 
 std::string get_current_dir() {
@@ -77,7 +79,7 @@ std::string get_current_dir() {
 std::string cur_dir = get_current_dir();
 
 std::vector<double> a(12,0.);
-#include "phreeqc/initPhreeqc.H"
+
 std::vector<double> c_ph,gm_ph,g_ph,poro,t_ph,foc_ph,p_ph,gvol,wsat,ractive,solu_conc,gas_conc,solu_species,Vmol,Ggrd;
 std::vector<double> species;
 std::vector<int> immobile;
@@ -189,7 +191,8 @@ int main(int argc, char *argv[])
 	for (j=1;j<ncell;j++) {if (temp[j]==1) {rinactive.push_back(j);} } 
 	//Info<<"n cell "<<ncell<<" nxyz "<<nxyz<<" ract.size, ract(0) "<<ractive.size()<<" "<<ractive[0]<<" rinact.size, ract(0) "<<rinactive.size()<<" "<<rinactive[0]<<endl;
 	if (activateEK) {freak.EK=true;} else {freak.EK=false;}
-	freak.setDB(cur_dir/"phreeqc.dat");
+	std::cout<<cur_dir/"phreeqc.dat"<<"\n";
+	freak.setDB(cur_dir/"phreeqc.dat"); //cur_dir/"phreeqc.dat");
 	freak.setData(ph_data); //here we include the phqfoam data in freak it will be used by initphreeqc
 	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
 	//initiate poro and gas volume
@@ -222,8 +225,8 @@ int main(int argc, char *argv[])
 		freak.setGm(gm_ph);//freak.setP(p_ph);
 		}
 	//***first init of phreeqc
-	int a0= freak.phqInit(freak); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
-	a0=freak.getSelOutput(freak);
+	int a0= freak.phqInit(); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
+	a0=freak.getSelOutput();
 	nsel = freak.nselect;//std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 	species.resize(nxyz*nsel);
 	for (size_t k;k<freak.spc.size();k++) {species[k]=freak.spc[k];} // put the starting concentrations
@@ -235,16 +238,16 @@ int main(int argc, char *argv[])
 	//solutions are obtained from boundary conditions
 	//these solutions will be used for chem BCs
 	std::ofstream outSolu(cur_dir/"constant/options/solutions");
-	solu_conc.resize(ph_nsolu*ph_ncomp,0.);Info << "nsolu "<<ph_nsolu << " ncomp "<< ph_ncomp <<endl;
+	solu_conc.resize(ph_nsolu*ph_ncomp,0.);Info << "nsolu "<<ph_nsolu << " ncomp "<< ph_ncomp <<" bcs "<<freak.bc_conc.size()<<endl;
 	//if (ph_gcomp==0) { // seems to work only for solutions
-		for (i=0;i<ph_nsolu;i++) // solu number
-			{ 
-			for (j=0;j<ph_ncomp;j++) // component number
-				{
-				float a = freak.bc_conc[j*ph_nsolu+i];
-				solu_conc[i*ph_ncomp+j] = a; outSolu << a << "\n"; 
-				} 
-			}		
+	for (i=0;i<ph_nsolu;i++) // solu number
+		{ 
+		for (j=0;j<ph_ncomp;j++) // component number
+			{
+			float a = freak.bc_conc[j*ph_nsolu+i];std::cout<<a<<"\n";
+			solu_conc[i*ph_ncomp+j] = a; outSolu << a << "\n"; 
+			} 
+		}		
 	outSolu.close();
 	// if activate EK stores the species
 	if (activateEK)
@@ -298,7 +301,7 @@ int main(int argc, char *argv[])
 		p_ph.resize(nxyz);
 		for (j=0;j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 		freak.setP(p_ph); //not possible to set pressure and volume
-		a0= freak.phqRun(freak); //****PHQ RUN with equilibration with true gas phase
+		a0= freak.phqRun(); //****PHQ RUN with equilibration with true gas phase
 		//(recalculate Vm) no, just to print
 		for (j=0;j<nxyz;j++)  {
 			//Gmtot = 0;
@@ -363,6 +366,7 @@ int main(int argc, char *argv[])
 	//search time step for restart (if start time is higher than first write time
 	while (time>wTimes[itwstep]) {itwstep+=1;} 
 	//restart for solid species in phreeqc (get minerals from species file, equilibrate surface and exchange)
+	/*
 	if ((itwstep>1)&&(activateReaction==1)) 
 		{
 		std::vector<double> g_ph(ph_gcomp*ncell);										   
@@ -370,16 +374,17 @@ int main(int argc, char *argv[])
 		forAll(Cw,i) {for (j=0; j<nxyz;j++) {c_ph[i*nxyz+j] = Cw[i]()[ractive[j]];} };std::cout<<"conc read "<<Cw[4]()[233]<<"\n";
 		if (ph_gcomp>0)
 			 forAll(Cg,i) {for (j=0; j<nxyz;j++) {g_ph[i*nxyz+j] = Cg[i]()[ractive[j]];} };//std::cout<<"conc read "<<Cw[4]()[233]<<"\n";				 																														
-		int a0 = freak.phqRestart(freak, ph_data,std::to_string(int(time)),c_ph,g_ph); // I did not find a way to send Cw -> dimensoin error?
+		int a0 = freak.phqRestart(ph_data,std::to_string(int(time)),c_ph,g_ph); // I did not find a way to send Cw -> dimensoin error?
 		fname=cur_dir/"phqfoam1.txt";std::ifstream inputData1{fname};
 		std::vector<int> ph_data{std::istream_iterator<int>{inputData1}, {}}; //for (int i=0; i<7;i++){Info << "init nb "<< ph_data[i] << endl;}
 		freak.setData(ph_data);
 		freak.setChemFile(cur_dir/"initChem1.pqi"); //Info << "initCh read " << endl;
-		a0=freak.phqInit(freak);
+		a0=freak.phqInit();
 		forAll(Cw,i) {for (j=0; j<nxyz;j++) {Cw[i]()[ractive[j]]=freak.c[i*nxyz+j];} };std::cout<<"conc read "<<Cw[4]()[233]<<"\n";
 		itwstep+=1;
 		std::cout<<"end restart "<< Cw[4]()[0]<<" \n";
 		}
+		*/
 	wtime=wTimes[itwstep];Info<<"wtime "<<itwstep<<" "<<wTimes[itwstep]<<endl;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	

@@ -1,19 +1,23 @@
 ma structure
-le .C
+**************
+fichier initPhreeqc.C :
 
+#include "PhreeqcRM.h" 
+#include "partage.h"
+
+my_phq freak;
 my_phq::my_phq()
 {
-	PhreeqcRM *PhreeqcRM_ptr;
+	PhreeqcRM = NULL; //*PhreeqcRM_ptr;
 #ifdef USE_MPI
 	MPI_Comm rm_commxx;
 #endif
 }
+int my_phq::phqInit() { ... }
 
-void my_phq::phqInit(my_phq & freak)
-{ ... }
+******************
+fichier initPhreeqc.H :
 
-
-le .H
 #ifndef initPhreeqc_H
 #define initPhreeqc_H
 class PhreeqcRM; 
@@ -27,6 +31,40 @@ public :
 	std::string DB;
 	void setDB(std::string db){this->DB = db;}
 	...
-	
-    int phqInit(my_phq & freak);
+    int phqInit();
+private:
+    PhreeqcRM* phreeqc_instance; // Si vous utilisez un pointeur, c'est direct.
 };
+extern my_phq freak;
+
+********************
+fichier partage.H
+#ifndef PARTAGE_H
+#define PARTAGE_H
+
+#include "phreeqc/initPhreeqc.H"
+extern int nxyz,ph_ncomp,ph_nspc,ph_gcomp,ph_nsolu;
+std::string get_current_dir();
+extern std::string cur_dir;
+extern my_phq freak;
+#endif
+
+********************
+fichier muFlowRt.C
+#include "phreeqc/initPhreeqc.H"
+#include "partage.h"
+ ...
+int main(..)
+{
+...
+...Foam declaration...
+freak.setDB(cur_dir/"phreeqc.dat");
+int a0= freak.phqInit(); 
+
+******************
+files pou rle wmake d'openfoam
+muFlowRT.C
+phreeqc/initPhreeqc.C
+
+EXE = $(FOAM_USER_APPBIN)/muFlowRT
+...

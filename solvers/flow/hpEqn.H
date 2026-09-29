@@ -14,7 +14,7 @@ sw.storePrevIter();
 			}
 		for (i=0; i<cellsHwel.size(); i++) {
 			i1=cellsHwel[i];qHwel[i] = cellsHwelData[i*4+2] ; hSu[i1] = qHwel[i]/mesh.V()[i1];
-			//Info<<"q "<<qHwel[i]<<" "<<mesh.V()[i1]<<endl;
+			Info<<"q "<<qHwel[i]<<" "<<mesh.V()[i1]<<endl;
 			}
 		//Info<<"tHwell "<<tHwel<<" tnext "<<tnext<<endl;
 	}

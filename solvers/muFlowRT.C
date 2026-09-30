@@ -192,9 +192,11 @@ int main(int argc, char *argv[])
 	//Info<<"n cell "<<ncell<<" nxyz "<<nxyz<<" ract.size, ract(0) "<<ractive.size()<<" "<<ractive[0]<<" rinact.size, ract(0) "<<rinactive.size()<<" "<<rinactive[0]<<endl;
 	if (activateEK) {freak.EK=true;} else {freak.EK=false;}
 	std::cout<<cur_dir/"phreeqc.dat"<<"\n";
-	freak.setDB(cur_dir/"phreeqc.dat"); //cur_dir/"phreeqc.dat");
+	std::string dbfile = cur_dir/"phreeqc.dat";
+	freak.setDB(dbfile); //cur_dir/"phreeqc.dat");
 	freak.setData(ph_data); //here we include the phqfoam data in freak it will be used by initphreeqc
-	freak.setChemFile(cur_dir/"initChem.pqi"); //Info << "initCh read " << endl;
+	std::string chfile = cur_dir/"initChem.pqi";
+	freak.setChemFile(chfile); //Info << "initCh read " << endl;
 	//initiate poro and gas volume
 	poro.resize(nxyz,0.);t_ph.resize(nxyz,0.);foc_ph.resize(nxyz,0.);p_ph.resize(nxyz,0.);Vmol.resize(nxyz,24);
 	for (i=0;i<nxyz;i++) {poro[i]=eps[i];t_ph[i]=T[i];foc_ph[i]=foc[i];}

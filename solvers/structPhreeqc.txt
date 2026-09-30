@@ -5,7 +5,11 @@ fichier initPhreeqc.C :
 #include "PhreeqcRM.h" 
 #include "partage.h"
 
+double my_basic_callback(double x1, double x2, const char *str, void *cookie);
+void register_basic_callback(void *cookie);
+
 my_phq freak;
+
 my_phq::my_phq()
 {
 	PhreeqcRM = NULL; //*PhreeqcRM_ptr;
@@ -13,8 +17,23 @@ my_phq::my_phq()
 	MPI_Comm rm_commxx;
 #endif
 }
-int my_phq::phqInit() { ... }
-
+int my_phq::phqInit() { 
+... 
+std::cout << "dbase " << std::string(this->DB)<<"\n";
+register_basic_callback(&freak);
+}
+void my_phq::register_basic_callback(void *cookie)
+{
+	my_phq *data;
+	...
+	w->SetBasicCallback(&my_phq::my_basic_callback, cookie);
+	...
+}
+double my_phq::my_basic_callback(double x1, double x2, const char *str, void *cookie)
+{
+	my_phq *data_ptr = (my_phq *) cookie;
+	PhreeqcRM *phreeqcrm_ptr = data_ptr->PhreeqcRM_ptr;
+}
 ******************
 fichier initPhreeqc.H :
 
@@ -29,11 +48,11 @@ public :
 
 	PhreeqcRM *PhreeqcRM_ptr;
 	std::string DB;
-	void setDB(std::string db){this->DB = db;}
+	void setDB(std::string db){this->DB = DB;}
 	...
     int phqInit();
-private:
-    PhreeqcRM* phreeqc_instance; // Si vous utilisez un pointeur, c'est direct.
+	void register_basic_callback(void *cookie);
+	static double my_basic_callback(double x1, double x2, const char *str, void *cookie);
 };
 extern my_phq freak;
 
@@ -53,7 +72,21 @@ extern my_phq freak;
 fichier muFlowRt.C
 #include "phreeqc/initPhreeqc.H"
 #include "partage.h"
- ...
+
+
+#include "phreeqc/initPhreeqc.H"
+#include "partage.h"
+
+// static allows to have ade finiotn ofr muFlow and another for phreeqc
+#include <unistd.h> 
+std::string get_current_dir() {
+   char buff[FILENAME_MAX]; //create string buffer to hold path
+   GetCurrentDir( buff, FILENAME_MAX );
+   std::string current_working_dir(buff);
+   return current_working_dir;
+}
+std::string cur_dir = get_current_dir();
+
 int main(..)
 {
 ...
@@ -62,7 +95,7 @@ freak.setDB(cur_dir/"phreeqc.dat");
 int a0= freak.phqInit(); 
 
 ******************
-files pou rle wmake d'openfoam
+files pour le wmake d'openfoam
 muFlowRT.C
 phreeqc/initPhreeqc.C
 

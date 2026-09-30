@@ -82,12 +82,13 @@ int my_phq::phqInit() //my_phq & freak
 
 		//load database and chemistry files and make the first run of the chem file
 		status = phreeqc_rm->SetPrintChemistryOn(true, true, false); // workers, initial_phreeqc, utility
-		std::cout << "dbase " << std::string(this->DB)<<"\n";
-		status = phreeqc_rm->LoadDatabase(this->DB);
+		//std::cout << "dbase " << std::string(this->db)<<"\n";
+		status = phreeqc_rm->LoadDatabase(this->db);
 		std::cout << "dbase opened " << "\n";
 
 		// Demonstrate add to Basic: Set a function for Basic CALLBACK after LoadDatabase
-		register_basic_callback(&freak);
+		//register_basic_callback(freak);
+		this->register_basic_callback(this);
 
 		bool workers = true;             // Worker instances do the reaction calculations for transport
 		bool initial_phreeqc = true;     // InitialPhreeqc instance accumulates initial and boundary conditions
@@ -396,6 +397,7 @@ int my_phq::phqRestart(std::vector<int> & ph_data, std::string time,std::vector<
 	//namespace fs = std::filesystem;
 	IRM_RESULT status;int ncomp,ngcomp,nphas;std::cout<<"in restart \n";
 	//read data in the given timestep t
+	std::string cur_dir = "";
 	std::ifstream inputSpc{cur_dir+"/time/Species"};
 	//std::ofstream spc2{cur_dir/time/"Species_bak"}; 
 	//std::string line;

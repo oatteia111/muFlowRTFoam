@@ -30,7 +30,7 @@ public :
 	MPI_Comm rm_commxx;
 #endif
 
-	std::string DB;
+	std::string db;
 	std::vector<int> data;
 	std::string ChemFile;
 	std::vector<double> c;
@@ -55,7 +55,7 @@ public :
 	std::vector<double> z;
 	std::vector<std::string> spcNames;
 
-	void setDB(std::string db){this->DB = DB;}
+	void setDB(const std::string db){this->db = db;}
 	void setData(std::vector<int> data){this->data = data;}
 	void setChemFile(std::string chfile){this->ChemFile = chfile;}
 	void setC(std::vector<double> c){this->c = c;}

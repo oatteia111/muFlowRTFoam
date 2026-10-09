@@ -59,20 +59,22 @@ for (ig=0; ig<ph_gcomp;ig++)
 		lbdag.value() = plugCgi.getLbdag(ig); // this is the plugin for degradation,needs to be here (compg specific)
 		Info<<"lbdag "<<ig <<" "<<lbdag<<endl;
 		//Info<<"gmax thetag "<<gMax(thetag)<<endl;
-		
+		/*
 		if (reactIndicator==1) {
 			for (j=0;j<nxyz;j++) {
 				GiSu[j] += (Cg[ig]()[j] - freak.gm[ig*nxyz+j]/gvol[j])/float(runTime.deltaTValue())*thetag[j];
 				//if (j<5) {Info<<j<< " inGsu Cg, fk.p fk.g/gv gsu "<<Cg[ig]()[j]<<" "<<freak.p[j]<<" "<<freak.gm[ig*nxyz+j]/gvol[j]<<" "<<GiSu[j]<<endl;}
 			}
 		}
+		*/
 		
 		if (plugCgi.flag) {
 			#include "plugins/plugin_Cgiupdate.H"
 			}
 		if (gMax(thetag)>1e-6) //solving this equation for very low thetag may give wrong results
 		{
-		fvScalarMatrix CgiEqn
+		
+		fvScalarMatrix CgiEqn //full explicit
 		(		  
             thetag * fvm::ddt(Cgi) +  Cgi * fvc::ddt(thetag)
 			+ fvc::div(phig, Cgi, "div(phig,Cgi)") // used only in multiphase
@@ -81,7 +83,27 @@ for (ig=0; ig<ph_gcomp;ig++)
 			+ fvm::SuSp(GiSp, Cgi)
 			== - GiSu 
 		); 
-		
+		/*
+		fvScalarMatrix CgiEqn //semi explicit
+		(		  
+            thetag * fvm::ddt(Cgi) +  Cgi * fvc::ddt(thetag)
+			+ fvm::div(phig, Cgi, "div(phig,Cgi)") // used only in multiphase
+            - fvm::laplacian(Deffg, Cgi, "laplacian(Deffg,Cgi)")
+			+ thetag * fvm::Sp(lbdag,Cgi) //decay
+			+ fvm::SuSp(GiSp, Cgi)
+			== - GiSu 
+		); 
+		*/
+		/*
+		fvScalarMatrix CgiEqn //implicit
+		(		  
+            thetag * fvm::ddt(Cgi) +  Cgi * fvc::ddt(thetag)
+			+ fvm::div(phig, Cgi, "div(phig,Cgi)") // used only in multiphase
+            - fvm::laplacian(Deffg, Cgi, "laplacian(Deffg,Cgi)")
+			+ thetag * fvm::Sp(lbdag,Cgi) //decay
+			+ GiSu + fvm::SuSp(GiSp, Cgi)
+		); 
+		*/
 		for (i=0; i<cellsGfix.size(); i++) {CgiEqn.setReference(cellsGfix[i],gas_conc[condGfix[i]*ph_gcomp+ig]/Vmol[cellsGfix[i]]);}
 		
 		CgiEqn.solve();

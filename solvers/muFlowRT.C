@@ -407,8 +407,8 @@ int main(int argc, char *argv[])
 				{
 				//Cgtot = 0;
 				//forAll(Cg,i){Cgtot += freak.g[i*nxyz+j];} 
-				forAll(Cg,i){Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j];} // phreeqc is in mol/RV
-				if (j<15) {forAll(Cg,i) {Info<<Cg[i]()[j]<<" ";} Info<<endl;}
+				for (i=0;i<ph_gcomp;i++) {Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j];} // phreeqc is in mol/RV
+				if (j<15) {for (i=0;i<ph_gcomp;i++) {Info<<Cg[i]()[j]<<" ";} Info<<endl;}
 				}
 		}
 	}

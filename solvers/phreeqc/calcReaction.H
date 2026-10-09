@@ -74,10 +74,10 @@ if (flgR==1)
 
 	forAll(Cw,ic) {
 		// if transfered as source term for mobile species, but immobile stay here
-		if (immobile[ic]==1) 
-		{
+		//if (immobile[ic]==1) 
+		//{
 			for (j=0;j<nxyz;j++) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} // transfer phq -> opf		
-		}
+		//}
 		
 		//for (j=0;j<nxyz;j++) {if (bcCwi[ractive[j]]==0) {Cw[ic]()[ractive[j]] = freak.c[ic*nxyz+j];} }// transfer phq -> opf		
 	}
@@ -120,9 +120,11 @@ if (flgR==1)
 		float r;
 		for (j=0; j<nxyz;j++) //should consider ractive
 			{
-			//Cgtot = 0; Gmtot = 0;
-			//forAll(Cg,i) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j]; Gmtot += freak.gm[i*nxyz+j];}
-			forAll(Cg,i) {Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j];} 
+			Cgtot = 0; Gmtot = 0;
+			for (i=0;i<ph_gcomp;i++) {freak.g[i*nxyz+j] = max(freak.g[i*nxyz+j],0.); Cgtot += freak.g[i*nxyz+j]; Gmtot += freak.gm[i*nxyz+j];}
+			if (flowType==3) {for (i=0;i<ph_gcomp;i++)  {Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j]/Cgtot;}  } // for unsat we consider Ptot=1 atm
+			else { for (i=0;i<ph_gcomp;i++)  {Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j];} }
+			//forAll(Cg,i) {Cg[i]()[j] = freak.gm[i*nxyz+j]/gvol[j];} 
 			if ((flowType==4)&&(activateEbullition==1)){
 				//Vmol[j] = freak.gvol[j]/Gmtot; //1.003 strange but needed to have equilibrated pressure
 				//r = freak.p[j]/(p[j]/atmPa);//change of gas pressure

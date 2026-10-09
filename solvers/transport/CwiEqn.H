@@ -126,14 +126,14 @@ for (ic=1; ic<ph_ncomp;ic++)
 		// we add phreeqc results as source term (during one tstep) : CiSu : M/time/Volume, as C=M/V -> Csu=(C_pqh-C_opf)/dt
 		// these results will be replaced by classical ones at well and hfix bc (no chem at wells)
 		Cw[ic]().storePrevIter();
-		
+		/*
 		if (reactIndicator==1) {
 			for (j=0;j<nxyz;j++) {
 				CiSu[j] += (Cw[ic]()[ractive[j]] - freak.c[ic*nxyz+j])/float(runTime.deltaTValue())*thetaw[j];
 				//if (j<5) {Info<<j<< " Csu phq Cw, fk.c csu "<<Cw[ic]()[ractive[j]]<<" "<<freak.c[ic*nxyz+j]<<" "<<CiSu[j]<<endl;}
 			}
 		}
-		
+		*/
 		if (flowType<4)
 		{
 			if (cellsHwel.size()>0)  // solution in well (even if no Swl data we ned to pump the conc)

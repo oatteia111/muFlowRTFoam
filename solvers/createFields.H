@@ -140,7 +140,8 @@ labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;
 labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
 labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
 //std::vector<float> ratio;
-outData output;float time = mesh.time().value();tnext=1e8;
+outData output;float time = mesh.time().value();
+tnext=readScalar(runTime.controlDict().lookup("endTime"));
 if (fexists(cur_dir+"/constant/options/hfix")) { 
 cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();
 while (time>=tHfix) {output = getCbuffer("hfix",itHfix,cellsHfix0.size());itHfix +=1;tHfix = output.t;cellsHfixData=output.d;}

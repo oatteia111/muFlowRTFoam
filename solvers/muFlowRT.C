@@ -445,17 +445,17 @@ int main(int argc, char *argv[])
 			if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
 			if (dt2==0) {tnext=readScalar(runTime.controlDict().lookup("endTime"));}
 		    }
-		else if ((dt1<= newDeltaT*(1+1e-5))&&(dt1==dt2)) //both BC and W
+		else if ((dt1<= newDeltaT*(1+1e-3))&&(dt1==dt2)) //both BC and W
 			{newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			runTime.setDeltaTNoAdjust(dt1);tnext=readScalar(runTime.controlDict().lookup("endTime"));
 			itwstep+=1;wtime=wTimes[itwstep];
 			flagBC=1;flagW=1;} 
-		else if ((dt1<=newDeltaT*(1+1e-5))&&(dt1>0)&&(dt1<dt2)) //write, 9/6 readd < 
+		else if ((dt1<=newDeltaT*(1+1e-3))&&(dt1>0)&&(dt1<dt2)) //write, 9/6 readd < 
 			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
 			newDeltaT = dt1*0.99;
 			flagW=1;
 			}
-		else if ((dt2<= newDeltaT*(1+1e-5))&&(dt2>0)&&(dt2<dt1)) //BC change //9/6 readd < 
+		else if ((dt2<= newDeltaT*(1+1e-3))&&(dt2>0)&&(dt2<dt1)) //BC change //9/6 readd < 
 			{runTime.setDeltaTNoAdjust(dt2);tnext=readScalar(runTime.controlDict().lookup("endTime"));
 			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
 			//flagDeltaT=1;

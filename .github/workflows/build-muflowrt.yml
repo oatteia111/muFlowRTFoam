@@ -36,6 +36,6 @@ jobs:
 
     - name: Build
       run: |
-        source scripts/windows/env.sh
+        source ${{ env.OF13_CLONE }}/scripts/windows/env.sh
         cd "$WM_PROJECT_DIR"
         ./Allwmake

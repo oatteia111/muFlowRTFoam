@@ -1,0 +1,41 @@
+# .github/workflows/build-muflowrt.yml
+name: Build MuFlowRT
+
+on:
+  push:
+    branches: [ "cicd" ]
+  workflow_dispatch:
+
+jobs:
+  build-openfoam:
+    runs-on: windows-latest
+    env:
+      OF13_ROOT: /c/OF13
+      OF13_CLONE: /c/OF13/OpenFOAM-13-Windows
+      OF13_THIRDPARTY: /c/OF13/ThirdParty-13-Windows
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Setup msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          mingw-w64-ucrt-x86_64-gcc
+          make
+          flex
+          bison
+          git
+
+    - name: Clone OpenFoam 13 Windows Ports
+      run: |
+        git clone https://github.com/fralarco/OpenFOAM-13-Windows.git ${{ env.OF13_CLONE }}
+        git clone https://github.com/fralarco/ThirdParty-13-Windows.git ${{ env.OF13_THIRDPARTY }}
+
+    - name: Build
+      run: |
+        source scripts/windows/env.sh
+        cd "$WM_PROJECT_DIR"
+        ./Allwmake

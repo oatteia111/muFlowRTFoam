@@ -95,7 +95,8 @@ checking it.
 ## Toolchain and dependency recipes
 
 Each CI job provisions its own runner through `.github/actions/setup-msys2`.
-The shared base installs UCRT64 GCC, libgomp, zlib, make, Git, curl, tar, and zstd.
+The shared base installs UCRT64 GCC, libgomp, zlib, make, Git, curl, diffutils,
+tar, and zstd.
 The action accepts an optional `extra-packages` input:
 
 | Job | Additional packages |

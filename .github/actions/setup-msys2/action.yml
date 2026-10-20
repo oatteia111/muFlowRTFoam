@@ -26,6 +26,7 @@ runs:
           make
           git
           curl
+          diffutils
           tar
           zstd
           ${{ inputs.extra-packages }}

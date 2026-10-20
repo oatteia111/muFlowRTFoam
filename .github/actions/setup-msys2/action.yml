@@ -1,0 +1,53 @@
+name: Set up the Windows dependency toolchain
+description: Shared native x64 UCRT64 compiler and build tools
+inputs:
+  extra-packages:
+    description: Additional MSYS2 packages needed by this job
+    required: false
+    default: ''
+outputs:
+  msys2-location:
+    description: Native Windows path of the MSYS2 installation
+    value: ${{ steps.msys2.outputs.msys2-location }}
+runs:
+  using: composite
+  steps:
+    - name: Set up MSYS2 UCRT64
+      id: msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        cache: true
+        install: >-
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-libgomp
+          mingw-w64-ucrt-x86_64-zlib
+          make
+          git
+          curl
+          tar
+          zstd
+          ${{ inputs.extra-packages }}
+    - name: Record compiler and package versions
+      shell: msys2 {0}
+      run: |
+        set -euo pipefail
+        git config --global core.autocrlf input
+        {
+          gcc --version
+          gcc -dumpmachine
+          pacman -Q
+        } | tee "$(cygpath -u "$RUNNER_TEMP")/dependency-toolchain.txt"
+        # Compare ABI-relevant packages only; the jobs intentionally install
+        # different build tools. Query DLL owners to handle GCC package splits.
+        runtime_packages=$(pacman -Qqo \
+          /ucrt64/bin/libgcc_s_seh-1.dll /ucrt64/bin/libstdc++-6.dll \
+          /ucrt64/bin/libwinpthread-1.dll /ucrt64/bin/libgomp-1.dll \
+          /ucrt64/bin/zlib1.dll)
+        mapfile -t runtime_packages <<< "$runtime_packages"
+        {
+          gcc -dumpfullversion
+          gcc -dumpmachine
+          pacman -Q mingw-w64-ucrt-x86_64-gcc "${runtime_packages[@]}" | LC_ALL=C sort -u
+        } | tee "$(cygpath -u "$RUNNER_TEMP")/dependency-abi.txt"

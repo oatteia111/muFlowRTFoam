@@ -6,36 +6,193 @@ on:
     branches: [ "cicd" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-openfoam:
+  phreeqcrm:
+    name: Build PhreeqcRM
     runs-on: windows-latest
-    env:
-      OF13_ROOT: /c/OF13
-      OF13_CLONE: /c/OF13/OpenFOAM-13-Windows
-      OF13_THIRDPARTY: /c/OF13/ThirdParty-13-Windows
+    timeout-minutes: 60
+    outputs:
+      artifact-name: ${{ steps.package.outputs.artifact-name }}
     defaults:
       run:
         shell: msys2 {0}
     steps:
-    - name: Setup msys2
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: UCRT64
-        update: true
-        install: >-
-          mingw-w64-ucrt-x86_64-gcc
-          make
-          flex
-          bison
-          git
+      - name: Check out dependency build helpers
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            /.gitattributes
+            /.github/actions/setup-msys2/
+            /.github/DEPENDENCIES.md
+            /scripts/
+          sparse-checkout-cone-mode: false
+      - uses: ./.github/actions/setup-msys2
+        with:
+          extra-packages: mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+      - name: Build PhreeqcRM from the pinned GitHub release
+        run: |
+          set -euo pipefail
+          bash scripts/build-phreeqcrm.sh 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/phreeqcrm-build.log"
+      - name: Archive the installed PhreeqcRM SDK
+        id: package
+        run: |
+          set -euo pipefail
+          bash scripts/package-dependency.sh phreeqcrm 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/phreeqcrm-package.log"
+      - name: Retain PhreeqcRM SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: ${{ runner.temp }}/dependency-dist/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+      - name: Retain build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phreeqcrm-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/phreeqcrm-*.log
+            ${{ runner.temp }}/dependency-*.txt
+            C:/phreeqcrm/build/CMakeFiles/CMakeConfigureLog.yaml
+          retention-days: 14
+          if-no-files-found: ignore
 
-    - name: Clone OpenFoam 13 Windows Ports
-      run: |
-        git clone https://github.com/fralarco/OpenFOAM-13-Windows.git ${{ env.OF13_CLONE }}
-        git clone https://github.com/fralarco/ThirdParty-13-Windows.git ${{ env.OF13_THIRDPARTY }}
+  openfoam:
+    name: Build OpenFOAM libraries
+    runs-on: windows-latest
+    timeout-minutes: 180
+    outputs:
+      artifact-name: ${{ steps.package.outputs.artifact-name }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Check out dependency build helpers
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            /.gitattributes
+            /.github/actions/setup-msys2/
+            /.github/DEPENDENCIES.md
+            /scripts/
+          sparse-checkout-cone-mode: false
+      - uses: ./.github/actions/setup-msys2
+        with:
+          extra-packages: flex bison
+      - name: Build OpenFOAM from the pinned source commits
+        run: |
+          set -euo pipefail
+          bash scripts/build-openfoam.sh 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/openfoam-build.log"
+      - name: Archive the built OpenFOAM trees
+        id: package
+        run: |
+          set -euo pipefail
+          bash scripts/package-dependency.sh openfoam 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/openfoam-package.log"
+      - name: Retain OpenFOAM SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: ${{ runner.temp }}/dependency-dist/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+      - name: Retain build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfoam-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/openfoam-*.log
+            ${{ runner.temp }}/dependency-*.txt
+          retention-days: 14
+          if-no-files-found: ignore
 
-    - name: Build
-      run: |
-        source ${{ env.OF13_CLONE }}/scripts/windows/env.sh
-        cd "$WM_PROJECT_DIR"
-        ./Allwmake
+  muflowrt:
+    name: Build and publish muFlowRT
+    needs: [phreeqcrm, openfoam]
+    runs-on: windows-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-msys2
+        with:
+          extra-packages: zip
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.phreeqcrm.outputs.artifact-name }}
+          path: ${{ runner.temp }}/sdk-phreeqcrm
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.openfoam.outputs.artifact-name }}
+          path: ${{ runner.temp }}/sdk-openfoam
+      - name: Verify and restore dependency SDKs
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          temp=$(cygpath -u "$RUNNER_TEMP")
+          for dependency in phreeqcrm openfoam; do
+            sdk="$temp/sdk-$dependency"
+            (cd "$sdk" && sha256sum --check --strict SHA256SUMS)
+            if ! cmp -s "$sdk/TOOLCHAIN_ABI.txt" "$temp/dependency-abi.txt"; then
+              echo "::error::$dependency compiler/runtime versions differ from this runner. Rerun all jobs together to refresh the toolchains."
+              cat "$sdk/TOOLCHAIN_ABI.txt" "$temp/dependency-abi.txt"
+              exit 1
+            fi
+          done
+          extract_sdk() {
+            local directory=$1 name=$2 destination=$3
+            local files=("$directory/$name.tar.zst")
+            if [[ ! -f ${files[0]} ]]; then
+              files=("$directory/$name.tar.zst.part-"*)
+            fi
+            if (( ${#files[@]} == 0 )); then
+              echo "Missing SDK archive: $directory/$name" >&2
+              return 1
+            fi
+            mkdir -p "$destination"
+            cat "${files[@]}" | zstd -dc | tar -xf - -C "$destination"
+          }
+          extract_sdk "$temp/sdk-phreeqcrm" phreeqcrm-3.8.6-17100-ucrt64-x86_64 /c/phreeqcrm
+          extract_sdk "$temp/sdk-openfoam" openfoam-13-ucrt64-x86_64 /c
+      - name: Build muFlowRT using the restored SDKs
+        run: |
+          set -euo pipefail
+          bash scripts/build-muflowrt.sh 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/muflowrt-build.log"
+      - name: Assemble runtime bundle and release assets
+        id: package
+        run: |
+          set -euo pipefail
+          bash scripts/package-muflowrt.sh 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/muflowrt-package.log"
+      - name: Retain release assets for publication retries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: ${{ runner.temp }}/muflowrt-dist/
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+      - name: Publish unsigned runtime and SDKs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.package.outputs.artifact-name }}
+        run: bash scripts/publish-dependency.sh "$RELEASE_TAG" "$RUNNER_TEMP/muflowrt-dist"
+      - name: Retain build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muflowrt-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/muflowrt-*.log
+            ${{ runner.temp }}/dependency-*.txt
+          retention-days: 14
+          if-no-files-found: ignore

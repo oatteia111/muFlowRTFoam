@@ -3,7 +3,7 @@ name: Build MuFlowRT
 
 on:
   push:
-    branches: [ "cicd" ]
+    branches: [ cicd ]
   workflow_dispatch:
 
 permissions:
@@ -49,15 +49,29 @@ jobs:
           retention-days: 14
           compression-level: 0
           if-no-files-found: error
+      - name: Collect PhreeqcRM build diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          temp=$(cygpath -u "$RUNNER_TEMP")
+          diagnostics="$temp/phreeqcrm-build-diagnostics"
+          files=(
+            "$temp"/phreeqcrm-*.log
+            "$temp"/dependency-*.txt
+            /c/phreeqcrm/build/CMakeFiles/CMakeConfigureLog.yaml
+          )
+          for file in "${files[@]}"; do
+            if [[ -f "$file" ]]; then
+              mkdir -p "$diagnostics"
+              cp -- "$file" "$diagnostics/"
+            fi
+          done
       - name: Retain build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phreeqcrm-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/phreeqcrm-*.log
-            ${{ runner.temp }}/dependency-*.txt
-            C:/phreeqcrm/build/CMakeFiles/CMakeConfigureLog.yaml
+          path: ${{ runner.temp }}/phreeqcrm-build-diagnostics/
           retention-days: 14
           if-no-files-found: ignore
 

@@ -161,6 +161,12 @@ dependency builds when rerun. It verifies checksums, restores SDKs, builds the
 solver, and uploads release assets before publication. Only the final job has
 `contents: write`.
 
+The OpenFOAM SDK is also cached using its pinned build recipe and the complete
+MSYS2 package inventory. A cache hit reuses the checksummed SDK and skips the
+40-minute OpenFOAM build; the first run for a new source recipe or toolchain is a
+cold build. `BUILD_INFO.txt` retains the run and commit that produced the cached
+SDK.
+
 The prerelease tag is `muflowrt-ucrt64-x86_64-<run-id>-<attempt>`, targeting the
 workflow's exact repository commit. It is never marked Latest. Assets are:
 

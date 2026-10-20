@@ -80,7 +80,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 180
     outputs:
-      artifact-name: ${{ steps.package.outputs.artifact-name }}
+      artifact-name: ${{ steps.package.outputs.artifact-name || steps.cached-package.outputs.artifact-name }}
     defaults:
       run:
         shell: msys2 {0}
@@ -97,20 +97,63 @@ jobs:
       - uses: ./.github/actions/setup-msys2
         with:
           extra-packages: flex bison
+      - name: Fingerprint the OpenFOAM toolchain
+        id: openfoam-cache-key
+        run: |
+          set -euo pipefail
+          temp=$(cygpath -u "$RUNNER_TEMP")
+          read -r toolchain_hash _ < <(sha256sum "$temp/dependency-toolchain.txt")
+          echo "toolchain-hash=$toolchain_hash" >> "$GITHUB_OUTPUT"
+      - name: Restore cached OpenFOAM SDK
+        id: openfoam-sdk-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/openfoam-sdk-cache
+          key: >-
+            openfoam-sdk-v1-${{ runner.os }}-${{ steps.openfoam-cache-key.outputs.toolchain-hash }}-${{ hashFiles('.github/workflows/build-muflowrt.yml', 'scripts/build-openfoam.sh', 'scripts/package-dependency.sh', '.github/actions/setup-msys2/action.yml', '.github/DEPENDENCIES.md') }}
       - name: Build OpenFOAM from the pinned source commits
+        if: steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           bash scripts/build-openfoam.sh 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/openfoam-build.log"
       - name: Archive the built OpenFOAM trees
         id: package
+        if: steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           bash scripts/package-dependency.sh openfoam 2>&1 | tee "$(cygpath -u "$RUNNER_TEMP")/openfoam-package.log"
+      - name: Verify cached OpenFOAM SDK
+        id: cached-package
+        if: steps.openfoam-sdk-cache.outputs.cache-hit == 'true'
+        run: |
+          set -euo pipefail
+          temp=$(cygpath -u "$RUNNER_TEMP")
+          cached="$temp/openfoam-sdk-cache"
+          (cd "$cached" && sha256sum --check --strict SHA256SUMS)
+          if ! cmp -s "$cached/TOOLCHAIN_ABI.txt" "$temp/dependency-abi.txt"; then
+            echo "::error::Cached OpenFOAM SDK compiler/runtime versions differ from this runner. Clear the OpenFOAM SDK cache and rebuild."
+            cat "$cached/TOOLCHAIN_ABI.txt" "$temp/dependency-abi.txt"
+            exit 1
+          fi
+          echo "artifact-name=deps-openfoam-13-ucrt64-x86_64-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - name: Prepare OpenFOAM SDK cache
+        if: success() && steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          temp=$(cygpath -u "$RUNNER_TEMP")
+          mkdir -p "$temp/openfoam-sdk-cache"
+          cp -a "$temp/dependency-dist/." "$temp/openfoam-sdk-cache/"
+      - name: Save OpenFOAM SDK cache
+        if: success() && steps.openfoam-sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/openfoam-sdk-cache
+          key: ${{ steps.openfoam-sdk-cache.outputs.cache-primary-key }}
       - name: Retain OpenFOAM SDK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.package.outputs.artifact-name }}
-          path: ${{ runner.temp }}/dependency-dist/
+          name: ${{ steps.package.outputs.artifact-name || steps.cached-package.outputs.artifact-name }}
+          path: ${{ runner.temp }}/openfoam-sdk-cache/
           retention-days: 14
           compression-level: 0
           if-no-files-found: error

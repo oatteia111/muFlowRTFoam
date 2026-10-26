@@ -48,7 +48,7 @@ volScalarField calcFunc(fvMesh & mesh, std::string ftype, Foam::volScalarField f
 		return fact;
 };
 
-volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField C, Foam::volScalarField U,float Xref, std::vector<float> fparms,float tunits)
+volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField C, Foam::volScalarField U,float Xref, std::vector<float> fparms,float lunits, float tunits)
 {
 	//here we use two variables and fixed factors to start; 
 	volScalarField fact = C*0.0;
@@ -58,7 +58,7 @@ volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField 
 	if (ftype == "T0_muInf") // antonio
 		{
 		//C is conc and U is velocity (for reactive case); k 2.2e-11; n 0.3 sqrt = 2.57e-6
-		volScalarField gamm = 2.4* max(max(U/tunits,0.),1e-12)/2.57e-6; 
+		volScalarField gamm = 2.4* max(max(U*lunits/tunits,0.),1e-12)/2.57e-6; 
 		volScalarField T0 = 0.367*max(C-0.483*Xref,0.);
 		volScalarField kC = 4.54e-5+3.26e-3*C/Xref + 5.97e-2*pow(C/Xref,2);
 		volScalarField nC = 0.6127-0.1608*log(1+max(C,1e-20)/Xref/6.27);

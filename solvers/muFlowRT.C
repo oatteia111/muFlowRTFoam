@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
 	//---------------------------------------------------------------------------------
 	
 	//###########################  plugins
-	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples,tunits);
+	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples,lunits,tunits);
 	plugPS.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	plugCgi.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	int flagBC;//newDeltaT = minDeltaT*10;

@@ -11,8 +11,9 @@ public:
 	//volScalarField factM; don't put that here, it creates pb 
 	std::vector<dicFunc> listCouples;
 	float tunits;
+	float lunits;
 	
-	void init(std::string & cur_dir,IOdictionary & Tprop,fvMesh & mesh,Time & runTime,std::vector<dicFunc> & listCouples,float tunits)
+	void init(std::string & cur_dir,IOdictionary & Tprop,fvMesh & mesh,Time & runTime,std::vector<dicFunc> & listCouples,float lunits, float tunits)
 	{
 		std::cout<<"init plugin H "<<" ";
 		this->listCouples = listCouples;
@@ -45,7 +46,7 @@ public:
 			if (listCouples[i].Ykey=="muw") 
 				{fact = 1.0/calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
 			if (listCouples[i].Ykey=="muShear") 
-				{fact = 1.0/calcFunc2(mesh,listCouples[i].type,X,mUw,listCouples[i].Xref,listCouples[i].fparms,tunits);}
+				{fact = 1.0/calcFunc2(mesh,listCouples[i].type,X,mUw,listCouples[i].Xref,listCouples[i].fparms,lunits,tunits);}
 		}
 		
 		return fact;

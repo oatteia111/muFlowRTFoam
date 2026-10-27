@@ -1,9 +1,9 @@
 # Windows muFlowRT builds
 
-One manual workflow, **Build muFlowRT Windows**, builds PhreeqcRM and the seven
-OpenFOAM libraries concurrently, then builds and publishes muFlowRT. Its unsigned
-release contains a Windows runtime ZIP and both reusable SDKs. Anchor QEA signing
-and JFrog publication remain separate work.
+One workflow, **Build MuFlowRT**, runs when a tag matching `v*` is pushed. It builds
+PhreeqcRM and the seven OpenFOAM libraries concurrently, then builds and publishes
+muFlowRT. Its unsigned release contains a Windows runtime ZIP and both reusable
+SDKs. Anchor QEA signing and JFrog publication remain separate work.
 
 ## Local builds
 
@@ -148,12 +148,9 @@ the solver without that toolchain.
 
 ## Workflow and release assets
 
-The workflow definition must exist on the default branch, `main`, before manual
-dispatch is available. Select `cicd` to run that branch's implementation:
-
-```sh
-gh workflow run build-muflowrt.yml --ref cicd
-```
+Push a version tag such as `v0.1.0` pointing to the commit to build. That commit
+must contain the tag-triggered workflow. Branch pushes do not trigger the build,
+and manual dispatch is not enabled.
 
 Dependency SDKs/checksums and diagnostics have **14-day** Actions artifact
 retention. Job outputs carry artifact names so the final job can reuse successful
@@ -167,8 +164,9 @@ MSYS2 package inventory. A cache hit reuses the checksummed SDK and skips the
 cold build. `BUILD_INFO.txt` retains the run and commit that produced the cached
 SDK.
 
-The prerelease tag is `muflowrt-ucrt64-x86_64-<run-id>-<attempt>`, targeting the
-workflow's exact repository commit. It is never marked Latest. Assets are:
+The prerelease uses the pushed version tag, such as `v0.1.0`, targeting the
+workflow's exact repository commit. It is never marked Latest. Actions artifact
+names retain the run ID and attempt for build traceability. Assets are:
 
 - `muflowrt-ucrt64-x86_64.zip`: executable, seven OpenFOAM DLLs, PhreeqcRM DLL,
   compiler runtimes, OpenFOAM configuration, reference database, launcher,
@@ -227,9 +225,11 @@ build step that needs them, as shown in the local-run example.
 A draft is published only after all asset uploads complete. Identical existing
 assets are reused; conflicting replacements are rejected.
 
-Rerunning the failed final job reuses dependency SDKs, rebuilds the solver, and
-uses the new attempt number. To retry only publication, download the retained
-final release-assets artifact and run this in Git Bash with an authenticated gh:
+Rerunning the failed final job reuses dependency SDKs and rebuilds the solver with
+a new artifact attempt number, but publishes to the same version tag. Rebuilt
+assets that differ from existing uploads are rejected. To retry only publication,
+download the retained final release-assets artifact and run this in Git Bash with
+an authenticated gh:
 
 ```sh
 export GITHUB_REPOSITORY=AnchorQEA/muFlowRTFoam

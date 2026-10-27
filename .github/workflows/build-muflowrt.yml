@@ -3,8 +3,8 @@ name: Build MuFlowRT
 
 on:
   push:
-    branches: [ cicd ]
-  workflow_dispatch:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -241,7 +241,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.package.outputs.artifact-name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: bash scripts/publish-dependency.sh "$RELEASE_TAG" "$RUNNER_TEMP/muflowrt-dist"
       - name: Retain build diagnostics
         if: always()

@@ -171,6 +171,7 @@ jobs:
   muflowrt:
     name: Build and publish muFlowRT
     needs: [phreeqcrm, openfoam]
+    environment: build-publish
     runs-on: windows-latest
     timeout-minutes: 90
     permissions:

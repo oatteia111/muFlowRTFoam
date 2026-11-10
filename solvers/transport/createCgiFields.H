@@ -61,7 +61,7 @@ volScalarField::Internal GiSp
 // -------------- conditions for gas mixtures -------------
 labelList cellsGfix0; std::vector<float> qGfix;std::vector<float> cellsGfixData;std::vector<float> condGfix;
 labelList cellsGwel0; std::vector<float> qGwel;std::vector<float> cellsGwelData;std::vector<float> condGwel;
-int itGfix=0;int itGwel=0;float tGfix=0;float tGwel=0;
+int itGfix=0;int itGwel=0;scalar tGfix=0;scalar tGwel=0;
 
 std::vector<int> cellsGfix,cellsGwel;
 

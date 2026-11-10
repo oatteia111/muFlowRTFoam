@@ -61,11 +61,6 @@ time = mesh.time().value() ;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx
 //get the well discharge/recharge
 if (cellsHwel.size()>0)
 {
-	if (time>tHwel) {
-		output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
-		tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
-		tnext = min(tnext,tHwel);
-		}
 	for (i=0; i<cellsHwel.size(); i++)
 		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;//}
 		Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
@@ -74,22 +69,12 @@ if (cellsHwel.size()>0)
 //int ic0=10;
 if (cellsHghb.size()>0)
 {
-	if (time>tHghb) {
-		output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
-		tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
-		tnext = min(tnext,tHghb);
-		}
 	for (i=0; i<cellsHghb.size(); i++) 
 		{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v ; hSp[i1] = cellsHghbData[i*4+3]/v ;}
 } //Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 //----- get the riv conditions
 if (cellsHriv.size()>0)
 {
-	if (time>tHriv) {
-		output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
-		tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
-		tnext = min(tnext,tHriv);
-		}
 	for (i=0; i<cellsHriv.size(); i++) 
 		{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v ; hSp[i1] = cellsHrivData[i*4+3]/v ;}
 		//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
@@ -97,11 +82,6 @@ if (cellsHriv.size()>0)
 //----- get the drn conditions
 if (cellsHdrn.size()>0)
 {
-	if (time>tHdrn) {
-		output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
-		tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
-		tnext = min(tnext,tHdrn);
-		}
 	for (i=0; i<cellsHdrn.size(); i++) 
 		{
 		i1 = cellsHdrn[i]; v=mesh.V()[i1]; // missing condition!!!
@@ -112,11 +92,6 @@ if (cellsHdrn.size()>0)
 //---- recharge conditions		
 if (cellsHrch.size()>0)
 {
-	if (time>tHrch) {
-		output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
-		tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
-		tnext = min(tnext,tHrch);
-		}
 	int ibl,Rblok,nRblok;
 	if (ncell_row>1) {Rblok= ncell_row;nRblok = ncell_col;} // case xsection
 	else {Rblok = ncell_lay;nRblok = nlay;} // 3d case
@@ -136,11 +111,6 @@ if (cellsHrch.size()>0)
 //fixed head cells
 if (cellsHfix.size()>0)
 {
-	if (time>tHfix) {
-		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
-		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
-		tnext = min(tnext,tHfix);
-		}
 	//std::cout<<"hfix ";
 	for (size_t i=0; i<cellsHfix.size(); i++) 
 		{ 

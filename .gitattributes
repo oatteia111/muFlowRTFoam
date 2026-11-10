@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# GitHub-hosted Windows runners must check out executable recipes with LF.
+.github/** text eol=lf
+scripts/** text eol=lf
+solvers/Make/* text eol=lf

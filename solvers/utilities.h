@@ -8,6 +8,11 @@ std::vector<int> indexC(labelList &cells, std::vector<float> &data)
 	for (int i=0; i<cells.size();i++)  // reads the first ncells lines
 		{
 		auto iter = std::find(cells.begin(), cells.end(), static_cast<int>(data[i*4+1]));
+        if (iter == cells.end())
+        {
+            FatalErrorInFunction << "Boundary cell is absent from its cell set"
+                << exit(FatalError);
+        }
 		int i1 = {std::distance(cells.begin(), iter)};  //Info << i << " icd "<< icd << " cll " << cells_[i] << " indx " << a << endl; // cell number in cellsData //index of cellsData in cells_
 		c1[i] = cells[i1];
 		}
@@ -19,22 +24,43 @@ inline bool fexists(const std::string& name) {
     return f.good();
 }
 
-struct outData {float t; std::vector<float> d;};
- 
-// a function to get data from binary file
-outData getCbuffer(string fname, int itime, int ncell) 
-{
-    std::vector<float> data(ncell*4);
-	std::ifstream inputData{cur_dir+"/constant/options/"+fname, std::ios::binary}; //
-	inputData.seekg(ncell*itime*4*sizeof(float)); //each line is composed of 4 numbers and there are two values at the beginning
+#include "timeSchedule.H"
 
-    inputData.read(reinterpret_cast<char*>(&data[0]), ncell*4*sizeof(float));
-	float time;	
-	inputData.read(reinterpret_cast<char*>(&time), sizeof(float));
-	outData output;
-	output.t = time;std::cout<<"readbin "<<fname <<" "<<itime<<" "<<ncell;
-	output.d = data;
-    return output;
+struct outData {scalar t; std::vector<float> d;};
+
+outData getCbuffer(string fname, int itime, int ncell)
+{
+    try
+    {
+        const auto frame = muFlowTime::readBoundaryFrame<scalar>
+        (
+            cur_dir+"/constant/options/"+fname,
+            itime, ncell, timeScheduleVersion, scalar(GREAT)
+        );
+        return {frame.nextTime, frame.data};
+    }
+    catch (const std::exception& error)
+    {
+        FatalErrorInFunction << error.what() << exit(FatalError);
+    }
+    return {GREAT, {}};
+}
+
+void advanceBoundary
+(
+    const string& name, const scalar time, const int ncell,
+    int& frame, scalar& nextTime, std::vector<float>& data
+)
+{
+    if (!ncell) {return;}
+    while (time >= nextTime)
+    {
+        const outData next = getCbuffer(name, frame, ncell);
+        data = next.d;
+        nextTime = next.t;
+        ++frame;
+    }
+    tnext = min(tnext, nextTime);
 }
 
 struct outTable {std::vector<std::string> headers; std::vector<float> data;int ncol;int nrow;};

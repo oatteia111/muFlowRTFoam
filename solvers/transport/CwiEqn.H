@@ -30,11 +30,6 @@ if (flowType<4)
 	std::cout<<"nb cell ghb "<<cellsSghb.size()<<" cond "<<condSghb.size()<<" it "<< itSghb<<" data "<<cellsSghbData.size()<<" bc "<<bcCwi.size() <<"\n";
 	if (cellsSghb.size()>0)
 		{
-		if (time>tSghb) {
-			output = getCbuffer("sghb",itSghb,cellsSghb.size()); 
-			tSghb = output.t; cellsSghbData=output.d; itSghb +=1;
-			tnext = min(tnext,tSghb);
-			}
 		for (i=0; i<cellsSghb.size(); i++) 
 			{condSghb[i] = static_cast<int>(cellsSghbData[i*4+2]);i1=cellsSghb[i];bcCwi[i1]=1;}
 		Info<<" tSghb "<<tSghb<<" cond 0 "<<condSghb[0]<<endl;
@@ -42,11 +37,6 @@ if (flowType<4)
 	// get fixed solutions at h fix places
 	if (cellsShfix.size()>0)
 		{
-		if (time>tShfix) {
-			output = getCbuffer("shfix",itShfix,cellsShfix.size()); 
-			tShfix = output.t; cellsShfixData=output.d; itShfix +=1;
-			tnext = min(tnext,tShfix);
-			}
 		for (i=0; i<cellsShfix.size(); i++) 
 			{condShfix[i] = static_cast<int>(cellsShfixData[i*4+2]);i1=cellsShfix[i];bcCwi[i1]=1;}
 		Info<<" tShfix "<<tShfix<<" cond 0 "<<condShfix[0]<<endl;
@@ -54,11 +44,6 @@ if (flowType<4)
 	//get the solution recharge data (here only solution given in rch zone)
 	if (cellsSrch.size()>0)
 		{
-		if (time>tSrch) {
-			output = getCbuffer("srch",itSrch,cellsSrch.size()); 
-			tSrch = output.t; cellsSrchData=output.d; itSrch +=1;
-			tnext = min(tnext,tSrch);
-			}
 		for (i=0; i<cellsSrch.size(); i++) 
 			{condSrch[i] = static_cast<int>(cellsSrchData[i*4+2]);i1=cellsSrch[i];bcCwi[i1]=1;}
 		Info<<" tSrch "<<tSrch<<" cond 0 "<<condSrch[0]<<endl;
@@ -68,11 +53,6 @@ else
 {
 	if (cellsSpfix.size()>0)
 	{
-	if (time>tSpfix) {
-		output = getCbuffer("spfix",itSpfix,cellsSpfix.size()); 
-		tSpfix = output.t; cellsSpfixData=output.d; itSpfix +=1;
-		tnext = min(tnext,tSpfix);
-		}
 	for (i=0; i<cellsSpfix.size(); i++) 
 		{condSpfix[i] = static_cast<int>(cellsSpfixData[i*4+2]);i1=cellsSpfix[i];bcCwi[i1]=1;}
 	//Info<<" tSpfix "<<tSpfix<<" cond 0 "<<condSpfix[0]<<endl;
@@ -82,22 +62,12 @@ else
 // get fixed solutions 
 if (cellsSfix.size()>0)
 	{
-	if (time>tSfix) {
-		output = getCbuffer("sfix",itSfix,cellsSfix.size()); 
-		tSfix = output.t; cellsSfixData=output.d; itSfix +=1;
-		tnext = min(tnext,tSfix);
-		}
 	for (i=0; i<cellsSfix.size(); i++) 
 		{condSfix[i] = static_cast<int>(cellsSfixData[i*4+2]);i1=cellsSfix[i];bcCwi[i1]=1;}
 	}
 //get the solution well data
 if (cellsSwel.size()>0)
 	{
-	if (time>tSwel) {
-		output = getCbuffer("swel",itSwel,cellsSwel.size()); 
-		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
-		tnext = min(tnext,tSwel);
-		}
 	for (i=0; i<cellsSwel.size(); i++) 
 		{condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);i1=cellsSwel[i];bcCwi[i1]=1;}
 	//Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;

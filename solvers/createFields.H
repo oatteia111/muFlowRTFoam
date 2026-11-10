@@ -133,14 +133,14 @@ volScalarField::Internal hSp
 
 
 // -------------- conditions for head -------------
-labelList cellsHfix0; std::vector<float> qHfix;std::vector<float> cellsHfixData;float tHfix=0;int itHfix=0;
-labelList cellsHwel0; std::vector<float> qHwel;std::vector<float> cellsHwelData;float tHwel=0;int itHwel=0;
-labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;float tHdrn=0;int itHdrn=0;
-labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
-labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
-labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
+labelList cellsHfix0; std::vector<float> qHfix;std::vector<float> cellsHfixData;scalar tHfix=0;int itHfix=0;
+labelList cellsHwel0; std::vector<float> qHwel;std::vector<float> cellsHwelData;scalar tHwel=0;int itHwel=0;
+labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;scalar tHdrn=0;int itHdrn=0;
+labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;scalar tHriv=0;int itHriv=0; 
+labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;scalar tHghb=0;int itHghb=0; std::vector<float> qGerr;
+labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;scalar tHrch=0;int itHrch=0; std::vector<float> clayRch;
 //std::vector<float> ratio;
-outData output;float time = mesh.time().value();
+outData output;scalar time = mesh.time().value();
 tnext=readScalar(runTime.controlDict().lookup("endTime"));
 if (fexists(cur_dir+"/constant/options/hfix")) { 
 cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();
@@ -183,8 +183,8 @@ std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
 // mass balance
-float sqIHrch,sqIHghb,sqIHdrn,sqIHfix,sqIHwel;
-float sqOHrch,sqOHghb,sqOHdrn,sqOHfix,sqOHwel;
+float sqIHrch=0,sqIHghb=0,sqIHdrn=0,sqIHfix=0,sqIHwel=0;
+float sqOHrch=0,sqOHghb=0,sqOHdrn=0,sqOHfix=0,sqOHwel=0;
 std::ofstream fich1(cur_dir+"/observation/budgetH.txt");// Ouvrir le fichier en mode append
 fich1 <<"time InHfix OutHfix InHwel OutHwel InHdrn OutHdrn InHghb OutHghb InHrch OutHrch\n"<< std::endl;
 fich1.close();

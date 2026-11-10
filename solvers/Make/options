@@ -1,29 +1,30 @@
 EXE_INC = \
     -I. \
-	-I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude \
-	-I/usr/local/include
-	
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude
+
 ifeq ($(WM_OSTYPE),MSwindows)
 
+# The solver's TIME_NAME switch requires a numeric OpenFOAM version macro.
 SYS_INC = \
-    -I/c/msys64/usr/local/include \
-    -I/c/OF13/phreeqcrm-3.8.6-17100/build
+    -I$(PHREEQCRM_ROOT)/include \
+    -DWM_PROJECT_VERSION_NUMBER=$(WM_PROJECT_VERSION) \
+    -fopenmp
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
-	-L/c/OF13/phreeqcrm-3.8.6-17100/build \
+    -L$(PHREEQCRM_ROOT)/lib \
     -lfiniteVolume \
-	-lmeshTools \
-	-lPhreeqcRM
+    -lmeshTools \
+    -lPhreeqcRM \
+    -fopenmp
 
 else
 
+EXE_INC += -I/usr/local/include
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
     -lfiniteVolume \
-	-lmeshTools \
-	-lphreeqcrm
-	
-endif
+    -lmeshTools \
+    -lphreeqcrm
 
-		
+endif

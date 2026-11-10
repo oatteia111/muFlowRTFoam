@@ -38,10 +38,12 @@ Developers
 //#include <math.h>       /* atan */ don(t include it, it creates pb in opf when compiled with blue-cfd???
 //#define MY_PI 3.14159265 // pb in blueCfd conflict with math?
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
 #include <chrono>  // for high_resolution_clock
+#include <version.hpp>
 // #include "fvCFD.H" fro version 8-10, has disappeared now
 #include "fvMesh.H"
 #include "fvc.H"
@@ -98,6 +100,12 @@ using namespace Foam;//utilisteias and plugins declaration
 
 int main(int argc, char *argv[])
 {
+    if (argc == 2 && (std::string(argv[1]) == "-version" || std::string(argv[1]) == "--version" || std::string(argv[1]) == "-v"))
+    {
+        std::cout << "muFlowRT " << MUFLOWRT_VERSION << '\n';
+        return 0;
+    }
+
 	my_phq freak;
 	
 	//init openFoam

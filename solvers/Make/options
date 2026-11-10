@@ -20,11 +20,16 @@ EXE_LIBS = \
 
 else
 
-EXE_INC += -I/usr/local/include
+SYS_INC = \
+    -I$(PHREEQCRM_ROOT)/include \
+    -DWM_PROJECT_VERSION_NUMBER=$(WM_PROJECT_VERSION) \
+    -fopenmp
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
+    -L$(PHREEQCRM_ROOT)/lib \
     -lfiniteVolume \
     -lmeshTools \
-    -lphreeqcrm
+    -lPhreeqcRM \
+    -fopenmp
 
 endif

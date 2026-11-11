@@ -7,11 +7,6 @@ sw.storePrevIter();
 	//get the well discharge
 	if (cellsHwel.size()>0)
 	{
-		if (time>=tHwel) {
-			output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
-			tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
-			tnext = min(tnext,tHwel);
-			}
 		for (i=0; i<cellsHwel.size(); i++) {
 			i1=cellsHwel[i];qHwel[i] = cellsHwelData[i*4+2] ; hSu[i1] = qHwel[i]/mesh.V()[i1];
 			Info<<"q "<<qHwel[i]<<" "<<mesh.V()[i1]<<endl;
@@ -21,11 +16,6 @@ sw.storePrevIter();
 	//----- get the drn conditions
 	if (cellsHdrn.size()>0)
 	{
-		if (time>=tHdrn) {
-			output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
-			tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
-			tnext = min(tnext,tHdrn);
-			}
 		for (i=0; i<cellsHdrn.size(); i++) 
 			{
 			i1 = cellsHdrn[i]; v=mesh.V()[i1];
@@ -36,11 +26,6 @@ sw.storePrevIter();
 	//---- recharge conditions		
 	if (cellsHrch.size()>0)
 	{
-		if (time>=tHrch) {
-			output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
-			tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
-			tnext = min(tnext,tHrch);
-			}
 		float frech=1;float pi=3.141592654;float hplim = -1.0/lunits; //frech is used to stop recharge or evapo when hp is too high or too low
 		for (i=0; i<cellsHrch.size(); i++) 
 			{
@@ -67,11 +52,6 @@ sw.storePrevIter();
 
 	if (cellsHfix.size()>0)
 	{
-		if (time>=tHfix) {
-			output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
-			tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
-			tnext = min(tnext,tHrch);
-			}
 		//for (i=0; i<cellsHfix.size(); i++) {i1 = cellsHfix[i];hSu[i1]=-cellsHfixData[i*4+2]*1e3;hSp[i1]=1e3;std::cout<<"h fix "<<i1<<" "<<hSu[i1]<<" "<<hSp[i1];}
 		for (i=0; i<cellsHfix.size(); i++) {hpEqn.setReference(cellsHfix[i],cellsHfixData[i*4+2]);}
 	}

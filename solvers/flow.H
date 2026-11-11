@@ -37,10 +37,14 @@ if (flowType == 3) // unsaturated
 		residu0 = residu;
 		//hp_tmp = hp;
 		if (iterPicard == maxIterPicard)
-			{ runTime.setTime(presentTime,tstep); break; }
+			{ break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;sw_tmp=sw1;sw=sw1;rewind=1;}//hp_tmp=hp1;hp=hp1;rewind=1;}
+	if (!std::isfinite(resPicard) || resPicard > tolPicard)
+    {
+        FatalErrorInFunction << "Unsaturated Picard solve failed after accepted time "
+            << presentTime << "; rejected step was not written" << exit(FatalError);
+    }
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
 	#include "flow/updateThetaFields.H"
@@ -101,7 +105,11 @@ else if (flowType == 4) // 2 phase
 		if (iterPicard == maxIterPicard){ break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;p=p1;rewind=1;}
+	if (!std::isfinite(resPicard) || resPicard > tolPicard)
+    {
+        FatalErrorInFunction << "Two-phase Picard solve failed after accepted time "
+            << presentTime << "; rejected step was not written" << exit(FatalError);
+    }
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
     }

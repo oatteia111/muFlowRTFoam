@@ -2,7 +2,7 @@
 if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
 if (rSteps>0) {if (rcnt>=rSteps+1) {rcnt=1;} }
 int flgR =0;
-if (rSteps>0) {if (runTime.value() >= wTimes[itwstep-1]+reactStep*rcnt) flgR=1;} // here the time to write is a portion of current time period
+if (rSteps>0) {if (stepTime >= reactionTime) flgR=1;} // here the time to write is a portion of current time period
 if (rSteps<0) {if (tcnt == -rSteps-1) flgR=1;} // here the time is a number of flow/transport time steps
 Info<<"for react tcnt "<<tcnt<<" wtime "<<wTimes[itwstep-1]<<" lim "<<wTimes[itwstep-1]+reactStep*rcnt<<" rstep "<<rSteps<<" tcnt "<<tcnt<<" rcnt "<<rcnt<<" flgR "<<flgR<<endl;
 if (flgR==1) 
@@ -53,16 +53,21 @@ if (flgR==1)
 	freak.setGm(gm_ph);//transfer gm_ph to freak
 	if (activateThermal==1) {freak.setTemp(t_ph);}
 	//freak.setP(p_ph);//transfer pressure to freak
-	freak.setTstep((runTime.value()-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<presentTime<<endl;//the calculation time shall include all time since las phreeqc run
-	Info << "running phreeqc dt "<<(runTime.value()-oldTimeReac)*tunits<<endl;
+	freak.setTstep((stepTime-oldTimeReac)*tunits); //Info<<" this tme "<< runTime.value()<<" old "<<presentTime<<endl;//the calculation time shall include all time since las phreeqc run
+	Info << "running phreeqc dt "<<(stepTime-oldTimeReac)*tunits<<endl;
 	int a0= freak.phqRun();//Info<<"end results "<<a0<<endl;
 	//for (j=0;j<6;j++) { for (i=4; i<ph_ncomp;i++){Info<<freak.c[i*nxyz+j]<<" ";} Info<<endl;}
-	if (a0==-7) { // irm _fail : what to do
-		forAll(Cw,ic) { if (immobile[ic]==0) {Cw[ic]()=Cw[ic]().prevIter();} } // back to previous conc values
-		tcnt=rSteps-2;//insure that phreeqc will be run on next time step !!!!! oldTimeReac to be corrected
-		rewind=1;Info<<endl;continue;
-		} 
+    if (a0 < 0)
+    {
+        FatalErrorInFunction << "PHREEQC failed after accepted time " << presentTime
+            << "; rejected step was not written (status " << a0 << ")" << exit(FatalError);
+    }
 	a0=freak.getSelOutput();
+    if (a0 < 0)
+    {
+        FatalErrorInFunction << "Cannot read PHREEQC output after accepted time "
+            << presentTime << "; rejected step was not written" << exit(FatalError);
+    }
 	for (j=0; j<nxyz;j++) {for (i=0;i<nsel;i++) { if (freak.spc[i*nxyz+j]<1e10) {species[i*nxyz+j] = freak.spc[i*nxyz+j];} } }
 
 	Info << "phreeqc done "<<endl;
@@ -152,6 +157,6 @@ if (flgR==1)
 		//nb of moles of H2O(g) transformed in water volume (1 mol 18.01 mL at 25°C)
 	//for (j=0;j<3;j++) {Info <<" new sw "<<sw[j]<< endl;}
 		
-	oldTimeReac = runTime.value()*1;
+	oldTimeReac = stepTime;
 	reactIndicator = 1; //to know after reaction
 }

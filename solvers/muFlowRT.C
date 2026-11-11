@@ -34,6 +34,10 @@ Developers
 //#include <cmath.h>
 //#include <iomanip> //NB when in < > don't add the .h
 #include <stdlib.h>
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <limits>
 #include <vector>
 //#include <math.h>       /* atan */ don(t include it, it creates pb in opf when compiled with blue-cfd???
 //#define MY_PI 3.14159265 // pb in blueCfd conflict with math?
@@ -83,9 +87,11 @@ std::vector<double> a(12,0.);
 std::vector<double> c_ph,gm_ph,g_ph,poro,t_ph,foc_ph,p_ph,gvol,wsat,ractive,solu_conc,gas_conc,solu_species,Vmol,Ggrd;
 std::vector<double> species;
 std::vector<int> immobile;
-std::vector<float> wTimes;
+std::vector<Foam::scalar> wTimes;
 float atmPa=101325.;float pi=3.141592654;
-float vmw,Cgtot,Gmtot,dtForC,dtForChem,tnext,dure,tunits;
+float vmw,Cgtot,Gmtot,dure;
+Foam::scalar dtForC,dtForChem,tnext,tunits;
+int timeScheduleVersion = 1;
 int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
 int nxyz, ph_ncomp, ph_nspc, ph_gcomp, ph_nsolu; 
 
@@ -110,9 +116,34 @@ int main(int argc, char *argv[])
 	#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
+    timeScheduleVersion = runTime.controlDict().lookupOrDefault<label>("timeScheduleVersion", 1);
+    if (timeScheduleVersion != 1 && timeScheduleVersion != 2)
+    {
+        FatalErrorInFunction << "Unsupported timeScheduleVersion " << timeScheduleVersion
+            << exit(FatalError);
+    }
+    if (!std::isfinite(runTime.value()) || runTime.value() < 0
+        || !std::isfinite(runTime.endTime().value()) || runTime.endTime().value() <= 0
+        || runTime.endTime().value() >= GREAT || runTime.value() > runTime.endTime().value())
+    {
+        FatalErrorInFunction << "Require 0 <= startTime <= endTime < GREAT, with positive endTime"
+            << exit(FatalError);
+    }
 	//#include "polyMesh.H" was supposed to be usefull for cellLevles but creates pb elsewhere
     #include "readGravitationalAcceleration.H"
     #include "createFields.H"
+    if (activateReaction == 1 && (!std::isfinite(reactionSteps)
+        || reactionSteps == 0 || std::floor(reactionSteps) != reactionSteps
+        || std::abs(reactionSteps) >= std::numeric_limits<int>::max()))
+    {
+        FatalErrorInFunction << "reactionSteps must be a nonzero integer; adaptive chemistry is not supported"
+            << exit(FatalError);
+    }
+    if (activateReaction == 1 && runTime.value() != 0)
+    {
+        FatalErrorInFunction << "Reactive restart requires PHREEQC state restoration and is not supported"
+            << exit(FatalError);
+    }
 	#include "readPicardControls.H"
 	#include "flow/createThetaFields.H"
 	//parms of the De=f(T) function
@@ -125,10 +156,35 @@ int main(int argc, char *argv[])
 	scalar deltaTFact = 1;
 	// reading files times
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };
-	wTimes = {std::istream_iterator<float>{inputwTimes}, {}};Info<<" wt0 "<<wTimes[0]<<endl;
+	wTimes = {std::istream_iterator<scalar>{inputwTimes}, {}};
+	if (wTimes.size() < 2 || !inputwTimes.eof())
+	{
+		FatalErrorInFunction
+			<< "writetimes must contain a time-unit index and at least one output time"
+			<< exit(FatalError);
+	}
+    if (wTimes[0] < 0 || wTimes[0] > 4 || std::floor(wTimes[0]) != wTimes[0])
+    {
+        FatalErrorInFunction << "Invalid time-unit index in writetimes" << exit(FatalError);
+    }
+    scalar lastWriteTime = 0;
+    for (std::size_t index=1; index<wTimes.size(); ++index)
+    {
+        if (!std::isfinite(wTimes[index]) || wTimes[index] <= lastWriteTime || wTimes[index] >= GREAT)
+        {
+            FatalErrorInFunction << "Output times must be finite, positive, strictly increasing and below GREAT"
+                << exit(FatalError);
+        }
+        lastWriteTime = wTimes[index];
+    }
+    if (timeScheduleVersion == 2 && wTimes.back() != runTime.endTime().value())
+    {
+        FatalErrorInFunction << "The final output must equal endTime" << exit(FatalError);
+    }
+	Info<<" wt0 "<<wTimes[0]<<endl;
 		
-	float tunits=1; float lunits=1.;
-	std::vector<float> tu={1,60,3600,86400,3153600};tunits = tu[wTimes[0]]; // we need time units to send time to phrq in seconds and for pressure units
+	scalar tunits=1; float lunits=1.;
+	std::vector<scalar> tu={1,60,3600,86400,3153600};tunits = tu[wTimes[0]]; // we need time units to send time to phrq in seconds and for pressure units
 	wTimes[0] = 0; // required to calculate the reactive time sptes for the 1st time step 
 	std::vector<float> lu={0.01,1,1000,0.325};lunits = lu[lg_units]; // we need length units for atmPa (lunit sis in transportproperties
 	atmPa = atmPa*tunits*tunits/lunits;
@@ -148,7 +204,7 @@ int main(int argc, char *argv[])
 	//remove all files in the folder observation
 	if (mesh.time().value()==0) {fname = cur_dir+"/observation"; if (fexists(fname)) {deleteFilesInDirectory(fname);} }
 	//Observations : obspts a file with the name of each point and its x,y,z, coordinates
-	fname = cur_dir+"/constant/options/obspts";int nobs;std::vector<int> icello;outTable observ;
+	fname = cur_dir+"/constant/options/obspts";int nobs = 0;std::vector<int> icello;outTable observ;
 	if (fexists(fname))
 		{
 		observ = readTable(fname);nobs = observ.nrow;int ncol = observ.ncol;icello.resize(nobs);std::cout<<"nobs "<<nobs<<" "<<ncol<<"\n";
@@ -158,7 +214,7 @@ int main(int argc, char *argv[])
 			}
 		}	
 	// observations : the files containing the number of the variable to be printed obsFlow, obsTrans, obsChem
-	std::vector<float> obsFlow,obsTrans,obsSolu,obsGas;
+	std::vector<scalar> obsFlow,obsTrans,obsSolu,obsGas;
 	std::vector<int> obsFlowIndx,obsTransIndx,obsChemIndx;
 	std::ifstream inputOflow{cur_dir+"/constant/options/obsFlow" }; 
 	obsFlowIndx = {std::istream_iterator<int>{inputOflow}, {}};
@@ -168,7 +224,7 @@ int main(int argc, char *argv[])
 	obsChemIndx = {std::istream_iterator<int>{inputOchem}, {}}; 
 	Info<<"end obs "<<endl;
 	// budget variables
-	std::vector<float> budFlow,budC,budT,budSolu,budGas;
+	std::vector<scalar> budFlow,budC,budT,budSolu,budGas;
 	
 	std::ifstream inputRactive{cur_dir+"/constant/options/ractive" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
 	ractive = {std::istream_iterator<int>{inputRactive}, {}};
@@ -228,7 +284,16 @@ int main(int argc, char *argv[])
 		}
 	//***first init of phreeqc
 	int a0= freak.phqInit(); //if gas is present here the equil is not correct, it is fixed pressure(gas phase from phqfoam)
+    if (a0 < 0)
+    {
+        FatalErrorInFunction << "PHREEQC initialization failed (status " << a0 << ")"
+            << exit(FatalError);
+    }
 	a0=freak.getSelOutput();
+    if (a0 < 0)
+    {
+        FatalErrorInFunction << "Cannot read PHREEQC initialization output" << exit(FatalError);
+    }
 	nsel = freak.nselect;//std::cout<<"1st phq, nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 	species.resize(nxyz*nsel);
 	for (size_t k;k<freak.spc.size();k++) {species[k]=freak.spc[k];} // put the starting concentrations
@@ -304,6 +369,11 @@ int main(int argc, char *argv[])
 		for (j=0;j<nxyz;j++) {p_ph[j]=p[j]/atmPa;}
 		freak.setP(p_ph); //not possible to set pressure and volume
 		a0= freak.phqRun(); //****PHQ RUN with equilibration with true gas phase
+        if (a0 < 0)
+        {
+            FatalErrorInFunction << "Initial gas equilibration failed (status " << a0 << ")"
+                << exit(FatalError);
+        }
 		//(recalculate Vm) no, just to print
 		for (j=0;j<nxyz;j++)  {
 			//Gmtot = 0;
@@ -347,7 +417,7 @@ int main(int argc, char *argv[])
 	//######################## run the steady state for hp
 	dimensionedScalar st = runTime.startTime();
 	//dimensionedScalar et = runTime.endTime();
-	float dt0 = mesh.time().deltaTValue();
+	scalar dt0 = mesh.time().deltaTValue();
 	scalar residu;//float dt0=wtime/50.;Info<<"wtime 0 "<<wtime<<" dt "<<dt0<<endl;
 	if ((flowStartSteady==1)&&(flowType>0)&&(flowType<=2))
 		{
@@ -360,13 +430,16 @@ int main(int argc, char *argv[])
 	runTime.runTimeModifiable();
 	Info <<"dt "<<dt0<<endl;
 	
-	runTime.setDeltaT(dt0);runTime.setTime(st,0);
+	runTime.setDeltaTNoAdjust(dt0);
 	time=mesh.time().value();
-	if (time<dt0) {runTime.setTime(dt0,0);} // not to have time=0, it hsould be  dt0
-	int tstep,tcnt,rcnt,iflowStep;int itwstep = 1;float wtime=wTimes[itwstep];int flagW=0; // first tstep is 1 (first vlaue is tunits)
-	float presentTime,oldTimeReac,oldTimeTransp,nextTimeTransp;float newDeltaT=dt0;float dteps=(wTimes[2]-wTimes[1])/1e5;int rewind=0;
-	//search time step for restart (if start time is higher than first write time
-	while (time>wTimes[itwstep]) {itwstep+=1;} 
+	int tstep=runTime.timeIndex(),tcnt=0,rcnt=1,iflowStep=0;
+	std::size_t itwstep = 1; // the first entry stores the time unit
+	int flagW=0;
+	scalar presentTime=runTime.value(),oldTimeReac=runTime.value();
+	scalar oldTimeTransp=runTime.value(),nextTimeTransp=runTime.value(),newDeltaT=dt0;
+	// Restart from the first output after the state already loaded at startTime.
+	while (itwstep < wTimes.size() && wTimes[itwstep] <= runTime.value()) {++itwstep;}
+	scalar wtime = itwstep < wTimes.size() ? wTimes[itwstep] : GREAT;
 	//restart for solid species in phreeqc (get minerals from species file, equilibrate surface and exchange)
 	/*
 	if ((itwstep>1)&&(activateReaction==1)) 
@@ -387,7 +460,7 @@ int main(int argc, char *argv[])
 		std::cout<<"end restart "<< Cw[4]()[0]<<" \n";
 		}
 		*/
-	wtime=wTimes[itwstep];Info<<"wtime "<<itwstep<<" "<<wTimes[itwstep]<<endl;
+	Info<<"wtime "<<itwstep<<" "<<wtime<<endl;
 	Info<<"time rebuilt st "<<runTime.startTime()<<" dt "<<runTime.deltaTValue()<<endl;
 	
 	//################### attribute to Cwi and Cgi concentrations/pressures from phreeqc
@@ -424,58 +497,65 @@ int main(int argc, char *argv[])
 	plugH.init(cur_dir,transportProperties,mesh,runTime,listCouples,lunits,tunits);
 	plugPS.init(cur_dir,transportProperties,mesh,freak,listCouples);
 	plugCgi.init(cur_dir,transportProperties,mesh,freak,listCouples);
-	int flagBC;//newDeltaT = minDeltaT*10;
-	scalar reactStep = (wTimes[1]-wTimes[0])/rSteps; // length of the reaction step
-	
-	while (runTime.run())
+    while (true)
     {
-		//****************** set time step to stop at writeTimes
-		if (rewind==1) {runTime.setTime(presentTime,tstep);newDeltaT /=10.;rewind=0;} //rewind is when phreeqc makes error
-		presentTime = mesh.time().value();
-		float dt1 = wtime - presentTime;  //to catch the writing time
-		float dt2 = tnext - presentTime; //to catch the time when BC change
-		Info<<"t "<<presentTime<<" dt1 "<<dt1<<" dt2 "<<dt2<< " newdt "<<newDeltaT<<" maxdt "<< maxDeltaT<<" flg BC "<<flagBC<<endl;
-		flagW = 0;		
-		if (reactStep>0) {newDeltaT = min(newDeltaT,reactStep);}
-		if (flagBC>0) {newDeltaT = min(newDeltaT,dt2/20);flagBC=0;} // usefull?
-		newDeltaT = min(max(newDeltaT,minDeltaT),maxDeltaT);
-		Info<<"dts : min "<<minDeltaT<<" tnext "<<tnext<<" new "<<newDeltaT<<" oldtReac "<<oldTimeReac<<endl;
+        presentTime = runTime.value();
+        if (presentTime < runTime.endTime().value())
+        {
+            #include "advanceBoundaries.H"
+        }
+        const scalar writeTime = wtime;
+        const bool hasWriteTime = itwstep < wTimes.size();
+        const std::size_t intervalIndex = std::min(itwstep, wTimes.size()-1);
+        const scalar intervalStart = wTimes[intervalIndex-1];
+        const scalar reactStep = activateReaction == 1 && rSteps > 0
+            ? (wTimes[intervalIndex]-intervalStart)/rSteps : scalar(0);
+        const scalar reactionTime = reactStep > 0 && hasWriteTime
+            ? (rcnt == rSteps ? writeTime : intervalStart+reactStep*rcnt) : scalar(GREAT);
+        scalar stepTime = presentTime;
+        const auto prepareStep = [&]()
+        {
+            const scalar endTime = runTime.endTime().value();
+            if (presentTime >= endTime) {return;}
+            maxDeltaT = runTime.controlDict().lookupOrDefault<scalar>("maxDeltaT", GREAT);
+            minDeltaT = runTime.controlDict().lookupOrDefault<scalar>("minDeltaT", 1e-8);
+            if (!std::isfinite(newDeltaT) || newDeltaT <= 0
+                || !std::isfinite(minDeltaT) || !std::isfinite(maxDeltaT)
+                || minDeltaT <= 0 || maxDeltaT < minDeltaT)
+            {
+                FatalErrorInFunction << "Invalid numerical timestep limits at " << presentTime
+                    << exit(FatalError);
+            }
+            try
+            {
+                stepTime = muFlowTime::stepEnd
+                (
+                    presentTime, min(max(newDeltaT,minDeltaT),maxDeltaT),
+                    writeTime, tnext, reactionTime, endTime
+                );
+            }
+            catch (const std::exception& error)
+            {
+                FatalErrorInFunction << error.what() << " at " << presentTime << exit(FatalError);
+            }
+            runTime.setDeltaTNoAdjust(stepTime-presentTime);
+        };
+        // run() uses deltaT in its stop test; clip before it, then refresh controls.
+        prepareStep();
+        if (!runTime.run()) {break;}
+        prepareStep();
+        if (presentTime >= runTime.endTime().value()) {continue;}
+        if (timeScheduleVersion == 2 && wTimes.back() != runTime.endTime().value())
+        {
+            FatalErrorInFunction << "Changing endTime requires regenerating writetimes"
+                << exit(FatalError);
+        }
+        flagW = hasWriteTime && stepTime == writeTime;
+        runTime++;tstep++;tcnt++;
+        scalar dt = runTime.deltaTValue();
+        Info << "time = " << runTime.value() << " deltaT = " << dt
+            << " next boundary " << tnext << endl;
 
-		if ((dt1==0)||(dt2==0)) {
-			if (dt1==0) {itwstep+=1;wtime=wTimes[itwstep];flagW=1;}
-			if (dt2==0) {tnext=readScalar(runTime.controlDict().lookup("endTime"));}
-		    }
-		else if ((dt1<= newDeltaT*(1+1e-2))&&(dt1==dt2)) //both BC and W
-			{newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
-			runTime.setDeltaTNoAdjust(dt1);tnext=readScalar(runTime.controlDict().lookup("endTime"));
-			itwstep+=1;wtime=wTimes[itwstep];
-			flagBC=1;flagW=1;} 
-		else if ((dt1<=newDeltaT*(1+1e-2))&&(dt1>0)&&(dt1<dt2)) //write, 9/6 readd < 
-			{runTime.setDeltaTNoAdjust(dt1);itwstep+=1;wtime=wTimes[itwstep];
-			newDeltaT = dt1*0.99;
-			flagW=1;
-			}
-		else if ((dt2<= newDeltaT*(1+1e-2))&&(dt2>0)&&(dt2<dt1)) //BC change //9/6 readd < 
-			{runTime.setDeltaTNoAdjust(dt2);tnext=readScalar(runTime.controlDict().lookup("endTime"));
-			newDeltaT = min(newDeltaT/20,(wTimes[itwstep+1]-wTimes[itwstep])/100);
-			//flagDeltaT=1;
-			flagBC=1;} //;tnext=readScalar(runTime.controlDict().lookup("endTime"))
-		Info<<" flgW "<<flagW<<" flgBC "<<flagBC<<endl;
-		if (flagW+flagBC==0) {runTime.setDeltaT(newDeltaT);}// classical case
-		//Info <<"newDeltaT "<<newDeltaT<<endl;
-		if (itwstep>=wTimes.size()) {itwstep-=1;wtime=wTimes[itwstep];}
-		Info<<"i time "<<itwstep<<" oldt "<<presentTime<<" wt "<<wtime<<" deltaT "<<float(runTime.deltaTValue())<<" flgW "<<flagW<<endl;
-		#if defined(OPENFOAM) && (OPENFOAM <= 100)
-			// Ce code est lu et compilé UNIQUEMENT sur OpenFOAM v10 (ou inférieur)
-			runTime.read();
-		#endif
-		runTime++;tstep++;tcnt++;
-
-		float dt = runTime.deltaTValue();
-		scalar reactStep = (wTimes[itwstep]-wTimes[itwstep-1])/rSteps; // length of the reaction step
-		//if (mesh.time().value()==wtime) {flagW=1;}
-		Info <<"time = "<< mesh.time().value() <<" deltaT = " <<  dt << " tnext "<<tnext<<" newdeltaT "<<newDeltaT<<" reactStep "<<reactStep<<endl;
-		
 		//***********************  solve coupling case (we assume all coupling require h/C loop) *******************************
 		if (coupling ==1) // we assume Picard
 			{
@@ -498,13 +578,17 @@ int main(int argc, char *argv[])
 				h_tmp = h;
 				residu0 = residu;
 				if (iterPicard == maxIterPicard)
-					{ runTime.setTime(presentTime,tstep); break; }
+					{ break; }
 				}  // end picard iter
 			Info << "Picard nb iterations : "<<iterPicard<<endl;
-			if (activateReaction==1) {
+			if (activateReaction==1 && resPicard <= tolPicard) {
 				#include "phreeqc/calcReaction.H"
 			}
-			if (iterPicard == maxIterPicard) {deltaTFact = 0.2;h_tmp=h1;h=h1;rewind=1;}
+			if (!std::isfinite(resPicard) || resPicard > tolPicard)
+            {
+                FatalErrorInFunction << "Coupled Picard solve failed after accepted time "
+                    << presentTime << "; rejected step was not written" << exit(FatalError);
+            }
 			else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 			newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
 			if (iterPicard>1) {
@@ -517,7 +601,6 @@ int main(int argc, char *argv[])
 			{
 			iflowStep++;
 			#include "flow.H"
-			if (rewind==1) {continue;} //for case picard has failed on flow
 			if (ph_gcomp>0) 
 				{
 				gvol.resize(nxyz);
@@ -561,26 +644,44 @@ int main(int argc, char *argv[])
 				}
 			//}
 			
+		// Use the requested time for output metadata, not accumulated step roundoff.
+		runTime.setTime(stepTime,runTime.timeIndex());
 		//bool ts = runTime.write();
 		//write
 		#include "observation.H"
 		#include "budget.H"
 		
-		if (flagW==1) {runTime.writeNow();Info<<"l548, writing"<<endl;
+		if (flagW==1) {
+            if (!runTime.writeNow())
+            {
+                FatalErrorInFunction << "Failed to write output at " << writeTime << exit(FatalError);
+            }
+            Info<<"writing "<<writeTime<<endl;
 			if (rSteps>0) {tcnt=0;rcnt=1;}
 			}
 		
 		//if (flowType==4) {phiGr.write();}
 		if (activateReaction==1  && flagW==1) {
 			phiw.write();phig.write();
-			std::ofstream outFile(cur_dir/name(mesh.time().value())/"Species");
+			std::ofstream outFile(cur_dir/TIME_NAME(mesh.time())/"Species");
 			outFile.unsetf(std::ios::scientific);outFile.precision(6);
 			std::cout<<"write nsel "<<nsel<<" nxyz "<<nxyz<<"\n";
 			for (j=0;j<nxyz;j++)
 				{ for (i=0;i<nsel;i++) {outFile << species[i*nxyz + j]<<" ";} outFile <<"\n"; }
+            outFile.close();
+            if (!outFile)
+            {
+                FatalErrorInFunction << "Failed to write Species at " << writeTime << exit(FatalError);
+            }
 			}
 
-		if (flagW==1) {flagW=0;}
+		if (flagW==1)
+		{
+			// Consume the target only after a successful step and its output.
+			++itwstep;
+			wtime = itwstep < wTimes.size() ? wTimes[itwstep] : GREAT;
+			flagW=0;
+		}
 		Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
 			<< "  ClockTime = " << runTime.elapsedClockTime() << " s"
 			<< nl << endl;
@@ -589,7 +690,6 @@ int main(int argc, char *argv[])
 
 	}
 	
-	runTime.writeNow();
 	Info<<"Normal termination of OpenFoam"<<endl;
 	/*
 	#ifdef USE_MPI

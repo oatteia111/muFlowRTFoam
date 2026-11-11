@@ -106,7 +106,7 @@ labelList cellsPfix0; std::vector<float> qPfix,cellsPfixData;
 labelList cellsFfix0; std::vector<float> qFfix,cellsFfixData;
 labelList cellsPwel0; std::vector<float> qPwel,cellsPwelData;
 labelList cellsFwel0; std::vector<float> qFwel,cellsFwelData;
-int itPfix,itPwel,itFfix,itFwel;float tPwel,tPfix,tFfix,tFwel;
+int itPfix=0,itPwel=0,itFfix=0,itFwel=0;scalar tPwel=0,tPfix=0,tFfix=0,tFwel=0;
 
 std::vector<int>  cellsPfix,cellsPwel,cellsFfix,cellsFwel;
 std::cout<<"start reader \n";

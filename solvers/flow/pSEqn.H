@@ -12,11 +12,6 @@
 	//volVectorField gp = fvc::grad(p);//Info<<"gp after Seq "<<gp<<endl;
 	if (cellsFwel.size()>0)
 		{
-		if (time>tFwel) {
-			output = getCbuffer("fwel",itFwel,cellsFwel.size()); 
-			tFwel = output.t; cellsFwelData=output.d; itFwel +=1;
-			tnext = min(tnext,tFwel);
-			}
 		for (i=0; i<cellsFwel.size(); i++) 
 			{
 			i1=cellsFwel[i];qFwel[i] = cellsFwelData[i*4+2] ; fSu[i1] = qFwel[i]/mesh.V()[i1];bcPS[i1]=1;
@@ -42,11 +37,6 @@
 	//sw = sw_max - sg;	
 	if (cellsFfix.size()>0)
 		{
-		if (time>tFfix) {
-			output = getCbuffer("ffix",itFfix,cellsFfix.size()); 
-			tFfix = output.t; cellsFfixData=output.d; itFfix +=1;
-			tnext= min(tnext,tFfix);
-			}
 		for (i=0; i<cellsFfix.size(); i++) 
 			{SEqn.setReference(cellsFfix[i],cellsFfixData[i*4+2]);bcPS[cellsFfix[i]]=1;
 			//Info<<"f fix "<<i<<" "<<cellsFfix[i]<<" "<<cellsFfixData[i*4+2]<<" fSu "<<fSu[cellsFfix[i]]<<endl;
@@ -76,11 +66,6 @@
 	//------------------------- start Peqn
 	if (cellsPwel.size()>0)
 		{
-		if (time>tPwel) {
-			output = getCbuffer("pwel",itPwel,cellsPwel.size()); 
-			tPwel = output.t; cellsPwelData=output.d; itPwel +=1;
-			tnext = min(tnext,tPwel);
-			}
 		for (i=0; i<cellsPwel.size(); i++) 
 			{
 			i1=cellsPwel[i];qPwel[i] = cellsPwelData[i*4+2] ; pSu[i1] = qPwel[i]/mesh.V()[i1];bcPS[i1]=1;
@@ -106,11 +91,6 @@
 		
 	if (cellsPfix.size()>0)
 		{
-		if (time>tPfix) {
-			output = getCbuffer("pfix",itPfix,cellsPfix.size()); 
-			tPfix = output.t; cellsPfixData=output.d; itPfix +=1;
-			tnext= min(tnext,tPfix);
-			}
 		for (i=0; i<cellsPfix.size(); i++) 
 			{pEqn.setReference(cellsPfix[i],cellsPfixData[i*4+2]);bcPS[cellsPfix[i]]=1;
 			//Info<<"p fix "<<i<<" "<<cellsPfix[i]<<" "<<cellsPfixData[i*4+2]<<" pSu "<<pSu[cellsPfix[i]]<<endl;

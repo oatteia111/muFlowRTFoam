@@ -56,11 +56,6 @@ bcCwi.resize(ncell,0);
 // get fixed solutions at h fix places
 if (cellsShfix.size()>0)
 	{
-	if (time>=tShfix) {
-		output = getCbuffer("shfix",itShfix,cellsShfix.size()); 
-		tShfix = output.t; cellsShfixData=output.d; itShfix +=1;
-		tnext = min(tnext,tShfix);
-		}
 	for (i=0; i<cellsShfix.size(); i++) 
 		{condShfix[i] = static_cast<int>(cellsShfixData[i*4+2]);i1=cellsShfix[i];bcCwi[i1]=1;}
 	Info<<" tShfix "<<tShfix<<" cond 0 "<<condShfix[0]<<endl;
@@ -68,22 +63,12 @@ if (cellsShfix.size()>0)
 // get fixed solutions 
 if (cellsSfix.size()>0)
 	{
-	if (time>=tSfix) {
-		output = getCbuffer("sfix",itSfix,cellsSfix.size()); 
-		tSfix = output.t; cellsSfixData=output.d; itSfix +=1;
-		tnext = min(tnext,tSfix);
-		}
 	for (i=0; i<cellsSfix.size(); i++) 
 		{condSfix[i] = static_cast<int>(cellsSfixData[i*4+2]);i1=cellsSfix[i];bcCwi[i1]=1;}
 	}
 //get the solution well data
 if (cellsSwel.size()>0)
 	{
-	if (time>=tSwel) {
-		output = getCbuffer("swel",itSwel,cellsSwel.size()); 
-		tSwel = output.t; cellsSwelData=output.d; itSwel +=1;
-		tnext = min(tnext,tSwel);
-		}
 	for (i=0; i<cellsSwel.size(); i++) 
 		{condSwel[i] = static_cast<int>(cellsSwelData[i*4+2]);i1=cellsSwel[i];bcCwi[i1]=1;}
 	Info<<" tSwell "<<tSwel<<" cond 0 "<<condSwel[0]<<endl;
@@ -185,10 +170,14 @@ while (resPicard > tolPicard)
 	resPicard = gMax((mag(JE-JE_tmp))->internalField());
 	JE_tmp = JE;
 	if (iterPicard == maxIterPicard)
-		{ runTime.setTime(presentTime,tstep); break; }
+		{ break; }
 	}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;JE_tmp=JE1;JE=JE1;rewind=1;}
+	if (!std::isfinite(resPicard) || resPicard > tolPicard)
+    {
+        FatalErrorInFunction << "Electrokinetic Picard solve failed after accepted time "
+            << presentTime << "; rejected step was not written" << exit(FatalError);
+    }
 	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*runTime.deltaTValue(),maxDeltaT);
 

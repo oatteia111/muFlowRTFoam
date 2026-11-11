@@ -11,7 +11,7 @@ for (i=0;i<cellsHghb.size(); i++)
 	{if (qHghb[i]>0) {sqIHghb+=qHghb[i]*dt;} else {sqOHghb+=qHghb[i]*dt;}}// Info<<"qhghb "<<i<<" "<<i1<<" "<<qHghb[i]<<" q1 "<<q1[i1]*mesh.V()[i1]<<endl;}
 for (i=0;i<cellsHrch.size(); i++) 
 	{if (qHrch[i]>0) {sqIHrch+=qHrch[i]*dt;} else {sqOHrch+=qHrch[i]*dt;}}
-float sq[11] = {mesh.time().value(),sqIHfix,sqOHfix,sqIHwel,sqOHwel,sqIHdrn,sqOHdrn,sqIHghb,sqOHghb,sqIHrch,sqOHrch};
+scalar sq[11] = {mesh.time().value(),sqIHfix,sqOHfix,sqIHwel,sqOHwel,sqIHdrn,sqOHdrn,sqIHghb,sqOHghb,sqIHrch,sqOHrch};
 budFlow.insert(budFlow.end(), sq, sq+11);
 //std::cout<<"end budget flow \n";
 
@@ -29,7 +29,7 @@ if ((activateTransport==1)&&(activateReaction==0))
 		{i1=cellsHghb[i];a=qHghb[i]*dt;if (qHghb[i]>0) {sqICghb+=a*cellsCghbData[i*4+2];} else {sqOCghb+=a*C[i1];} } // in is bc conc, out is local conc
 	for (i=0; i<cellsCrch.size(); i++)
 	    {i1=cellsHrch[i];a=qHrch[i]*dt;if (qHrch[i]>0) {sqICrch+=a*cellsCrchData[i*4+2];}  } //else {sqOCrch+=a;} no flux or C from an rch BC
-float sq[11] = {mesh.time().value(),sqICfix,sqOCfix,sqICwel,sqOCwel,sqICdrn,sqOCdrn,sqICghb,sqOCghb,sqICrch,sqOCrch};
+scalar sq[11] = {mesh.time().value(),sqICfix,sqOCfix,sqICwel,sqOCwel,sqICdrn,sqOCdrn,sqICghb,sqOCghb,sqICrch,sqOCrch};
 budC.insert(budC.end(), sq, sq+11);
 }
 if (activateThermal==1)
@@ -44,7 +44,7 @@ if (activateThermal==1)
 		{i1=cellsHghb[i];a=qHghb[i]*dt;if (qHghb[i]>0) {sqITghb+=a*cellsTghbData[i*4+2];} else {sqOTghb+=a*T[i1];} }
 	for (i=0; i<cellsHrch.size(); i++)
 	    {i1=cellsHrch[i];a=qHrch[i]*dt;if (qHrch[i]>0) {sqITrch+=a*cellsTrchData[i*4+2];} } //else {sqOTrch+=a;} 
-float sq[11] = {mesh.time().value(),sqICfix,sqOCfix,sqICwel,sqOCwel,sqICdrn,sqOCdrn,sqICghb,sqOCghb,sqICrch,sqOCrch};
+scalar sq[11] = {mesh.time().value(),sqICfix,sqOCfix,sqICwel,sqOCwel,sqICdrn,sqOCdrn,sqICghb,sqOCghb,sqICrch,sqOCrch};
 budT.insert(budT.end(), sq, sq+11);
 }
 //std::cout<<"act reac "<<activateReaction<<"\n";
@@ -63,7 +63,7 @@ if (activateReaction==1)
             {i1=cellsHghb[i];a=qHghb[i]*dt;if (qHghb[i]>0) {sqISghb[ic]+=a*cellsSghbData[i*4+2];} else {sqOSghb[ic]+=a*Cw[ic]()[i1];} }
 		for (i=0; i<cellsHrch.size(); i++)
             {i1=cellsHrch[i];a=qHrch[i]*dt;if (qHrch[i]>0) {sqISrch[ic]+=a;} }//else {sqOSrch[ic]+=a*Cw[ic]()[i1];} }
-	float sq[11] = {mesh.time().value(),sqISfix[ic],sqOSfix[ic],sqISwel[ic],sqOSwel[ic],sqISdrn[ic],sqOSdrn[ic],sqISghb[ic],sqOSghb[ic],sqISrch[ic],sqOSrch[ic]};
+	scalar sq[11] = {mesh.time().value(),sqISfix[ic],sqOSfix[ic],sqISwel[ic],sqOSwel[ic],sqISdrn[ic],sqOSdrn[ic],sqISghb[ic],sqOSghb[ic],sqISrch[ic],sqOSrch[ic]};
 	budSolu.insert(budSolu.end(), sq, sq+11);
     }
 	size_t nc = cellsGfix.size();
@@ -86,8 +86,9 @@ bindex +=1;
 
 if (flagW==1) // write the files    
 	{
-	float t = mesh.time().value() ;
+	scalar t = mesh.time().value() ;
 	std::ofstream fich1(cur_dir+"/observation/budgetH.txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 	//std::cout<<"bud flow indx "<<bindex<<" size budFlow "<<budFlow.size()<<"\n";
 	//fich1 << t<<" "<<sqIHfix<<" "<<sqOHfix<<" "<<sqIHwel<<" "<<sqOHwel<<" "<<sqIHdrn<<" "<<sqOHdrn<<" "<<sqIHghb<<" "<<sqOHghb<<" "<<sqIHrch<<" "<<sqOHrch<< std::endl;
 	for (int ib=0;ib<bindex;ib++)
@@ -101,6 +102,7 @@ if (flagW==1) // write the files
 	if ((activateTransport==1)&&(activateReaction==0))
 		{
 		std::ofstream fich1(cur_dir+"/observation/budgetC.txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 		//std::cout<<"bud C indx "<<bindex<<" size budC "<<budC.size()<<"\n";
 		for (int ib=0;ib<bindex;ib++)
 			{
@@ -114,6 +116,7 @@ if (flagW==1) // write the files
 	if (activateThermal==1)
 	{
 		std::ofstream fich1(cur_dir+"/observation/budgetT.txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 		for (int ib=0;ib<bindex;ib++)
 			{
 			for (i=0;i<11;i++) {fich1<<budT[ib*11+i]<<" ";}
@@ -129,6 +132,7 @@ if (flagW==1) // write the files
 			{
 			std::string s=std::to_string(ic);
 			std::ofstream fich1(cur_dir+"/observation/budgetCw"+s+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 			for (int ib=0;ib<bindex;ib++)
 				{
 				for (i=0;i<11;i++) {fich1<<budSolu[ib*nc*11+ic*11+i]<<" ";}
@@ -142,6 +146,7 @@ if (flagW==1) // write the files
 			{
 			std::string s=std::to_string(ig);
 			std::ofstream fich1(cur_dir+"/observation/budgetCg"+s+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 			//here jus tone cell
 			for (int ib=0;ib<bindex;ib++)
 				{

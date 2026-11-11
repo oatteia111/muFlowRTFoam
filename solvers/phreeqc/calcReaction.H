@@ -1,9 +1,10 @@
 //tsteps for reactions
 if (rSteps<0) {if (tcnt>-rSteps-1) {tcnt=0;} }
 if (rSteps>0) {if (rcnt>=rSteps+1) {rcnt=1;} }
-int flgR =0;
-if (rSteps>0) {if (stepTime >= reactionTime) flgR=1;} // here the time to write is a portion of current time period
-if (rSteps<0) {if (tcnt == -rSteps-1) flgR=1;} // here the time is a number of flow/transport time steps
+int flgR = muFlowTime::reactionDue
+(
+    rSteps, tcnt, stepTime, reactionTime, runTime.endTime().value(), oldTimeReac
+);
 Info<<"for react tcnt "<<tcnt<<" wtime "<<wTimes[itwstep-1]<<" lim "<<wTimes[itwstep-1]+reactStep*rcnt<<" rstep "<<rSteps<<" tcnt "<<tcnt<<" rcnt "<<rcnt<<" flgR "<<flgR<<endl;
 if (flgR==1) 
 {

@@ -10,6 +10,10 @@
 #include <string>
 #include <chrono> 
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "partage.h"
 
 double my_basic_callback(double x1, double x2, const char *str, void *cookie);
@@ -39,9 +43,15 @@ int my_phq::phqInit() //my_phq & freak
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
 	#else
 		
-		int nthreads;
+		#ifdef _OPENMP
+		const int nthreads = omp_get_max_threads();
+		#else
+		const int nthreads = 1;
+		#endif
 		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
 		this->PhreeqcRM_ptr = phreeqc_rm;		
+		std::cout << "PHREEQC thread count: " << phreeqc_rm->GetThreadCount()
+			<< " (requested: " << nthreads << ")" << std::endl;
 	#endif
 	
 	try

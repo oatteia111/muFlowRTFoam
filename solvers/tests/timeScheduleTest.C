@@ -34,6 +34,39 @@ void writeFrames(const fs::path& path, const std::vector<double>& times)
     }
 }
 
+void checkReactionCadence
+(
+    const int transportSteps,
+    const std::vector<int>& expectedCalls
+)
+{
+    const int reactionSteps = -5;
+    const double endTime = transportSteps*0.4;
+    int transportCount = 0;
+    double lastReactionTime = 0;
+    double reactedTime = 0;
+    std::vector<int> calls;
+    for (int step=1; step<=transportSteps; ++step)
+    {
+        const double time = step*0.4;
+        ++transportCount;
+        if (transportCount > -reactionSteps-1) {transportCount = 0;}
+        if (muFlowTime::reactionDue
+            (reactionSteps, transportCount, time, never, endTime, lastReactionTime))
+        {
+            calls.push_back(step);
+            reactedTime += time-lastReactionTime;
+            lastReactionTime = time;
+            require(!muFlowTime::reactionDue
+                (reactionSteps, transportCount, time, never, endTime, lastReactionTime),
+                "chemistry must not repeat at an already reacted endpoint");
+        }
+    }
+    require(calls == expectedCalls, "normal chemistry cadence changed");
+    require(lastReactionTime == endTime, "final chemistry was omitted");
+    require(std::abs(reactedTime-endTime) < 1e-12, "chemistry interval was skipped or repeated");
+}
+
 int main()
 {
     const fs::path scratch = fs::temp_directory_path()/
@@ -89,6 +122,34 @@ int main()
         rejects([&] {step(1, 1, 1, never, never, 800);});
         rejects([&] {step(1e20, 1, never, never, never, 1e25);});
 
+        checkReactionCadence(1, {1});
+        checkReactionCadence(13, {4, 9, 13});
+        checkReactionCadence(14, {4, 9, 14});
+        require(!muFlowTime::reactionDue(-5, 0, 0.0, never, 0.0, 0.0),
+            "zero-duration final chemistry");
+        require(muFlowTime::reactionDue(-5, 1, 5.0, never, 5.0, 4.9116),
+            "benchmark final chemistry remainder");
+
+        // Positive subdivisions retain their events, including the final one.
+        double chemistryTime = 0;
+        double lastReactionTime = 0;
+        int reactionCount = 1;
+        std::vector<double> reactionTimes;
+        while (chemistryTime < 1)
+        {
+            const double reactionTime = reactionCount*0.25;
+            chemistryTime = step(chemistryTime, 0.1, 1.0, never, reactionTime, 1.0);
+            if (muFlowTime::reactionDue
+                (4, 0, chemistryTime, reactionTime, 1.0, lastReactionTime))
+            {
+                reactionTimes.push_back(chemistryTime);
+                lastReactionTime = chemistryTime;
+                ++reactionCount;
+            }
+        }
+        require(reactionTimes == std::vector<double>({0.25, 0.5, 0.75, 1.0}),
+            "positive chemistry events changed or final reaction was duplicated");
+
         // Exercise repeated adaptive advances through the flow3d write schedule.
         double time = 0;
         double dt = 1;
@@ -104,7 +165,7 @@ int main()
         }
         require(time == 800, "solver schedule overshot final output");
         fs::remove_all(scratch);
-        std::cout << "time scheduling and boundary reader checks passed\n";
+        std::cout << "time scheduling, chemistry cadence, and boundary reader checks passed\n";
     }
     catch (...)
     {

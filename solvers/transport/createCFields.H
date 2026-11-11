@@ -27,13 +27,16 @@ volScalarField Rf
 (	IOobject("Rf",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("Rf",dimless,1),bcTypes);
 
 std::vector<std::string> sorbDecStr;
-std::ifstream inputSorbDec{cur_dir+"/constant/options/sorptionDecay" }; // version 0 shall contain 0 for inactive and 1 for active reaction cell
+std::ifstream inputSorbDec{cur_dir+"/constant/options/sorptionDecay" }; 
+// contains 1st line the size of the table nreact 4 (always four columns), but here only tracer so we don't use it
+// Secodn line flag for sorption (2) and kin (3)
+// 3rd line Koc(4) 0 lbdaw(6) 0
 sorbDecStr = {std::istream_iterator<std::string>{inputSorbDec}, {}};
 if (sorbDecStr.size()>0) {
-	Koc.value() = std::stod(sorbDecStr[5]);
-	if (std::stod(sorbDecStr[3])==1) lbdaw.value() = std::stod(sorbDecStr[7]);
-	if (std::stod(sorbDecStr[3])==2) gammaw.value() = std::stod(sorbDecStr[7]);
-	Rf = 1 + (1-eps)/eps* rhos * Koc * foc; Info<<"Rf "<<Rf<<"\n";
+	Koc.value() = std::stod(sorbDecStr[4]);
+	if (std::stod(sorbDecStr[3])==1) lbdaw.value() = std::stod(sorbDecStr[6]);
+	if (std::stod(sorbDecStr[3])==2) gammaw.value() = std::stod(sorbDecStr[6]);
+	Rf = 1 + (1-eps)/eps* rhos * Koc * foc; Info<<"Rf "<<Rf<<"lbdaw "<<lbdaw<<"\n";
 }
 
 //volScalarField dgrain //grain diameter (mm), used for PFAs sorption

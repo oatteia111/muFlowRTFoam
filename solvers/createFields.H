@@ -42,7 +42,7 @@ volScalarField zbot(IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PR
 volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1.));
 volScalarField p (IOobject("p",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325.));
 //Info<<p<<endl;
-volScalarField rhow (IOobject("rhow",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef);
+volScalarField rhow (IOobject("rhow",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef,zeroGradientFvPatchScalarField::typeName);
 volScalarField muw (IOobject("muw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,muwRef);
 volScalarField sw (IOobject("sw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.));
 volScalarField sw1 = sw;
@@ -73,17 +73,19 @@ volScalarField stor("stor", unity); //Info << "stor " << stor().size() << endl;
 
 volVectorField Uw(IOobject("Uw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Uw",dimLength/dimTime,vector::zero));
 volScalarField magUw("magUw",mag(Uw));
-surfaceScalarField phiw(IOobject("phiw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVolume/dimTime,0.));
+surfaceScalarField phiw(IOobject("phiw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phiw",dimVolume/dimTime,0.));
 
 //hydraulic conductivity
 Info<< "reading Kh and Kv field " << endl;
 
 volScalarField Kh(IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
 volScalarField Kv(IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+Kh.correctBoundaryConditions();
+Kv.correctBoundaryConditions();
 volScalarField storC(IOobject("storC",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storC",dimless,1.e-6));
 volScalarField storU(IOobject("storU",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storU",dimless,0.25));
 surfaceScalarField Kf(IOobject("Kf",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("Kf",dimArea,1.e-12));
-Kf = fvc::interpolate(Kh,"Kh");
+//Kf = fvc::interpolate(Kh,"Kh");
 
 //create a surface scalar field with harmonic mean different for the vertical and non-vertical faces
 label oCell , nCell;

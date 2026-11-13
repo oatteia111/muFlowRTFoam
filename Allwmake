@@ -1,5 +1,7 @@
 #!/bin/sh
-cd ${0%/*} || exit 1    # run from this directory
+cd "${0%/*}" || exit 1    # run from this directory
+
+sh solvers/make-version.sh || exit 1
 
 wmake fvOptions
 wmake libraries/phaseModels

@@ -1,6 +1,8 @@
 #ifndef MUFLOWRT_TIME_SCHEDULE_H
 #define MUFLOWRT_TIME_SCHEDULE_H
 
+#include <version.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -38,7 +40,7 @@ BoundaryFrame<Scalar> readBoundaryFrame
     {
         fail("invalid boundary cell count or frame index");
     }
-    if (version != 1 && version != 2)
+    if (version != 1 && version != MUFLOWRT_TIME_SCHEDULE_VERSION)
     {
         fail("unsupported timeScheduleVersion");
     }

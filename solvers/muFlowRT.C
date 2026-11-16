@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	cur_dir = casePath.c_str();
     #include "createMesh.H"
     timeScheduleVersion = runTime.controlDict().lookupOrDefault<label>("timeScheduleVersion", 1);
-    if (timeScheduleVersion != 1 && timeScheduleVersion != 2)
+    if (timeScheduleVersion != 1 && timeScheduleVersion != MUFLOWRT_TIME_SCHEDULE_VERSION)
     {
         FatalErrorInFunction << "Unsupported timeScheduleVersion " << timeScheduleVersion
             << exit(FatalError);

@@ -4,7 +4,8 @@ From the repository root in the existing MSYS2 UCRT64 toolchain, compile the
 small checks against the same helper used by the solver:
 
 ```sh
-g++ -std=c++17 -Wall -Wextra -pedantic solvers/tests/timeScheduleTest.C -o /tmp/muflowrt-time-test.exe
+sh solvers/make-version.sh
+g++ -std=c++17 -Wall -Wextra -pedantic -Isolvers solvers/tests/timeScheduleTest.C -o /tmp/muflowrt-time-test.exe
 /tmp/muflowrt-time-test.exe
 ```
 

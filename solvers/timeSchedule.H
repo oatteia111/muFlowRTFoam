@@ -151,6 +151,24 @@ Scalar stepEnd
     return target;
 }
 
+// Complete any remaining chemistry at the final transport endpoint.
+template<class Scalar>
+bool reactionDue
+(
+    const int reactionSteps,
+    const int transportCount,
+    const Scalar time,
+    const Scalar reactionTime,
+    const Scalar endTime,
+    const Scalar lastReactionTime
+)
+{
+    if (time <= lastReactionTime) {return false;}
+    return (reactionSteps > 0 && time >= reactionTime)
+        || (reactionSteps < 0 && transportCount == -reactionSteps-1)
+        || time == endTime;
+}
+
 }
 
 #endif

@@ -10,8 +10,10 @@ g++ -std=c++17 -Wall -Wextra -pedantic solvers/tests/timeScheduleTest.C -o /tmp/
 
 These checks cover exact event clipping, startup, single/final output, close
 fractional events, a restart's next target, malformed schedules, precise and
-legacy boundary files, and safe EOF. They do not compile or validate OpenFOAM,
-PHREEQC, equation assembly, restart restoration, or the complete solver loop.
+legacy boundary files, safe EOF, normal chemistry cadence, and completion of
+the final chemistry interval without duplicate calls. They do not compile or
+validate OpenFOAM, PHREEQC, equation assembly, restart restoration, or the complete
+solver loop.
 
 Version 2 cases retain the four-float binary cell payload and provide one
 double-precision timestamp per frame in `<boundary-file>.times`, starting at
@@ -33,7 +35,13 @@ After a normal solver build, use disposable, freshly exported copies of
 - Nonreactive restart preserves the loaded time/index and selects the next
   pending output. Reactive restart and `reactionSteps=0` fail explicitly.
 - Positive reaction subdivisions reach each event; flow-only runs have no
-  reaction-interval timestep cap. Negative reaction cadence is unchanged.
+  reaction-interval timestep cap. Negative reaction cadence is unchanged before
+  the final step. Chemistry runs at the final endpoint for any remaining elapsed
+  time before observations, budgets, and output; a call already due there runs once.
+- With `reactionSteps=-5`, a run ending off cadence adds one final chemistry call
+  without adding a transport step. A run ending on cadence does not add a duplicate.
+- Set `OMP_NUM_THREADS` before launching an OpenMP build and check the startup
+  `PHREEQC thread count` message for the configured and requested counts.
 
 Keep existing result directories and bundled binaries untouched during these
 checks. Passing this standalone probe does not establish solver correctness.

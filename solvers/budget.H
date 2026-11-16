@@ -135,7 +135,7 @@ if (flagW==1) // write the files
         fich1.precision(std::numeric_limits<scalar>::max_digits10);
 			for (int ib=0;ib<bindex;ib++)
 				{
-				for (i=0;i<11;i++) {fich1<<budSolu[ib*nc*11+ic*11+i]<<" ";}
+				for (i=0;i<11;i++) {fich1<<budSolu[ib*nc*11+(ic-4)*11+i]<<" ";}
 				fich1<<"\n";
 				}
 			fich1.close();

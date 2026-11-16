@@ -42,10 +42,12 @@ Developers
 //#include <math.h>       /* atan */ don(t include it, it creates pb in opf when compiled with blue-cfd???
 //#define MY_PI 3.14159265 // pb in blueCfd conflict with math?
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
 #include <chrono>  // for high_resolution_clock
+#include <version.hpp>
 // #include "fvCFD.H" fro version 8-10, has disappeared now
 #include "fvMesh.H"
 #include "fvc.H"
@@ -74,6 +76,7 @@ Developers
 
 // static allows to have ade finiotn ofr muFlow and another for phreeqc
 #include <unistd.h> 
+/*
 std::string get_current_dir() {
    char buff[FILENAME_MAX]; //create string buffer to hold path
    GetCurrentDir( buff, FILENAME_MAX );
@@ -81,7 +84,7 @@ std::string get_current_dir() {
    return current_working_dir;
 }
 std::string cur_dir = get_current_dir();
-
+*/
 std::vector<double> a(12,0.);
 
 std::vector<double> c_ph,gm_ph,g_ph,poro,t_ph,foc_ph,p_ph,gvol,wsat,ractive,solu_conc,gas_conc,solu_species,Vmol,Ggrd;
@@ -94,7 +97,7 @@ Foam::scalar dtForC,dtForChem,tnext,tunits;
 int timeScheduleVersion = 1;
 int i,j,iw,oindex,bindex,nsel;int rSteps=1;		     		  
 int nxyz, ph_ncomp, ph_nspc, ph_gcomp, ph_nsolu; 
-
+std::string cur_dir;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 using namespace Foam;//utilisteias and plugins declaration
@@ -104,6 +107,12 @@ using namespace Foam;//utilisteias and plugins declaration
 
 int main(int argc, char *argv[])
 {
+    if (argc == 2 && (std::string(argv[1]) == "-version" || std::string(argv[1]) == "--version" || std::string(argv[1]) == "-v"))
+    {
+        std::cout << "muFlowRT " << MUFLOWRT_VERSION << '\n';
+        return 0;
+    }
+
 	my_phq freak;
 	
 	//init openFoam
@@ -115,6 +124,9 @@ int main(int argc, char *argv[])
 //#endif
 	#include "setRootCase.H"
     #include "createTime.H"
+	//sett current directory
+	fileName casePath = runTime.path();
+	cur_dir = casePath.c_str();
     #include "createMesh.H"
     timeScheduleVersion = runTime.controlDict().lookupOrDefault<label>("timeScheduleVersion", 1);
     if (timeScheduleVersion != 1 && timeScheduleVersion != 2)
@@ -153,6 +165,7 @@ int main(int argc, char *argv[])
 	#include "EK/createEKFields.H"
 	
 	#include "readCoupling.H"
+
 	scalar deltaTFact = 1;
 	// reading files times
 	std::ifstream inputwTimes{cur_dir+"/constant/options/writetimes" };

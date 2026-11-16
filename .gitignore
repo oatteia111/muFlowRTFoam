@@ -1,4 +1,5 @@
 /solvers/Make
+/solvers/version.hpp
 solvers/phreeqc/initPhreeqc - Copie.H
 solvers/phreeqc/test.c
 *.log

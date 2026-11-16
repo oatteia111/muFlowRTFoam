@@ -35,3 +35,4 @@ if (fexists(fname))
 		}
 	coupling = 1;
 	}
+Info<<"coupling read"<<endl;

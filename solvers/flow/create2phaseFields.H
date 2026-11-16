@@ -19,6 +19,8 @@ volScalarField p1=p;
 volScalarField pw=p;
 volScalarField p_tmp=p;
 volScalarField pc0 = mag(g)*rhow/alpha_vg; //Info<<"pc0 "<<pc0<<endl;// alphavg 1/m -> Pa
+Info<<"pc0 bdy"<<pc0.boundaryField().types()<<endl;
+pc0.correctBoundaryConditions();
 Info<<"Sw min"<<sw_min<<" Sw max "<<sw_max<<endl;
 // be careful, if g=0 pc0=0
 Se = max(SMALL,min((sw-sw_min)/(sw_max-sw_min),1.-SMALL));
@@ -37,8 +39,8 @@ volScalarField krg ("krg", pow(1-Se,0.5) * pow(1-pow(Se,1/m_vg),2*m_vg) );//Info
 volScalarField Seg = Se;
 volScalarField sg (IOobject("sg",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sg",dimless,0));
 surfaceScalarField krgf ("krgf",fvc::interpolate(krg,"krg"));//Info<<"krgf "<<krgf<<endl;
-volScalarField pc(IOobject("pc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("pc",dimensionSet(1,-1,-2,0,0,0,0),1.));
-pc==pc0*pow(pow(Se+VSMALL,-1./m_vg)-1,1./n_vg);//Info<<"pc "<<pc<<endl;
+//volScalarField pc(IOobject("pc",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("pc",dimensionSet(1,-1,-2,0,0,0,0),1.));
+volScalarField pc=pc0*pow(pow(Se+VSMALL,-1./m_vg)-1,1./n_vg);//Info<<"pc "<<pc<<endl;
 volScalarField dpcdS ("dpcdS", pc0*0);//Info<<"dpcdS "<<dpcdS<<endl;
 surfaceScalarField dpcdSf ("dpcdSf", fvc::interpolate(dpcdS) );
 //volScalarField dkrgdS ("dkrgdS", unity);
@@ -47,14 +49,17 @@ surfaceScalarField dpcdSf ("dpcdSf", fvc::interpolate(dpcdS) );
 
 Info<<"end phase g"<<endl;
 //- mobility computation 
+//Kf.correctBoundaryConditions();
 surfaceScalarField Mwf ("Mwf",Kf*krwf/muwf);
 surfaceScalarField Lwf ("Lwf",Mwf*rhowf);
 surfaceScalarField Mgf ("Mgf",Kf*krgf/mug);
 surfaceScalarField Lgf ("Lgf",Mgf*rhog);
 surfaceScalarField Fwf ("Fwf",(krwf/muwf)/(krgf/mug + krwf/muwf));
 volVectorField U = Ug + Uw;
-
-volVectorField gradpc ("gradpc", fvc::grad(pc,"pc") );
+Info<<"end simple fields "<<endl;Info<<"pc bdy"<<pc.boundaryField().types()<<endl;
+pc.correctBoundaryConditions();
+volVectorField gradpc ("gradpc", fvc::grad(pc,"pc") );Info<<"grad done"<<endl;
+gradpc.correctBoundaryConditions();
 surfaceVectorField gradpcf ("gradpcf", fvc::interpolate(gradpc,"gradpc") );
 surfaceScalarField phi = phiw;
 surfaceScalarField phiPc = ("phiPc",phiw*0);

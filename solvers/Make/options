@@ -9,8 +9,10 @@ EXE_INC = \
 
 ifeq ($(WM_OSTYPE),MSwindows)
 
+# Windows wmake rewrites EXE_INC to -iquote; <version.hpp> needs a normal -I path.
 # The solver's TIME_NAME switch requires a numeric OpenFOAM version macro.
 SYS_INC = \
+    -I. \
     -I$(PHREEQCRM_ROOT)/include \
     -DWM_PROJECT_VERSION_NUMBER=$(WM_PROJECT_VERSION) \
     -fopenmp

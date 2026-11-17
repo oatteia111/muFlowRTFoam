@@ -60,7 +60,7 @@ int my_phq::phqInit() //my_phq & freak
 		status = phreeqc_rm->SetErrorHandlerMode(1);
 		status = phreeqc_rm->SetScreenOn(false);
 		status = phreeqc_rm->SetComponentH2O(true); // to get water,excess H an dexcess O transported
-		status = phreeqc_rm->SetRebalanceFraction(0.0);
+		status = phreeqc_rm->SetRebalanceFraction(0.5);
 		status = phreeqc_rm->SetRebalanceByCell(true);
 		phreeqc_rm->UseSolutionDensityVolume(false);
 		phreeqc_rm->SetPartitionUZSolids(false);

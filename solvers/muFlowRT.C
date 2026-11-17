@@ -56,6 +56,10 @@ Developers
 #include "IOdictionary.H"
 #include "Time.H"
 #include "argList.H"
+#ifdef _WIN32
+#include "windowsCli.H"
+#include "OSspecific.H"
+#endif
 #include "fvPatchFields.H"
 
 #include "fvSchemes.H"
@@ -107,11 +111,16 @@ using namespace Foam;//utilisteias and plugins declaration
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+    const int commandResult = muflowrtCli::handle();
+    if (commandResult >= 0) return commandResult;
+#else
     if (argc == 2 && (std::string(argv[1]) == "-version" || std::string(argv[1]) == "--version" || std::string(argv[1]) == "-v"))
     {
         std::cout << "muFlowRT " << MUFLOWRT_VERSION << '\n';
         return 0;
     }
+#endif
 
 	my_phq freak;
 	
@@ -123,6 +132,14 @@ int main(int argc, char *argv[])
 //  #define TIME_NAME(t) (t).timeName()
 //#endif
 	#include "setRootCase.H"
+#ifdef _WIN32
+    // argList uses the same absolute path as the pre-main switch loader.
+    if (!Foam::chDir(args.path()))
+    {
+        FatalErrorInFunction << "Cannot enter case directory " << args.path()
+            << exit(FatalError);
+    }
+#endif
     #include "createTime.H"
 	//sett current directory
 	fileName casePath = runTime.path();

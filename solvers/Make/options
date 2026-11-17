@@ -24,6 +24,10 @@ EXE_LIBS = \
     -lPhreeqcRM \
     -fopenmp
 
+ifeq ($(WM_MPLIB),Dummy)
+SYS_INC += -DMUFLOWRT_SERIAL_OPENFOAM
+endif
+
 else
 
 SYS_INC = \

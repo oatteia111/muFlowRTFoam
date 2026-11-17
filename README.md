@@ -1,6 +1,18 @@
 # gwaterFreakFoam
  gwaterFreakFoam
 
+## Windows commands
+
+Run `bin/muFlowRT.exe` directly from the extracted runtime bundle:
+
+- `-help`, `--help`, `-h`: show available options and examples.
+- `-version`, `--version`, `-v`: print the solver version.
+- `-doc`, `-srcDoc`: print documentation or source links.
+- `-case <directory>`: run the selected case; defaults to the current directory.
+
+Help, version and documentation commands require no case. Use version and
+documentation commands on their own. See `--help` for advanced OpenFOAM options.
+
 ## Chemistry scheduling and threads
 
 The normal chemistry cadence follows `reactionSteps`. At the final transport

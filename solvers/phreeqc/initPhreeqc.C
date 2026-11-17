@@ -81,7 +81,11 @@ int my_phq::phqInit() //my_phq & freak
 
 		// Open for writing file
 		//std::quoted prf = "phq_out";
+#ifdef _WIN32
+		status = phreeqc_rm->SetFilePrefix(cur_dir + "/debug");
+#else
 		status = phreeqc_rm->SetFilePrefix("debug");
+#endif
 		phreeqc_rm->OpenFiles();
 		std::cout << "Outfile opened " << "\n";
 		//set mask

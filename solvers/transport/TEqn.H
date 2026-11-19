@@ -11,16 +11,11 @@ forAll(Deffw.boundaryField(),patchi)
 	}
 lbdaT = thetaw*lbdaTw + (1-eps)*lbdaTs;
 
-float time = mesh.time().value(); //const Time&
+scalar time = mesh.time().value(); //const Time&
 // --------------------- internal conditions ------------------------
 if (cellsHwel.size()>0)
 	{
 		//get the temp well data
-		if (time>tTwel) {
-			output = getCbuffer("twel",itTwel,cellsTwel.size()); 
-			tTwel = output.t; cellsTwelData=output.d; itTwel +=1;
-			tnext = min(tnext,tTwel);
-			}
 		for (size_t i=0; i<cellsTwel.size(); i++) 
 			{ 
 			i1=cellsTwel[i];v=mesh.V()[i1];
@@ -33,11 +28,6 @@ if (cellsHwel.size()>0)
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>tThfix) {
-			output = getCbuffer("thfix",itThfix,cellsThfix.size()); 
-			tThfix = output.t; cellsThfixData=output.d; itThfix +=1;
-			tnext = min(tnext,tThfix);
-			}
 		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
 			i1=cellsHfix[i];v=mesh.V()[i1];//
@@ -50,11 +40,6 @@ if (cellsHwel.size()>0)
 	// fixed cells done with ~ghb with very high conductance
 	if (cellsTfix.size()>0)
 	{
-		if (time>tTfix) {
-			output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
-			tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
-			tnext = min(tnext,tTfix);
-			}
 		for (size_t i=0; i<cellsTfix.size(); i++) 
 			{ 
 			i1=cellsTfix[i];v=mesh.V()[i1];TSu[i1] = -cellsTfixData[i*4+2]*1e5; TSp[i1] = 1e5;// high C conductance
@@ -99,11 +84,6 @@ if (inactiveCells.size()+dryCells.size()>0)
 //get the fixed temperature conditions
 if (cellsTfix.size()>0)
 {
-	if (time>tTfix) {
-		output = getCbuffer("tfix",itTfix,cellsTfix.size()); 
-		tTfix = output.t; cellsTfixData=output.d; itTfix +=1;
-		tnext = min(tnext,tTfix);
-		}
 	for (size_t i=0; i<cellsTfix.size(); i++) 
 		{TEqn.setReference(cellsTfix[i],cellsTfixData[i*4+2]);} 
 	Info<<"tfix in Eqn "<<time<<" val "<<cellsTfixData[2]<<endl;

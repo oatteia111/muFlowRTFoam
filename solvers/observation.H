@@ -45,7 +45,6 @@ std::vector<std::string> obsTransNames = {"C","T"};
 int iv,iv1,ic,ig,nv;
 if (flagW==1) // write the files    
 	{
-	Info<<"obs size obsFlow "<<obsFlow.size()<<" "<<obsFlow[0]<<" "<<obsFlow[1]<<" "<<obsFlow[2]<<" "<<obsFlow[3]<<endl;
 	for (int io=0;io<nobs;io++) //one file for each ob point
 		{
 		//fro flow and transp only some variables can be stored
@@ -60,6 +59,7 @@ if (flagW==1) // write the files
 					{
 					iv1+=1;
 					std::ofstream fich1(cur_dir+"/observation/obs_"+observ.headers[io]+"_"+obsFlowNames[iv]+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich1.precision(std::numeric_limits<scalar>::max_digits10);
 					for (i=0;i<oindex;i++) {fich1 << obsFlow[i*(nobs*nv+1)] <<" "<< obsFlow[i*(nobs*nv+1)+io*nv+iv1] << "\n";} //
 					fich1.close();
 					}
@@ -73,6 +73,7 @@ if (flagW==1) // write the files
 					{
 					iv1 +=1;
 					std::ofstream fich2(cur_dir+"/observation/obs_"+observ.headers[io]+"#0_"+obsTransNames[iv]+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich2.precision(std::numeric_limits<scalar>::max_digits10);
 					Info<<"nobs trans "<<nobs<<" nv "<<nv<<" iv "<<iv<<" iv1 "<<iv1<<endl;
 					for (i=0;i<oindex;i++) {fich2 << obsTrans[i*(nobs*nv+1)] <<" "<< obsTrans[i*(nobs*nv+1)+io*nv+iv1] << "\n";}
 					fich2.close();
@@ -84,6 +85,7 @@ if (flagW==1) // write the files
 			for (ic=0;ic<nc;ic++)
 				{
 				std::ofstream fich3(cur_dir+"/observation/obs_"+observ.headers[io]+"_Cw"+std::to_string(ic)+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich3.precision(std::numeric_limits<scalar>::max_digits10);
 				for (i=0;i<oindex;i++) {fich3 << obsSolu[i*(nobs*nc+1)] <<" "<< obsSolu[i*(nobs*nc+1)+io*nc+ic+1] << std::endl;}
 				fich3.close();
 				}
@@ -91,6 +93,7 @@ if (flagW==1) // write the files
 			for (ig=0;ig<ng;ig++)
 				{
 				std::ofstream fich4(cur_dir+"/observation/obs_"+observ.headers[io]+"_Cg"+std::to_string(ig)+".txt", std::ios::app);// Ouvrir le fichier en mode append
+        fich4.precision(std::numeric_limits<scalar>::max_digits10);
 				for (i=0;i<oindex;i++) {fich4 << obsGas[i*(nobs*ng+1)] <<" "<< obsGas[i*(nobs*ng+1)+io*ng+ig+1] << std::endl;}
 				fich4.close();
 				}

@@ -10,6 +10,10 @@
 #include <string>
 #include <chrono> 
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "partage.h"
 
 double my_basic_callback(double x1, double x2, const char *str, void *cookie);
@@ -39,9 +43,15 @@ int my_phq::phqInit() //my_phq & freak
 		PhreeqcRM* phreeqc_rm = this->PhreeqcRM_ptr;
 	#else
 		
-		int nthreads;
+		#ifdef _OPENMP
+		const int nthreads = omp_get_max_threads();
+		#else
+		const int nthreads = 1;
+		#endif
 		PhreeqcRM *phreeqc_rm = new PhreeqcRM (nxyz, nthreads);
 		this->PhreeqcRM_ptr = phreeqc_rm;		
+		std::cout << "PHREEQC thread count: " << phreeqc_rm->GetThreadCount()
+			<< " (requested: " << nthreads << ")" << std::endl;
 	#endif
 	
 	try
@@ -50,7 +60,7 @@ int my_phq::phqInit() //my_phq & freak
 		status = phreeqc_rm->SetErrorHandlerMode(1);
 		status = phreeqc_rm->SetScreenOn(false);
 		status = phreeqc_rm->SetComponentH2O(true); // to get water,excess H an dexcess O transported
-		status = phreeqc_rm->SetRebalanceFraction(0.0);
+		status = phreeqc_rm->SetRebalanceFraction(0.5);
 		status = phreeqc_rm->SetRebalanceByCell(true);
 		phreeqc_rm->UseSolutionDensityVolume(false);
 		phreeqc_rm->SetPartitionUZSolids(false);
@@ -71,7 +81,11 @@ int my_phq::phqInit() //my_phq & freak
 
 		// Open for writing file
 		//std::quoted prf = "phq_out";
+#ifdef _WIN32
+		status = phreeqc_rm->SetFilePrefix(cur_dir + "/debug");
+#else
 		status = phreeqc_rm->SetFilePrefix("debug");
+#endif
 		phreeqc_rm->OpenFiles();
 		std::cout << "Outfile opened " << "\n";
 		//set mask

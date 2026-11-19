@@ -84,12 +84,12 @@ volScalarField::Internal AgeSu
 );
 // -------------- conditions for concentration -------------
 // thre is chfix: conc for the cells where h is fixed and cfix: ccells for which only c is fixed
-labelList cellsChfix0; std::vector<float> cellsChfixData;float tChfix=0;int itChfix=0;
-labelList cellsCfix0; std::vector<float> cellsCfixData;float tCfix=0;int itCfix=0;
-labelList cellsCwel0; std::vector<float> cellsCwelData;float tCwel=0;int itCwel=0;
-labelList cellsCriv0; std::vector<float> cellsCrivData;float tCriv=0;int itCriv=0; 
-labelList cellsCghb0; std::vector<float> cellsCghbData;float tCghb=0;int itCghb=0; 
-labelList cellsCrch0; std::vector<float> cellsCrchData;float tCrch=0;int itCrch=0;
+labelList cellsChfix0; std::vector<float> cellsChfixData;scalar tChfix=0;int itChfix=0;
+labelList cellsCfix0; std::vector<float> cellsCfixData;scalar tCfix=0;int itCfix=0;
+labelList cellsCwel0; std::vector<float> cellsCwelData;scalar tCwel=0;int itCwel=0;
+labelList cellsCriv0; std::vector<float> cellsCrivData;scalar tCriv=0;int itCriv=0; 
+labelList cellsCghb0; std::vector<float> cellsCghbData;scalar tCghb=0;int itCghb=0; 
+labelList cellsCrch0; std::vector<float> cellsCrchData;scalar tCrch=0;int itCrch=0;
 
 // reading the data for hfix
 time = mesh.time().value() ;
@@ -133,7 +133,7 @@ cellsCrch = indexC(cellsCrch0,cellsCrchData) ;
 if (activateTransport==1) {std::ofstream fich1(cur_dir+"/observation/budgetC.txt");
 fich1 << "time InCfix OutCfix InCwel OutCwel InCdrn OutCdrn InCghb OutCghb InCrch OutCrch ";fich1.close();}
 
-float sqICrch,sqICghb,sqICdrn,sqICfix,sqICwel;
-float sqOCrch,sqOCghb,sqOCdrn,sqOCfix,sqOCwel;
+float sqICrch=0,sqICghb=0,sqICdrn=0,sqICfix=0,sqICwel=0;
+float sqOCrch=0,sqOCghb=0,sqOCdrn=0,sqOCfix=0,sqOCwel=0;
 
 

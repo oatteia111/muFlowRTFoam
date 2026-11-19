@@ -3,6 +3,14 @@ project(muFlowRT)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION" MUFLOWRT_VERSION)
+string(STRIP "${MUFLOWRT_VERSION}" MUFLOWRT_VERSION)
+if(MUFLOWRT_VERSION STREQUAL "")
+    message(FATAL_ERROR "VERSION must not be empty")
+endif()
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.hpp" @ONLY)
+
 find_package( MPI REQUIRED )
 message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")
 # add this line only when you are using openmpi which has a different c++ bindings
@@ -70,6 +78,7 @@ set(LINK_LIBS ${LINK_LIBS} ${MPI_CXX_LIBRARIES})
 link_directories(${FOAM_LIB_DIR} ${FOAM_USER_LIBBIN} ${FOAM_LIB_DIR} ${PATH_LIB_OPENMPI})
 
 add_executable(${PROJECT_NAME} muFlowRT.C)
+target_include_directories(${PROJECT_NAME} BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(${PROJECT_NAME} PhreeqcRM ${MPI_CXX_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}")
 target_link_libraries(${PROJECT_NAME} pthread OpenFOAM dl m finiteVolume meshTools phase)

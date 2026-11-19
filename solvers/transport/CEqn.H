@@ -35,11 +35,6 @@ Info<<"Uw(10) "<<Uw[10]<<" Deffw "<<Deffw[10]<<endl;
 	if (cellsHwel.size()>0)
 	{
 		//get the concentration well data
-		if (time>tCwel) {
-			output = getCbuffer("cwel",itCwel,cellsCwel.size()); 
-			tCwel = output.t; cellsCwelData=output.d; itCwel +=1;
-			tnext = min(tnext,tCwel);
-			}
 		for (i=0; i<cellsHwel.size(); i++) 
 			{ 
 			i1=cellsCwel[i];v=mesh.V()[i1];
@@ -52,11 +47,6 @@ Info<<"Uw(10) "<<Uw[10]<<" Deffw "<<Deffw[10]<<endl;
 	// Hghb because Cghb may not be set here
 	if (cellsHghb.size()>0)
 	{
-		if (time>tCghb) {
-			output = getCbuffer("cghb",itCghb,cellsCghb.size()); 
-			tCghb = output.t; cellsCghbData=output.d; itCghb +=1;
-			tnext = min(tnext,tCghb);
-			}
 		for (size_t i=0; i<cellsHghb.size(); i++) 
 			{ 
 			i1=cellsHghb[i];v=mesh.V()[i1];//
@@ -69,11 +59,6 @@ Info<<"Uw(10) "<<Uw[10]<<" Deffw "<<Deffw[10]<<endl;
 	// for fixed head cells
 	if (cellsHfix.size()>0)
 	{
-		if (time>tChfix) {
-			output = getCbuffer("chfix",itChfix,cellsChfix.size()); 
-			tChfix = output.t; cellsChfixData=output.d; itChfix +=1;
-			tnext = min(tnext,tChfix);
-			}
 		for (size_t i=0; i<cellsHfix.size(); i++) 
 			{ 
 			i1=cellsHfix[i];v=mesh.V()[i1];//Deffw[i1]*=0.0;//
@@ -95,11 +80,6 @@ Info<<"Uw(10) "<<Uw[10]<<" Deffw "<<Deffw[10]<<endl;
 	//recharge
 	if (cellsCrch.size()>0) // recharge is different, required only if C>0
 	{
-		if (time>tCrch) {
-			output = getCbuffer("crch",itCrch,cellsCrch.size()); 
-			tCrch = output.t; cellsCrchData=output.d; itCrch +=1;
-			tnext = min(tnext,tCrch);
-			}
 		for (size_t i=0; i<cellsHrch.size(); i++) 
 			{ 
 			i1=clayRch[i];v=mesh.V()[i1];
@@ -113,11 +93,6 @@ Info<<"Uw(10) "<<Uw[10]<<" Deffw "<<Deffw[10]<<endl;
 	// fixed cells done with ~ghb with very high conductance
 	if (cellsCfix.size()>0)
 	{
-		if (time>tCfix) {
-			output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
-			tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
-			tnext = min(tnext,tCfix);
-			}
 		for (size_t i=0; i<cellsCfix.size(); i++) 
 			{ 
 			i1=cellsCfix[i];v=mesh.V()[i1];CSu[i1] = -cellsCfixData[i*4+2]*1e5; CSp[i1] = 1e5;// high C conductance
@@ -142,11 +117,6 @@ fvScalarMatrix CEqn
 /*for cells of fixed conc (it is supposed that we don't put cfix at otuflow)
 if (cellsCfix.size()>0)
 	{
-	if (time>tCfix) {
-		output = getCbuffer("cfix",itCfix,cellsCfix.size()); 
-		tCfix = output.t; cellsCfixData=output.d; itCfix +=1;
-		tnext = min(tnext,tCfix);
-		}
 	for (i=0; i<cellsCfix.size(); i++) {CEqn.setReference(cellsCfix[i],cellsCfixData[i*4+2]);}
 	}
 */

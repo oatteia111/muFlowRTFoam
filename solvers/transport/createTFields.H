@@ -45,13 +45,13 @@ volScalarField::Internal TSp
 );
 
 //////////////////////// read conditions //////////////////////////
-labelList cellsThfix0; std::vector<float> condThfix;std::vector<float> cellsThfixData;float tThfix=0;
-labelList cellsTfix0; std::vector<float> condTfix;std::vector<float> cellsTfixData;float tTfix=0;
-labelList cellsTwel0; std::vector<float> condTwel;std::vector<float> cellsTwelData;float tTwel=0;
-labelList cellsTghb0; std::vector<float> condTghb;std::vector<float> cellsTghbData;float tTghb=0;
-labelList cellsTriv0; std::vector<float> condTriv;std::vector<float> cellsTrivData;float tTriv=0;
-labelList cellsTrch0; std::vector<float> condTrch;std::vector<float> cellsTrchData;float tTrch=0;
-int itThfix,itTfix,itTwel,itTghb,itTrch,itTriv;
+labelList cellsThfix0; std::vector<float> condThfix;std::vector<float> cellsThfixData;scalar tThfix=0;
+labelList cellsTfix0; std::vector<float> condTfix;std::vector<float> cellsTfixData;scalar tTfix=0;
+labelList cellsTwel0; std::vector<float> condTwel;std::vector<float> cellsTwelData;scalar tTwel=0;
+labelList cellsTghb0; std::vector<float> condTghb;std::vector<float> cellsTghbData;scalar tTghb=0;
+labelList cellsTriv0; std::vector<float> condTriv;std::vector<float> cellsTrivData;scalar tTriv=0;
+labelList cellsTrch0; std::vector<float> condTrch;std::vector<float> cellsTrchData;scalar tTrch=0;
+int itThfix=0,itTfix=0,itTwel=0,itTghb=0,itTrch=0,itTriv=0;
 
 std::vector<int> cellsThfix,cellsTfix,cellsTwel,cellsTghb,cellsTriv,cellsTrch;
 
@@ -96,7 +96,7 @@ cellsTrch = indexC(cellsTrch0,cellsTrchData) ;
 if (activateThermal==1) {std::ofstream fich1(cur_dir+"/observation/budgetT.txt");
 fich1 << "time InTfix OutTfix InTwel OutTwel InTdrn OutTdrn InTghb OutTghb InTrch OutTrch ";
 fich1.close();}
-float sqITrch,sqITghb,sqITdrn,sqITfix,sqITwel;
-float sqOTrch,sqOTghb,sqOTdrn,sqOTfix,sqOTwel;
+float sqITrch=0,sqITghb=0,sqITdrn=0,sqITfix=0,sqITwel=0;
+float sqOTrch=0,sqOTghb=0,sqOTdrn=0,sqOTfix=0,sqOTwel=0;
 
 Info<< "All T read\n" << endl;

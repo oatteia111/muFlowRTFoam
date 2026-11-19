@@ -1,29 +1,45 @@
+ifneq ($(shell sh ./make-version.sh && printf ready),ready)
+$(error Could not generate version.hpp)
+endif
+
 EXE_INC = \
     -I. \
-	-I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/meshTools/lnInclude \
-	-I/usr/local/include
-	
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude
+
 ifeq ($(WM_OSTYPE),MSwindows)
 
+# Windows wmake rewrites EXE_INC to -iquote; <version.hpp> needs a normal -I path.
+# The solver's TIME_NAME switch requires a numeric OpenFOAM version macro.
 SYS_INC = \
-    -I/c/msys64/usr/local/include \
-    -I/c/OF13/phreeqcrm-3.8.6-17100/build
+    -I. \
+    -I$(PHREEQCRM_ROOT)/include \
+    -DWM_PROJECT_VERSION_NUMBER=$(WM_PROJECT_VERSION) \
+    -fopenmp
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
-	-L/c/OF13/phreeqcrm-3.8.6-17100/build \
+    -L$(PHREEQCRM_ROOT)/lib \
     -lfiniteVolume \
-	-lmeshTools \
-	-lPhreeqcRM
+    -lmeshTools \
+    -lPhreeqcRM \
+    -fopenmp
+
+ifeq ($(WM_MPLIB),Dummy)
+SYS_INC += -DMUFLOWRT_SERIAL_OPENFOAM
+endif
 
 else
 
+SYS_INC = \
+    -I$(PHREEQCRM_ROOT)/include \
+    -DWM_PROJECT_VERSION_NUMBER=$(WM_PROJECT_VERSION) \
+    -fopenmp
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
+    -L$(PHREEQCRM_ROOT)/lib \
     -lfiniteVolume \
-	-lmeshTools \
-	-lphreeqcrm
-	
-endif
+    -lmeshTools \
+    -lPhreeqcRM \
+    -fopenmp
 
-		
+endif

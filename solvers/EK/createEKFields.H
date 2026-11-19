@@ -42,7 +42,7 @@ volScalarField souI = rhoE*1;
 dimensionedScalar invMolweight("iweigth",dimensionSet(-1, 0, 0, 0, 1, 0, 0),1);
 
 // -------------- conditions for EK -------------
-labelList cellsEwel0; std::vector<float> qEwel;std::vector<float> cellsEwelData;float tEwel=0;int itEwel=0;
+labelList cellsEwel0; std::vector<float> qEwel;std::vector<float> cellsEwelData;scalar tEwel=0;int itEwel=0;
 if (fexists(cur_dir+"/constant/options/ewel")) { 
 cellSet selectedEwel(mesh, "ewel");cellsEwel0 = selectedEwel.toc();
 while (time>=tEwel) {output = getCbuffer("ewel",itEwel,cellsEwel0.size());itEwel +=1;tEwel = output.t;tnext=min(tnext,tEwel);cellsEwelData=output.d;}

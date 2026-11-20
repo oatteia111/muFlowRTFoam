@@ -40,12 +40,13 @@ if (flowType == 3) // unsaturated
 			{ break; }
 		}  // end picard iter
 	Info << "Picard nb iterations : "<<iterPicard<<endl;
-	if (!std::isfinite(resPicard) || resPicard > tolPicard)
+	if (iterPicard == maxIterPicard) {deltaTFact = 0.2;sw_tmp=sw1;sw=sw1;}//hp_tmp=hp1;hp=hp1;rewind=1;}
+	/*if (!std::isfinite(resPicard) || resPicard > tolPicard)
     {
         FatalErrorInFunction << "Unsaturated Picard solve failed after accepted time "
             << presentTime << "; rejected step was not written" << exit(FatalError);
-    }
-	else if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
+    }*/
+	if (iterPicard <= nIterStability) {deltaTFact = 1.2;}
 	newDeltaT = min(deltaTFact*newDeltaT,maxDeltaT); //runTime.deltaTValue()
 	#include "flow/updateThetaFields.H"
     }

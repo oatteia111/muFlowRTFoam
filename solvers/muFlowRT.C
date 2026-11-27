@@ -596,6 +596,52 @@ int main(int argc, char *argv[])
 				}
 			}
 
+		else if (coupling == 2) // -------------- Newton iteration  ------------------------
+		{
+		int iterNewton = 0;double resNewton = 1000.0;scalar residuPrev = 1000.0;double deltaTFact = 1.0;
+		int maxIterNewton=20;double tolNewton = 0.01;
+		h1 = h;
+
+		while (resNewton > tolNewton)
+		{
+			iterNewton++;
+			h_tmp = h;
+			// 1. Calcul du residu R(h) et assemblage de la Jacobienne J(h) sur dh
+			// Idéalement dans un fichier dédié flow/hNewtonEqn.H qui construit : le résidu R (volScalarField) à partir de l'état courant h
+			//   - la matrice jacobienne JEqn résolue pour l'incrément volScalarField dh
+			#include "flow/hEqn.H"
+			resNewton = gMax(mag(Rh.primitiveField()));
+			scalar alpha = 1.0;
+			if (iterNewton > 1 && resNewton > residuPrev) {alpha = 0.5;}
+			h += alpha * dh;
+			h.correctBoundaryConditions();
+
+			// Couplage transport / réaction selon votre schéma
+			if (activateReaction == 0)
+			{
+				#include "transport/CEqn.H"
+			}
+			else
+			{
+				forAll(Cw, i) { Cw[i]().storePrevIter(); }
+				#include "transport/CwiEqn.H"
+			}
+			residuPrev = resNewton;
+			if (iterNewton == maxIterNewton)
+				{runTime.setTime(presentTime, tstep);break;}
+		} // end Newton iter
+		Info << "Newton nb iterations : " << iterNewton << endl;
+
+		if (activateReaction == 1){
+			#include "phreeqc/calcReaction.H"
+		}
+
+		if (iterNewton == maxIterNewton) {deltaTFact = 0.2;h_tmp = h1;h = h1;rewind = 1;}
+		else if (iterNewton <= nIterStability) {deltaTFact = 1.2;}
+
+		newDeltaT = min(deltaTFact * newDeltaT, maxDeltaT);
+		}
+
 		//***********************  solve transient flow   *******************************
 		if ((coupling ==0)&&(flowType>0) )
 			{

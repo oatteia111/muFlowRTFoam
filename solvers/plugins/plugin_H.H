@@ -46,6 +46,7 @@ public:
 			if (listCouples[i].Ykey=="muw") 
 				{fact = 1.0/calcFunc(mesh,listCouples[i].type,X,listCouples[i].Xref,listCouples[i].fparms);}
 			if (listCouples[i].Ykey=="muShear") 
+				//{fact = min(fact,1.0/calcFunc2(mesh,listCouples[i].type,X,mUw,listCouples[i].Xref,listCouples[i].fparms,lunits,tunits));}
 				{fact = 1.0/calcFunc2(mesh,listCouples[i].type,X,mUw,listCouples[i].Xref,listCouples[i].fparms,lunits,tunits);}
 		}
 		

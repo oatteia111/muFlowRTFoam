@@ -33,5 +33,6 @@ if (fexists(fname))
 		data.setParms(fparms);
 		listCouples.push_back(data);		
 		}
-	coupling = 1;
+	coupling = 2;
 	}
+Info<<"coupling read"<<endl;

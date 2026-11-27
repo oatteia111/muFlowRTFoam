@@ -80,7 +80,9 @@ volScalarField calcFunc2(fvMesh & mesh, std::string ftype, Foam::volScalarField 
 		//fact = pow(max(C/Xref,0.), 1.5)*(0.06+pow(max(gamm/2.5,0.),-0.85))*400;
 		fact = 1e3*(T0/gamm+kC*pow(gamm,nC-1)+muInf);//1e3 fro water visco
 		fact = max(min(fact,2e3),1.);
-		Info<<"in calc func2 Xref gamm, T0, kC, nC, muInf "<<gamm<<" "<<Xref<<" "<<T0[4]<<" "<<kC[4]<<" "<<nC[4]<<" "<<muInf[4]<<endl;
+		int nxyz = fact.size();
+		for (int i=0;i<nxyz;i++) {if (C[i]/Xref < 1e-5) fact[i]=1.;}
+		Info<<"in calc func2 Xref, T0, kC, nC, muInf "<<" "<<Xref<<" "<<T0[4]<<" "<<kC[4]<<" "<<nC[4]<<" "<<muInf[4]<<endl;
 		Info<<"C,U(wel) "<<C[4]<<" "<<U[4]<<" gam(wel) "<<gamm[4]<<" fac(wel) "<<fact[4]<<endl;
 		}
 	if (ftype == "dble_power") // olivier

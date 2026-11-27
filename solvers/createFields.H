@@ -42,7 +42,7 @@ volScalarField zbot(IOobject("zbot",runTime.constant(),mesh,IOobject::READ_IF_PR
 volScalarField thk (IOobject("thk",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("thk",dimLength,1.));
 volScalarField p (IOobject("p",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("p",dimensionSet(1,-1,-2,0,0,0,0),101325.));
 //Info<<p<<endl;
-volScalarField rhow (IOobject("rhow",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef);
+volScalarField rhow (IOobject("rhow",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,rhowRef,zeroGradientFvPatchScalarField::typeName);
 volScalarField muw (IOobject("muw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,muwRef);
 volScalarField sw (IOobject("sw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("sw",dimless,1.));
 volScalarField sw1 = sw;
@@ -73,17 +73,19 @@ volScalarField stor("stor", unity); //Info << "stor " << stor().size() << endl;
 
 volVectorField Uw(IOobject("Uw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedVector("Uw",dimLength/dimTime,vector::zero));
 volScalarField magUw("magUw",mag(Uw));
-surfaceScalarField phiw(IOobject("phiw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("phiw",dimVolume/dimTime,0.));
+surfaceScalarField phiw(IOobject("phiw",TIME_NAME(mesh.time()),mesh,IOobject::READ_IF_PRESENT,IOobject::NO_WRITE),mesh,dimensionedScalar("phiw",dimVolume/dimTime,0.));
 
 //hydraulic conductivity
 Info<< "reading Kh and Kv field " << endl;
 
 volScalarField Kh(IOobject("Kh",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
 volScalarField Kv(IOobject("Kv",runTime.constant(),mesh,IOobject::MUST_READ,IOobject::AUTO_WRITE),mesh);
+Kh.correctBoundaryConditions();
+Kv.correctBoundaryConditions();
 volScalarField storC(IOobject("storC",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storC",dimless,1.e-6));
 volScalarField storU(IOobject("storU",runTime.constant(),mesh,IOobject::READ_IF_PRESENT,IOobject::AUTO_WRITE),mesh,dimensionedScalar("storU",dimless,0.25));
 surfaceScalarField Kf(IOobject("Kf",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("Kf",dimArea,1.e-12));
-Kf = fvc::interpolate(Kh,"Kh");
+//Kf = fvc::interpolate(Kh,"Kh");
 
 //create a surface scalar field with harmonic mean different for the vertical and non-vertical faces
 label oCell , nCell;
@@ -130,17 +132,24 @@ volScalarField::Internal hSu
 (IOobject("hSu",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero",dimensionSet(0,0,-1,0,0,0,0),0.0)); // the overall eq in in m3.s-1
 volScalarField::Internal hSp
 (IOobject("hSp",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero",dimensionSet(0,-1,-1,0,0,0,0),0.0) );
-
+volScalarField hSpField
+(IOobject("hSpField",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", hSp.dimensions(), 0.0));
+volScalarField hSuField
+(IOobject("hSuField",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", hSu.dimensions(), 0.0));
+volScalarField Rh
+(IOobject("Rh",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", dimless/dimTime, 0.0));
+volScalarField dh 
+(IOobject("dh",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", h.dimensions(), 0.0),zeroGradientFvPatchScalarField::typeName);
 
 // -------------- conditions for head -------------
-labelList cellsHfix0; std::vector<float> qHfix;std::vector<float> cellsHfixData;scalar tHfix=0;int itHfix=0;
-labelList cellsHwel0; std::vector<float> qHwel;std::vector<float> cellsHwelData;scalar tHwel=0;int itHwel=0;
-labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;scalar tHdrn=0;int itHdrn=0;
-labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;scalar tHriv=0;int itHriv=0; 
-labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;scalar tHghb=0;int itHghb=0; std::vector<float> qGerr;
-labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;scalar tHrch=0;int itHrch=0; std::vector<float> clayRch;
+labelList cellsHfix0; std::vector<float> qHfix;std::vector<float> cellsHfixData;float tHfix=0;int itHfix=0;
+labelList cellsHwel0; std::vector<float> qHwel;std::vector<float> cellsHwelData;float tHwel=0;int itHwel=0;
+labelList cellsHdrn0; std::vector<float> qHdrn;std::vector<float> cellsHdrnData;float tHdrn=0;int itHdrn=0;
+labelList cellsHriv0; std::vector<float> qHriv;std::vector<float> cellsHrivData;float tHriv=0;int itHriv=0; 
+labelList cellsHghb0; std::vector<float> qHghb;std::vector<float> cellsHghbData;float tHghb=0;int itHghb=0; std::vector<float> qGerr;
+labelList cellsHrch0; std::vector<float> qHrch;std::vector<float> cellsHrchData;float tHrch=0;int itHrch=0; std::vector<float> clayRch;
 //std::vector<float> ratio;
-outData output;scalar time = mesh.time().value();
+outData output;float time = mesh.time().value();
 tnext=readScalar(runTime.controlDict().lookup("endTime"));
 if (fexists(cur_dir+"/constant/options/hfix")) { 
 cellSet selectedHfix(mesh, "hfix");cellsHfix0 = selectedHfix.toc();
@@ -183,8 +192,8 @@ std::vector<int> cellsHriv = indexC(cellsHriv0,cellsHrivData) ;
 std::vector<int> cellsHrch = indexC(cellsHrch0,cellsHrchData) ;
 
 // mass balance
-float sqIHrch=0,sqIHghb=0,sqIHdrn=0,sqIHfix=0,sqIHwel=0;
-float sqOHrch=0,sqOHghb=0,sqOHdrn=0,sqOHfix=0,sqOHwel=0;
+float sqIHrch,sqIHghb,sqIHdrn,sqIHfix,sqIHwel;
+float sqOHrch,sqOHghb,sqOHdrn,sqOHfix,sqOHwel;
 std::ofstream fich1(cur_dir+"/observation/budgetH.txt");// Ouvrir le fichier en mode append
 fich1 <<"time InHfix OutHfix InHwel OutHwel InHdrn OutHdrn InHghb OutHghb InHrch OutHrch\n"<< std::endl;
 fich1.close();

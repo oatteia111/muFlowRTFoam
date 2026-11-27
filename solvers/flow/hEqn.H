@@ -61,20 +61,35 @@ time = mesh.time().value() ;float f; //Info<<"chw size "<<cellsHw.size()<<" chfx
 //get the well discharge/recharge
 if (cellsHwel.size()>0)
 {
+	if (time>tHwel) {
+		output = getCbuffer("hwel",itHwel,cellsHwel.size()); 
+		tHwel = output.t; cellsHwelData=output.d; itHwel+=1;
+		tnext = min(tnext,tHwel);
+		}
 	for (i=0; i<cellsHwel.size(); i++)
-		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;//}
-		Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
+		{v=mesh.V()[cellsHwel[i]];qHwel[i] = cellsHwelData[i*4+2] ; hSu[cellsHwel[i]] = qHwel[i]/v;}
+		//Info<<i<<" ic well "<<cellsHwel[i]<<" qwel "<<qHwel[i]<<endl; }
 } //Info<<"Hfw read ";
 //----- get the ghb conditions
 //int ic0=10;
 if (cellsHghb.size()>0)
 {
+	if (time>tHghb) {
+		output = getCbuffer("hghb",itHghb,cellsHghb.size()); 
+		tHghb = output.t; cellsHghbData=output.d; itHghb +=1;
+		tnext = min(tnext,tHghb);
+		}
 	for (i=0; i<cellsHghb.size(); i++) 
 		{i1=cellsHghb[i];v=mesh.V()[i1];hSu[i1] = cellsHghbData[i*4+2]/v ; hSp[i1] = cellsHghbData[i*4+3]/v ;}
 } //Info<<"Hghb read hSu ";//<<hSu[ncell_lay*3+ic0]<<" ";
 //----- get the riv conditions
 if (cellsHriv.size()>0)
 {
+	if (time>tHriv) {
+		output = getCbuffer("hriv",itHriv,cellsHriv.size()); 
+		tHriv = output.t; cellsHrivData=output.d; itHriv +=1;
+		tnext = min(tnext,tHriv);
+		}
 	for (i=0; i<cellsHriv.size(); i++) 
 		{i1=cellsHriv[i];v=mesh.V()[i1];hSu[i1] = cellsHrivData[i*4+2]/v ; hSp[i1] = cellsHrivData[i*4+3]/v ;}
 		//Info<<" i "<<i<<" i1 "<<i1<<" hsu "<<hSu[i1]<<" hsp "<<hSp[i1]<<endl;}
@@ -82,6 +97,11 @@ if (cellsHriv.size()>0)
 //----- get the drn conditions
 if (cellsHdrn.size()>0)
 {
+	if (time>tHdrn) {
+		output = getCbuffer("hdrn",itHdrn,cellsHdrn.size()); 
+		tHdrn = output.t; cellsHdrnData=output.d; itHdrn +=1;
+		tnext = min(tnext,tHdrn);
+		}
 	for (i=0; i<cellsHdrn.size(); i++) 
 		{
 		i1 = cellsHdrn[i]; v=mesh.V()[i1]; // missing condition!!!
@@ -92,6 +112,11 @@ if (cellsHdrn.size()>0)
 //---- recharge conditions		
 if (cellsHrch.size()>0)
 {
+	if (time>tHrch) {
+		output = getCbuffer("hrch",itHrch,cellsHrch.size()); 
+		tHrch = output.t; cellsHrchData=output.d; itHrch +=1;
+		tnext = min(tnext,tHrch);
+		}
 	int ibl,Rblok,nRblok;
 	if (ncell_row>1) {Rblok= ncell_row;nRblok = ncell_col;} // case xsection
 	else {Rblok = ncell_lay;nRblok = nlay;} // 3d case
@@ -111,6 +136,11 @@ if (cellsHrch.size()>0)
 //fixed head cells
 if (cellsHfix.size()>0)
 {
+	if (time>tHfix) {
+		output = getCbuffer("hfix",itHfix,cellsHfix.size()); 
+		tHfix = output.t; cellsHfixData=output.d; itHfix +=1;
+		tnext = min(tnext,tHfix);
+		}
 	//std::cout<<"hfix ";
 	for (size_t i=0; i<cellsHfix.size(); i++) 
 		{ 
@@ -123,7 +153,7 @@ if (cellsHfix.size()>0)
 // ***************** solving
 // linked to coupling
 // get the multiplying factors from plugin_H 
-if (coupling ==1) {
+if (coupling >0) {
 	volScalarField factM = plugH.corrM(mesh,freak);//Info<<"factM(0-2) "<<factM[0]<<" "<<factM[1] <<" "<<factM[2]<<endl;//" Mf "<<Mf<<" M0f "<<M0f<<endl;
 	surfaceScalarField factMf = fvc::interpolate(factM,"factM");
 	Mf *=factMf; 
@@ -138,10 +168,38 @@ if (coupling ==1) {
 		outFact.close();
 		}
 	}
-fvScalarMatrix hEqn
+if (coupling<2) 
+	{
+	fvScalarMatrix hEqn
 	( stor*fvm::ddt(h) - fvm::laplacian(Mf,h) + fvm::SuSp(hSp,h) == hSu  ); // + fvc::div(phiG) == b*fvOptions(sw,h) 
 
-residu = hEqn.solve().initialResidual(); 
+	residu = hEqn.solve().initialResidual(); 
+	}
+else if (coupling==2) 
+	{
+	// 1. Mise à jour des propriétés dépendant de h (Mf, hSp, hSu, stor, et leurs dérivées si connues)
+	// Exemple : calcul de Rh à partir de h courant (pb BC on doit crer hhSpField)
+	//volScalarField hSpField(IOobject("hSpField",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", hSp.dimensions(), 0.0));
+	hSpField.primitiveFieldRef() = static_cast<const DimensionedField<scalar, volMesh>&>(hSp);
+	hSpField.correctBoundaryConditions();
+	//volScalarField hSuField(IOobject("hSuField",TIME_NAME(mesh.time()),mesh,IOobject::NO_READ,IOobject::NO_WRITE),mesh,dimensionedScalar("zero", hSu.dimensions(), 0.0));
+	hSuField.primitiveFieldRef() = static_cast<const DimensionedField<scalar, volMesh>&>(hSu);
+	hSuField.correctBoundaryConditions();
+	Info<<"hSu init ok "<<endl;
+	Rh = stor*fvc::ddt(h) - fvc::laplacian(Mf, h) + (hSpField*h - hSuField);
+	Info<<"Rh ok "<<endl;
+	// 2. Incrément dh (initialisé à 0 à chaque itération Newton)
+	dh == h*0;
+	Info<<"dh ok "<<endl;
+	// 3. Système linéaire en dh : J * dh = -R
+	// Ajoutez les termes dérivés (ex. dMf_dh, dhSp_dh, dhSu_dh) si vous les avez calculés
+	fvScalarMatrix dhEqn
+	( stor*fvm::ddt(dh) - fvm::laplacian(Mf, dh) + fvm::SuSp(hSp, dh) == - Rh);
+
+	dhEqn.relax();
+	dhEqn.solve();
+	}
+
 Info<<"h(0-5) ";for (i=0;i<6;i++) {Info<<h[i]<<" ";} Info<<endl;
 //phiw= -((Mf*gradHf) & mesh.Sf());
 phiw == (-Mf * fvc::snGrad(h)) * mesh.magSf(); //similar to the above one
